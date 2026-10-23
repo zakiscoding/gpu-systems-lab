@@ -1,5 +1,9 @@
 # MPI experiments (roadmap step 5, "MPI second")
 
+**[homelab](https://github.com/zakiscoding/homelab)** (docs hub) · [homelab-services](https://github.com/zakiscoding/homelab-services) · [homelab-web](https://github.com/zakiscoding/homelab-web) · [homelab-gpu](https://github.com/zakiscoding/homelab-gpu) · **gpu-systems-lab**
+
+[gpu-systems-lab](../README.md) / `mpi/` · [← repo README](../README.md) · [Results](../docs/RESULTS.md) · [Code guide](../docs/CODE-GUIDE.md)
+
 NCCL handles collectives for PyTorch DDP (see `modal/`). These experiments cover what
 MPI is for: explicit point-to-point messaging, process launch, and the neighbour
 halo-exchange pattern behind most HPC codes.

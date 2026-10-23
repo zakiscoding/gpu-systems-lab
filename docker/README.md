@@ -1,5 +1,9 @@
 # Reproducible GPU container (roadmap step 3)
 
+**[homelab](https://github.com/zakiscoding/homelab)** (docs hub) · [homelab-services](https://github.com/zakiscoding/homelab-services) · [homelab-web](https://github.com/zakiscoding/homelab-web) · [homelab-gpu](https://github.com/zakiscoding/homelab-gpu) · **gpu-systems-lab**
+
+[gpu-systems-lab](../README.md) / `docker/` · [← repo README](../README.md) · [Results](../docs/RESULTS.md) · [Code guide](../docs/CODE-GUIDE.md)
+
 Packages `benchmarks/smoke_test.py` into a pinned image so the RTX 5070 baseline
 can be rerun anywhere with Docker + NVIDIA Container Toolkit (and later compared
 against Modal in step 4).

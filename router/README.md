@@ -1,5 +1,9 @@
 # Job router: local RTX 5070 or Modal
 
+**[homelab](https://github.com/zakiscoding/homelab)** (docs hub) · [homelab-services](https://github.com/zakiscoding/homelab-services) · [homelab-web](https://github.com/zakiscoding/homelab-web) · [homelab-gpu](https://github.com/zakiscoding/homelab-gpu) · **gpu-systems-lab**
+
+[gpu-systems-lab](../README.md) / `router/` · [← repo README](../README.md) · [Results](../docs/RESULTS.md) · [Code guide](../docs/CODE-GUIDE.md)
+
 A small control plane that decides where a GPU job runs, explains why, and runs it.
 
 ```bash
@@ -40,8 +44,9 @@ Tested end to end. Rows from the iMac's Postgres (`jobs` joined to `experiments`
   utilization ≥ 20% over three samples.
 - **Spend guard.** Jobs without `max_usd` get `MAX_USD_PER_JOB` (default $1). Modal launches need
   no `--yes` here, because the cap is the confirmation.
-- **Lease limit.** Train leases are 15 min and aren't renewed. Keep routed jobs shorter, or
-  another worker's stale-lease sweep can requeue them.
+- **Lease renewal.** Train leases are 15 min. While a routed job runs, a background thread renews
+  the lease every 5 min (`POST /internal/worker/jobs/{id}/renew`), so long jobs aren't requeued by
+  another worker's stale-lease sweep.
 
 ## How it decides
 
@@ -77,6 +82,8 @@ Tested end to end. Rows from the iMac's Postgres (`jobs` joined to `experiments`
 | `route.py` | feasibility checks, runtime/cost estimates, choice |
 | `jobs.py` | named example jobs |
 | `__main__.py` | CLI; executes locally via SSH or on Modal via `modal/run_job.py` |
+| `homelab_worker.py` | claims routed jobs from the iMac API, renews the lease, decides, runs, records the decision |
+| `test_route.py` | 10 unit tests (no SSH or Modal) |
 
 ## Limits
 

@@ -1,5 +1,9 @@
 # GPU scheduling: k3s + NVIDIA device plugin on the RTX 5070
 
+**[homelab](https://github.com/zakiscoding/homelab)** (docs hub) · [homelab-services](https://github.com/zakiscoding/homelab-services) · [homelab-web](https://github.com/zakiscoding/homelab-web) · [homelab-gpu](https://github.com/zakiscoding/homelab-gpu) · **gpu-systems-lab**
+
+[gpu-systems-lab](../README.md) / `scheduling/` · [← repo README](../README.md) · [Results](../docs/RESULTS.md) · [Code guide](../docs/CODE-GUIDE.md)
+
 A single-node Kubernetes cluster (k3s) on `zak-gpu-node` that schedules GPU work as Jobs. The NVIDIA
 device plugin advertises the card as the resource `nvidia.com/gpu`, and the scheduler queues any pod
 that asks for more GPUs than are free. That gives a queue for free; time-slicing changes how many

@@ -1,5 +1,9 @@
 # Sharded training (FSDP2) and fault tolerance
 
+**[homelab](https://github.com/zakiscoding/homelab)** (docs hub) · [homelab-services](https://github.com/zakiscoding/homelab-services) · [homelab-web](https://github.com/zakiscoding/homelab-web) · [homelab-gpu](https://github.com/zakiscoding/homelab-gpu) · **gpu-systems-lab**
+
+[gpu-systems-lab](../README.md) / `distributed/` · [← repo README](../README.md) · [Results](../docs/RESULTS.md) · [Code guide](../docs/CODE-GUIDE.md)
+
 This section trains a GPT-style decoder on 2x H100 (NVLink) on Modal. It covers three things:
 
 1. DDP vs FSDP: per-GPU memory and step time, plus a 5.6B model that does not fit with DDP but trains with FSDP.
