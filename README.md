@@ -1,8 +1,16 @@
+<div align="center">
+
 # gpu-systems-lab
 
-**[homelab](https://github.com/zakiscoding/homelab)** (docs hub) · [homelab-services](https://github.com/zakiscoding/homelab-services) · [homelab-web](https://github.com/zakiscoding/homelab-web) · [homelab-gpu](https://github.com/zakiscoding/homelab-gpu) · **gpu-systems-lab**
-
 **GPU systems from one RTX 5070 to multi-GPU H100s: CUDA kernels, MPI/NCCL, FSDP, vLLM serving, k3s scheduling, DCGM monitoring, and a local-vs-cloud job router.**
+
+![local](https://img.shields.io/badge/local-RTX%205070%2012%20GB-76b900?style=flat-square&logo=nvidia&logoColor=white) ![cloud](https://img.shields.io/badge/cloud-Modal%20H100%20%C2%B7%202%C3%97H100-7c3aed?style=flat-square) ![node](https://img.shields.io/badge/node-Ubuntu%2024.04-e95420?style=flat-square&logo=ubuntu&logoColor=white) ![CUDA](https://img.shields.io/badge/CUDA-13.2-76b900?style=flat-square&logo=nvidia&logoColor=white) ![k3s](https://img.shields.io/badge/k3s-GPU%20queue-ffc61c?style=flat-square&logo=k3s&logoColor=white) ![serving](https://img.shields.io/badge/serving-vLLM-30a2ff?style=flat-square)
+
+[homelab](https://github.com/zakiscoding/homelab) (docs hub) · [homelab-services](https://github.com/zakiscoding/homelab-services) · [homelab-web](https://github.com/zakiscoding/homelab-web) · [homelab-gpu](https://github.com/zakiscoding/homelab-gpu) · **gpu-systems-lab**
+
+</div>
+
+---
 
 This repo is the Ubuntu side of the dual-boot GPU PC (`zak-gpu-node`) plus the Modal cloud runs
 that it is compared against. It also provides the homelab's always-on chat backend (vLLM) and the
