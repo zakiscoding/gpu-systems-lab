@@ -64,6 +64,6 @@ Build practical GPU-systems skills by progressing from a verified single-GPU bas
 - [x] CUDA kernels + PTX/LLVM IR inspection (`cuda/`: vector add, tiled matmul vs cuBLAS, reductions, fused bias+GELU)
 - [x] MPI on one node (`mpi/`: ping-pong, all-reduce, Jacobi halo exchange; MPS gives 3x on shared-GPU runs)
 - [x] Modal account connected; parity and NCCL scripts ready in `modal/` (not yet run)
-- [ ] Containerized benchmark
+- [x] Containerized benchmark (`docker/`: pinned cu128 image, `run.sh validate`; matches native within 1%)
 - [ ] Modal parity run
 - [ ] Multi-GPU NCCL/DDP run
