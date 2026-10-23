@@ -35,13 +35,18 @@ import torch.distributed as dist
 import torch.nn as nn
 import torch.nn.functional as F
 
+# MFU denominator, per GPU; MFU figures are only meaningful on H100
 H100_BF16_DENSE_TFLOPS = 989.0
+# set by --deterministic; read by Block.forward to pick the math SDPA kernel
 DETERMINISTIC = False
 
 
 # ---------------------------------------------------------------- model
 
 class Block(nn.Module):
+    """Pre-LayerNorm transformer block: causal multi-head self-attention, then a
+    4x-wide GELU MLP, each added back to the residual stream. Linears have no bias."""
+
     def __init__(self, d: int, h: int):
         super().__init__()
         self.h = h
@@ -53,6 +58,8 @@ class Block(nn.Module):
         self.fc2 = nn.Linear(4 * d, d, bias=False)
 
     def forward(self, x):
+        """(batch, seq, d_model) -> same shape. Under --deterministic attention runs
+        on the math SDPA kernel so the backward pass is reproducible."""
         B, T, C = x.shape
         q, k, v = self.qkv(self.ln1(x)).view(B, T, 3, self.h, C // self.h).permute(2, 0, 3, 1, 4)
         if DETERMINISTIC:  # flash/mem-efficient backward accumulate dQ with atomics
@@ -66,6 +73,11 @@ class Block(nn.Module):
 
 
 class GPT(nn.Module):
+    """Decoder-only transformer: token + learned position embeddings, `layers`
+    Blocks, final LayerNorm and an untied LM head. With `ac` (activation
+    checkpointing) each block's activations are recomputed in backward instead
+    of stored: less memory, roughly one extra forward of compute."""
+
     def __init__(self, vocab: int, seq: int, d: int, layers: int, heads: int, ac: bool):
         super().__init__()
         self.ac = ac
@@ -76,6 +88,7 @@ class GPT(nn.Module):
         self.head = nn.Linear(d, vocab, bias=False)
 
     def forward(self, idx):
+        """(batch, seq) token ids -> (batch, seq, vocab) logits."""
         x = self.tok(idx) + self.pos(torch.arange(idx.shape[1], device=idx.device))
         for b in self.blocks:
             if self.ac and self.training:
@@ -87,6 +100,10 @@ class GPT(nn.Module):
 
 @torch.no_grad()
 def init_weights(model: nn.Module, n_layers: int):
+    """GPT-2 style init, applied after to_empty() (the model is built on the meta
+    device, so its tensors start uninitialized): weights ~ N(0, 0.02), with the
+    residual output projections (proj, fc2) scaled by 1/sqrt(2 * n_layers) so the
+    residual stream doesn't grow with depth; LayerNorm weight 1, bias 0."""
     for name, p in model.named_parameters():
         if p.dim() == 1:  # LayerNorm
             p.fill_(0.0 if name.endswith("bias") else 1.0)
@@ -111,15 +128,20 @@ def batch_for(step: int, rank: int, args, device):
 # ---------------------------------------------------------------- helpers
 
 def local_numel(t: torch.Tensor) -> int:
+    """Element count of this rank's local shard (FSDP2 DTensor) or of a plain tensor."""
     return t.to_local().numel() if hasattr(t, "to_local") else t.numel()
 
 
 def local_bytes(t: torch.Tensor) -> int:
+    """Bytes of this rank's local shard (FSDP2 DTensor) or of a plain tensor."""
     lt = t.to_local() if hasattr(t, "to_local") else t
     return lt.numel() * lt.element_size()
 
 
 def state_bytes(model, opt) -> dict:
+    """Training state held on this rank, in GiB: params, grads and optimizer
+    state (AdamW exp_avg/exp_avg_sq; 0-dim `step` counters skipped). Under FSDP
+    these are local shards, which is where the 1/world saving shows up."""
     p = sum(local_bytes(x) for x in model.parameters())
     g = sum(local_bytes(x.grad) for x in model.parameters() if x.grad is not None)
     o = sum(local_bytes(v) for st in opt.state.values() for v in st.values()
@@ -130,11 +152,17 @@ def state_bytes(model, opt) -> dict:
 
 
 class Events:
+    """Append-only JSON-lines event log shared by every rank (a no-op without
+    --events). `attempt` is torchrun's restart count, so events from before
+    and after a restart can be told apart."""
+
     def __init__(self, path: str | None, rank: int):
         self.path, self.rank = path, rank
         self.attempt = int(os.environ.get("TORCHELASTIC_RESTART_COUNT", "0"))
 
     def emit(self, ev: str, **kw):
+        """Append one event stamped with time.time() (wall clock, comparable across
+        processes). fsync'd so the line survives a SIGKILL right after it."""
         if not self.path:
             return
         line = json.dumps({"ev": ev, "t": time.time(), "rank": self.rank, "attempt": self.attempt, **kw})
@@ -145,6 +173,8 @@ class Events:
 
 
 def latest_ckpt(ckpt_dir: str | None):
+    """The {"step", "path"} pointer in <ckpt_dir>/latest.json, or None if there
+    is no checkpoint (or no --ckpt-dir)."""
     if not ckpt_dir:
         return None
     ptr = Path(ckpt_dir) / "latest.json"
@@ -152,6 +182,9 @@ def latest_ckpt(ckpt_dir: str | None):
 
 
 def save_ckpt(model, opt, step: int, ckpt_dir: str, rank: int) -> float:
+    """Save model + optimizer as a sharded DCP checkpoint in <ckpt_dir>/step_<NNNNNN>
+    (each rank writes its own shards), then have rank 0 atomically repoint
+    latest.json at it. Collective: every rank must call it. Returns seconds."""
     import torch.distributed.checkpoint as dcp
     from torch.distributed.checkpoint.state_dict import get_state_dict
 
@@ -169,6 +202,8 @@ def save_ckpt(model, opt, step: int, ckpt_dir: str, rank: int) -> float:
 
 
 def load_ckpt(model, opt, path: str) -> float:
+    """Load a DCP checkpoint into the model and optimizer in place, each rank
+    reading the shards it owns. Collective: every rank must call it. Returns seconds."""
     import torch.distributed.checkpoint as dcp
     from torch.distributed.checkpoint.state_dict import get_state_dict, set_state_dict
 
@@ -182,12 +217,21 @@ def load_ckpt(model, opt, path: str) -> float:
 
 
 def du_bytes(path: str) -> int:
+    """Total size in bytes of the files under `path` (checkpoint size on disk)."""
     return sum(f.stat().st_size for f in Path(path).rglob("*") if f.is_file())
 
 
 # ---------------------------------------------------------------- main
 
 def build(args, device, world):
+    """Create the model on the meta device, wrap it for --mode, then allocate and
+    initialize the real weights on `device`. Returns (model, AdamW, param count).
+
+    FSDP: fully_shard each block and then the root (embeddings, ln_f, head), so
+    params are all-gathered one block at a time; with bf16 the gathered params
+    are bf16 and gradients are reduced in fp32. DDP (world > 1): full replica
+    per rank; bf16 comes from autocast in the training loop instead.
+    """
     torch.manual_seed(args.seed)
     with torch.device("meta"):
         model = GPT(args.vocab, args.seq, args.d_model, args.n_layers, args.n_heads, args.ac)
@@ -219,6 +263,24 @@ def build(args, device, world):
 
 
 def main() -> None:
+    """torchrun worker: set up the process group, build, optionally resume, train,
+    optionally checkpoint and crash, then write the JSON record (rank 0).
+
+    Steps are numbered globally (1..--steps): a resumed run starts after the
+    checkpoint's step and, because batch_for() depends only on (seed, step,
+    rank), sees the same batches as an uninterrupted run. Per-step timing
+    excludes the first --warmup steps; the reported step time is the median,
+    MAX-reduced across ranks. MFU = 6 * params * tokens / step time over the
+    H100 dense BF16 peak (attention FLOPs ignored).
+
+    Fault-injection: with --kill-at-step, rank --kill-rank SIGKILLs itself right
+    after that step on attempt 0 only, so torchrun restarts the group and the
+    next attempt (with --resume) runs to the end.
+
+    A CUDA OOM during build or training is caught: rank 0 writes status "oom"
+    and every rank exits via os._exit(0) without touching collectives, so a
+    suite records the OOM instead of hanging.
+    """
     p = argparse.ArgumentParser()
     p.add_argument("--out", default=None)
     p.add_argument("--device", choices=["cuda", "cpu"], default="cuda")
@@ -316,14 +378,17 @@ def main() -> None:
             x, y = batch_for(step, rank, args, device)
             t0 = time.perf_counter()
             opt.zero_grad(set_to_none=True)
+            # FSDP already computes in bf16 via MixedPrecisionPolicy; DDP gets bf16 from autocast
             with torch.autocast(device.type, dtype=torch.bfloat16,
                                 enabled=args.bf16 and args.mode == "ddp"):
                 logits = model(x)
+            # softmax / cross-entropy over the vocab in fp32 for numerical stability
             loss = F.cross_entropy(logits.float().view(-1, args.vocab), y.reshape(-1))
             loss.backward()
             opt.step()
             avg = loss.detach().clone()
             dist.all_reduce(avg)  # .item() below also synchronizes the GPU for timing
+            # all_reduce sums, so divide by world for the mean loss across ranks
             lv = avg.item() / world
             dt = time.perf_counter() - t0
             losses[step] = lv
@@ -333,6 +398,7 @@ def main() -> None:
             if rank == 0:
                 print(f"  [{args.mode} r{ev.attempt}] step {step:4d}  loss {lv:.4f}  {dt * 1e3:8.1f} ms", flush=True)
 
+            # fault injection: attempt 0 only, so the restarted job runs through
             if args.kill_at_step and step == args.kill_at_step and ev.attempt == 0 and rank == args.kill_rank:
                 ev.emit("kill", step=step)
                 os.kill(os.getpid(), signal.SIGKILL)  # no cleanup, like a crashed host process
@@ -364,6 +430,7 @@ def main() -> None:
             print(f"  [{args.mode}] OOM: {record['error']}", flush=True)
         os._exit(0)
 
+    # median step time per rank, then the slowest rank's (it sets the pace)
     if step_times:
         t = torch.tensor([statistics.median(step_times)], device=device)
         dist.all_reduce(t, op=dist.ReduceOp.MAX)

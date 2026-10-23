@@ -11,6 +11,8 @@
 NVCC      ?= /usr/local/cuda/bin/nvcc
 CUDA_PATH ?= /usr/local/cuda
 ARCH      ?= sm_120
+# -ccbin=mpicxx: nvcc's host compiler/linker is Open MPI's wrapper, which adds
+# the MPI -I/-L/-l flags itself. NP = rank count for `make run`.
 NVCCFLAGS ?= -arch=$(ARCH) -O3 -lineinfo -std=c++17 -ccbin=mpicxx
 MPIRUN    ?= mpirun
 NP        ?= 4
@@ -19,12 +21,16 @@ BUILD := build
 PROGS := pingpong allreduce jacobi
 BINS  := $(addprefix $(BUILD)/,$(PROGS))
 
+# MPS control pipe and logs under /tmp (the default log dir,
+# /var/log/nvidia-mps, needs root), so the daemon starts as a normal user. The same variables are
+# exported to every rank (mpirun -x) so clients find the daemon.
 MPS_DIRS := CUDA_MPS_PIPE_DIRECTORY=/tmp/mps-pipe CUDA_MPS_LOG_DIRECTORY=/tmp/mps-log
 
 .PHONY: all run run-mps scaling clean
 
 all: $(BINS)
 
+# mpi_common.cuh includes ../cuda/common.cuh, hence the cross-directory dep.
 $(BUILD)/%: %.cu mpi_common.cuh ../cuda/common.cuh | $(BUILD)
 	$(NVCC) $(NVCCFLAGS) -o $@ $<
 

@@ -27,6 +27,12 @@
 
 // GPU-side timing with cudaEvents. Events are recorded into the stream, so
 // the measurement covers device work between the two events.
+//   * Both events go into the legacy default stream (stream 0), so this times
+//     everything launched on stream 0 in between, not just one kernel.
+//   * stop_ms() blocks the host until the stop event completes
+//     (cudaEventSynchronize) and returns elapsed milliseconds (~0.5 us
+//     resolution per the CUDA docs).
+//   * The constructor allocates two events; they are destroyed with the timer.
 struct GpuTimer {
     cudaEvent_t start_, stop_;
     GpuTimer() {
@@ -49,6 +55,15 @@ struct GpuTimer {
 
 // Run `fn` a few times to warm up (clocks, caches, lazy module loading), then
 // return the average milliseconds per call over `iters` timed calls.
+//   fn      callable that enqueues work on the default stream (a kernel
+//           launch, cudaMemcpyAsync, a library call). It may run more than
+//           once, so it must be idempotent or reset its own output.
+//   iters   timed calls; warmup  untimed calls before them.
+// Side effects: cudaDeviceSynchronize() after the warmup (so warmup work does
+// not leak into the timing), a host block on the stop event, and an exit(2)
+// via CUDA_CHECK if any launch failed. The timed calls are queued
+// back-to-back with no host sync between them, so the average reflects
+// steady-state device throughput, not per-launch host latency.
 template <typename F>
 float time_ms(F fn, int iters = 20, int warmup = 3) {
     for (int i = 0; i < warmup; ++i) fn();
@@ -63,7 +78,9 @@ float time_ms(F fn, int iters = 20, int warmup = 3) {
 }
 
 // Deterministic pseudo-random floats in [-1, 1) (xorshift32), so CPU and GPU
-// see identical inputs and runs are reproducible.
+// see identical inputs and runs are reproducible. Values are multiples of
+// 2^-23 (24 random bits scaled), so they are exactly representable in FP32.
+// Different seeds give independent-looking streams for each input array.
 inline void fill_random(std::vector<float>& v, unsigned seed = 1234) {
     unsigned s = seed * 2654435761u + 1u;
     for (auto& x : v) {
@@ -75,7 +92,10 @@ inline void fill_random(std::vector<float>& v, unsigned seed = 1234) {
 }
 
 // Max relative error, with a floor of 1 on the denominator so values near
-// zero do not blow up the ratio.
+// zero do not blow up the ratio. `a` is the result under test, `b` the
+// reference (its magnitude is the denominator); both are host arrays of n
+// floats. Computed in double; any NaN in `a` (e.g. a poisoned, never-written
+// output) returns INFINITY so the check fails.
 inline double max_rel_err(const float* a, const float* b, size_t n) {
     double worst = 0.0;
     for (size_t i = 0; i < n; ++i) {
@@ -87,6 +107,9 @@ inline double max_rel_err(const float* a, const float* b, size_t n) {
     return worst;
 }
 
+// One-line summary of device 0 (name, compute capability, SM count, memory)
+// and the runtime/driver CUDA versions, printed at the top of every program
+// so logged results record the hardware and toolkit they came from.
 inline void print_device() {
     cudaDeviceProp p;
     CUDA_CHECK(cudaGetDeviceProperties(&p, 0));
@@ -99,6 +122,10 @@ inline void print_device() {
                 drv / 1000, (drv % 1000) / 10);
 }
 
+// Results table: one header, then one row per kernel. `metric` names the
+// throughput column (GB/s or GFLOPS); each program computes the value itself.
+// print_ref_row is for reference rows (library calls, sub-kernels) that are
+// timed but not checked, so max_err/ok print as "-".
 inline void print_header(const char* metric) {
     std::printf("%-28s %10s %12s %10s %4s\n", "kernel", "ms", metric, "max_err", "ok");
     std::printf("%-28s %10s %12s %10s %4s\n", "----------------------------", "----------",

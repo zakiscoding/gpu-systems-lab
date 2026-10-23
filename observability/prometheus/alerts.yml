@@ -1,3 +1,7 @@
+# Prometheus alerting rules for the GPU node: dcgm-exporter metrics (DCGM_FI_DEV_*) and its scrape status.
+# Loaded via rule_files in prometheus.yml; mounted at /etc/prometheus/alerts.yml by
+# docker-compose.yml. No Alertmanager is configured: firing alerts are visible on
+# Prometheus's /alerts page. After editing: curl -X POST <prometheus>:9090/-/reload.
 groups:
   - name: gpu
     rules:

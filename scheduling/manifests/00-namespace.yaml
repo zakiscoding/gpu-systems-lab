@@ -1,3 +1,5 @@
+# Namespace for all GPU jobs in this lab (submit.py, the smoke tests and the demos use it).
+# Apply first: kubectl apply -f manifests/00-namespace.yaml
 apiVersion: v1
 kind: Namespace
 metadata:

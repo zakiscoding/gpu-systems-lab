@@ -26,6 +26,7 @@ import modal
 REPO = Path(__file__).resolve().parent.parent
 REMOTE_REPO = "/root/lab"
 
+# Modal GPU type names accepted by --gpu (single GPU only; this script records gpu_count=1)
 ALLOWED_GPUS = ("T4", "L4", "A10G", "L40S", "A100", "A100-80GB", "H100")
 DEFAULT_GPU = os.environ.get("MODAL_LAB_GPU", "L4")
 
@@ -71,6 +72,13 @@ def run_smoke(size: int = 8192, iters: int = 50):
 
 @app.local_entrypoint()
 def main(gpu: str = DEFAULT_GPU, size: int = 8192, iters: int = 50):
+    """Local entry point: run the smoke test on one Modal `gpu` and save the record.
+
+    Measures cold start (call -> first yield) and wall time on the laptop, adds
+    them as the record's `modal` block, writes results/modal_<gpu>_<ts>.json and
+    prints a one-line summary. Exits non-zero if smoke_test.py's correctness
+    checks failed. One paid container run (15 min timeout).
+    """
     if gpu not in ALLOWED_GPUS:
         raise SystemExit(f"--gpu must be one of {ALLOWED_GPUS}, got {gpu!r}")
 

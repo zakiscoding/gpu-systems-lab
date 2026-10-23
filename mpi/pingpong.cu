@@ -13,6 +13,7 @@
 
 #include "mpi_common.cuh"
 
+// Buffer route for one sweep; Direct is only attempted if mpi_cuda_aware().
 enum class Path { Host, Staged, Direct };
 
 static const char* path_name(Path p) {
@@ -25,6 +26,19 @@ static const char* path_name(Path p) {
 
 // Returns microseconds per one-way message. Rank 0 sends then receives,
 // rank 1 receives then sends; the payload is checked after the last hop.
+//   path   which buffer route to time (see the file header)
+//   bytes  message size; iters  timed round trips (plus untimed warmup)
+//   host   pinned host buffer (cudaMallocHost), dev  device buffer; both at
+//          least `bytes` long. Pinned memory lets the staged cudaMemcpys DMA
+//          directly instead of bouncing through a pageable copy.
+//   ok     out: true if rank 0 got its pattern back intact (set on all ranks)
+// Must be called by BOTH ranks with the same arguments: the matched
+// Send/Recv pairs, the MPI_Barrier and the MPI_Bcast all need the peer, and
+// a mismatch deadlocks. Staged hops add a blocking D2H before each send and
+// a blocking H2D after each receive, so their time is included.
+// Measured on one node (mpi/README.md): host 0.17 us at 8 B, ~21 GB/s at
+// 2 MiB; staged ~58 us for small messages (GPU context switches between the
+// two ranks' contexts), ~8 us under MPS.
 static double pingpong(Path path, size_t bytes, int iters, char* host, char* dev, bool* ok) {
     const int rank = world_rank();
     const int peer = 1 - rank;
@@ -87,6 +101,7 @@ int main(int argc, char** argv) {
     if (world_rank() == 0) print_device();
     root_printf("GPUs on node: %d | MPI CUDA-aware: %s\n\n", ngpu, aware ? "yes" : "no (direct path skipped)");
 
+    // One pinned host and one device buffer of max_bytes, reused for every size.
     char *host = nullptr, *dev = nullptr;
     CUDA_CHECK(cudaMallocHost(&host, max_bytes));
     CUDA_CHECK(cudaMalloc(&dev, max_bytes));
@@ -97,6 +112,8 @@ int main(int argc, char** argv) {
     root_printf("%-8s %10s %12s %10s %4s\n", "path", "size", "latency_us", "GB/s", "ok");
     bool all_ok = true;
     char sz[32];
+    // Sizes 8 B, 64 B, ... x8 up to max_bytes; fewer iterations for big
+    // messages. GB/s column = bytes / one-way microseconds / 1e3.
     for (Path p : paths) {
         for (size_t bytes = 8; bytes <= max_bytes; bytes *= 8) {
             int iters = bytes <= (64 << 10) ? 1000 : bytes <= (8 << 20) ? 100 : 20;

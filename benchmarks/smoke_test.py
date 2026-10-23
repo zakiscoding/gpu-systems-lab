@@ -19,6 +19,8 @@ import torch
 
 
 def environment() -> dict:
+    """Host, Python / torch / CUDA / cuDNN versions and GPU 0's properties
+    (name, compute capability, SM count, VRAM in GiB, compiled arch list)."""
     props = torch.cuda.get_device_properties(0)
     return {
         "host": socket.gethostname(),
@@ -44,6 +46,7 @@ def correctness_checks() -> dict:
     max_err = (cpu - gpu).abs().max().item()
 
     x = torch.arange(1_000_000, device="cuda", dtype=torch.float64)
+    # sum of 0..n-1 = n(n-1)/2, exact in float64
     reduction_ok = x.sum().item() == 999_999 * 1_000_000 / 2
 
     with torch.autocast("cuda", dtype=torch.bfloat16):
@@ -60,6 +63,12 @@ def correctness_checks() -> dict:
 
 
 def bench_matmul(size: int, dtype: torch.dtype, iters: int, tf32: bool = False) -> dict:
+    """Time `iters` square size x size matmuls in `dtype` with CUDA events.
+
+    Returns ms per matmul, TFLOPS (2 * size^3 FLOPs per matmul) and peak
+    allocated VRAM (MiB). tf32=True runs fp32 inputs on TF32 tensor cores.
+    Note: sets the process-wide allow_tf32 flag as a side effect.
+    """
     torch.backends.cuda.matmul.allow_tf32 = tf32
     a = torch.randn(size, size, device="cuda", dtype=dtype)
     b = torch.randn(size, size, device="cuda", dtype=dtype)
@@ -104,6 +113,9 @@ def bench_h2d(mib: int = 1024) -> dict:
 
 
 def main() -> None:
+    """Run the checks and benchmarks, print a summary, write
+    <out>/smoke_<host>_<ts>.json, and exit 1 if any correctness check failed
+    (the JSON is written either way). Exits early if CUDA is unavailable."""
     parser = argparse.ArgumentParser()
     parser.add_argument("--size", type=int, default=8192)
     parser.add_argument("--iters", type=int, default=50)

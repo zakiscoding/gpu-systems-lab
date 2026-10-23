@@ -53,6 +53,13 @@ TINY = ["--d-model", "256", "--n-layers", "2", "--n-heads", "4", "--batch", "2",
 
 
 def plan(suites: list[str], tiny: bool, steps: int, resume_steps: int) -> list[tuple[str, list[str]]]:
+    """Expand suite names into (run name, fsdp_gpt.py args) pairs, in run order.
+
+    Each resume suite is three runs sharing a checkpoint dir: `full` trains
+    resume_steps uninterrupted, `part1` trains half and saves a final DCP
+    checkpoint, `part2` resumes from it and trains to resume_steps.
+    --tiny swaps every model for TINY.
+    """
     mid, big, small = (TINY, TINY, TINY) if tiny else (MID, BIG, SMALL)
     s = ["--steps", str(steps)]
     runs = []
@@ -75,6 +82,13 @@ def plan(suites: list[str], tiny: bool, steps: int, resume_steps: int) -> list[t
 
 
 def resume_check(full: dict, part1: dict, part2: dict) -> dict:
+    """Compare a resumed run against the uninterrupted one at matching steps.
+
+    max_abs_diff_before_ckpt is the run-to-run noise floor (full vs part1, no
+    resume involved); max_abs_diff_after_resume should be no larger if resume
+    is correct, and exactly 0 under --deterministic. Also reports checkpoint
+    size (GiB) and DCP save/load times (s). Loss keys are strings (JSON).
+    """
     half = part2["resumed_from"]["step"]
     common = sorted(int(k) for k in part2["losses"] if k in full["losses"])
     diffs = [abs(full["losses"][str(k)] - part2["losses"][str(k)]) for k in common]
@@ -96,6 +110,10 @@ def resume_check(full: dict, part1: dict, part2: dict) -> dict:
 
 @app.function(gpu=DEFAULT_GPU, timeout=30 * 60)
 def run_suite(runs: list[tuple[str, list[str]]], run_timeout: int):
+    """Generator run in the container: one torchrun launch per planned run, all
+    GPUs in the container. Each run's JSON record (or {"status": "failed"} if it
+    wrote none, e.g. OOM) gets its returncode and wall time (s). Yields
+    "started", one "run" event per launch, then "result"."""
     yield {"event": "started"}
     import torch
 
@@ -121,6 +139,8 @@ def run_suite(runs: list[tuple[str, list[str]]], run_timeout: int):
 
 
 def _row(name, r):
+    """One summary-table line for a run: state and peak memory (GiB), step time
+    (ms), tokens/s and MFU; "-" where the run didn't report a value."""
     s = r.get("state_per_rank", {})
     return (f"  {name:<14}{r.get('status', '?'):>8}{r.get('params_billions', 0):>9}"
             f"{s.get('total_gib', '-'):>12}{r.get('peak_alloc_gib', '-'):>12}{r.get('peak_reserved_gib', '-'):>12}"
@@ -130,6 +150,9 @@ def _row(name, r):
 @app.local_entrypoint()
 def main(gpu: str = DEFAULT_GPU, suites: str = "compare,big,resume,resume_det", tiny: bool = False,
          steps: int = 15, resume_steps: int = 30, run_timeout: int = 300):
+    """Local entry point: validate --gpu (TYPE:N, N >= 2), run the selected suites on
+    Modal (paid, 30 min timeout), add resume checks for complete resume suites,
+    write results/modal_fsdp_<type>x<N>_<ts>.json and print the summary."""
     gpu_type, _, count = gpu.partition(":")
     if not count.isdigit() or int(count) < 2:
         raise SystemExit(f"--gpu must look like TYPE:N with N>=2, got {gpu!r}")

@@ -1,3 +1,8 @@
+# Queue demo, fixed-time variant: 3 identical Jobs, each requesting 1 GPU and running
+# bf16 matmuls for DURATION=45 s. With one exclusive GPU, the 2nd and 3rd Jobs stay Pending
+# (Insufficient nvidia.com/gpu) until the GPU frees up: the scheduler is the queue.
+# Needs the gpu-jobs namespace and gpu-bench ConfigMap (manifests/00, 40). Run with:
+#   bash demo/run_queue_demo.sh exclusive
 ---
 apiVersion: batch/v1
 kind: Job

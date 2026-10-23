@@ -13,11 +13,15 @@ TARGETS = list(DEFAULT_TARGETS)
 
 
 def pick(job, local=IDLE):
-    d = decide(job, TARGETS, local)
+    """Name of the target the router chooses for `job` (None if unroutable),
+    using the built-in estimates rather than results/ so tests are stable."""
+    d =decide(job, TARGETS, local)
     return d.choice.target.name if d.choice else None
 
 
 class RouteTest(unittest.TestCase):
+    """One test per routing rule in router/route.py, plus probe parsing."""
+
     def test_small_job_stays_local_when_idle(self):
         self.assertEqual(pick(Job("s", vram_gb=1, local_minutes=1)), "local")
 

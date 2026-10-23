@@ -15,6 +15,10 @@
 
 #include "../cuda/common.cuh"
 
+// Wrap every MPI call. On failure prints the MPI error string and calls
+// MPI_Abort on MPI_COMM_WORLD, which kills all ranks; exiting only this rank
+// would leave the others blocked forever in their next collective.
+// (MPI's default handler, MPI_ERRORS_ARE_FATAL, usually aborts first anyway.)
 #define MPI_CHECK(call)                                                       \
     do {                                                                      \
         int err_ = (call);                                                    \
@@ -30,7 +34,12 @@
 
 // True when the MPI library can take device pointers directly (CUDA-aware).
 // Compile-time support is not enough: the runtime check catches builds where
-// the CUDA component is present but disabled.
+// the CUDA component is present but disabled. Local query, not a collective.
+// Callers use it to choose between two halo/buffer paths:
+//   direct  device pointers passed straight to MPI_* (CUDA-aware only)
+//   staged  cudaMemcpy D2H into pinned host memory, MPI on host buffers,
+//           cudaMemcpy H2D back (works with any MPI, e.g. Ubuntu's Open MPI)
+// Assumes every rank links the same MPI, so all ranks pick the same path.
 inline bool mpi_cuda_aware() {
 #if defined(MPIX_CUDA_AWARE_SUPPORT) && MPIX_CUDA_AWARE_SUPPORT
     return MPIX_Query_cuda_support() == 1;
@@ -39,6 +48,7 @@ inline bool mpi_cuda_aware() {
 #endif
 }
 
+// Rank and size in MPI_COMM_WORLD (local queries; valid after MPI_Init).
 inline int world_rank() {
     int r = 0;
     MPI_Comm_rank(MPI_COMM_WORLD, &r);
@@ -54,6 +64,10 @@ inline int world_size() {
 // One GPU per rank on multi-GPU nodes: bind each rank to (local rank % GPU
 // count). On a single-GPU node every rank lands on device 0, as before.
 // Call right after MPI_Init. Returns the number of GPUs visible on this node.
+// The local rank comes from Open MPI's OMPI_COMM_WORLD_LOCAL_RANK (other MPIs
+// fall back to 0, i.e. everyone on device 0). Side effect: cudaSetDevice,
+// which also selects the device for every later CUDA call from this process.
+// Not a collective.
 inline int bind_local_gpu() {
     const char* lr = std::getenv("OMPI_COMM_WORLD_LOCAL_RANK");
     int local = lr ? std::atoi(lr) : 0, ndev = 0;
@@ -75,8 +89,14 @@ inline void root_printf(const char* fmt, ...) {
 // Same convention as nccl-tests: algbw = bytes / time, and for all-reduce
 // busbw = algbw * 2(n-1)/n, the per-link traffic of a ring algorithm. Using it
 // here makes MPI and NCCL all-reduce numbers directly comparable.
+// Why 2(n-1)/n: a ring all-reduce is a reduce-scatter then an all-gather,
+// each sending (n-1)/n of the buffer over every link. busbw is therefore
+// independent of n and directly comparable to the link's peak bandwidth.
+// algbw in any unit (GB/s here); returns the same unit. n = rank count.
 inline double allreduce_busbw(double algbw, int n) { return algbw * 2.0 * (n - 1) / n; }
 
+// Formats a byte count as "N MiB" / "N KiB" / "N B" (truncating) into buf;
+// returns buf so it can be used inline in printf arguments.
 inline const char* human_bytes(size_t b, char* buf, size_t len) {
     if (b >= (1u << 20)) std::snprintf(buf, len, "%zu MiB", b >> 20);
     else if (b >= (1u << 10)) std::snprintf(buf, len, "%zu KiB", b >> 10);

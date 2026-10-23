@@ -50,11 +50,15 @@ KV_PATTERNS = {
 
 
 def vllm_cli():
+    """Path to the `vllm` executable: the one next to this interpreter (the venv's)
+    if present, else whatever is on PATH."""
     exe = Path(sys.executable).with_name("vllm")
     return str(exe) if exe.exists() else (shutil.which("vllm") or "vllm")
 
 
 def gpu_info():
+    """GPU name, used/total memory (MiB) and driver version from nvidia-smi, or
+    {"error": ...} if it can't be read. Never raises."""
     try:
         out = subprocess.run(
             ["nvidia-smi", "--query-gpu=name,memory.used,memory.total,driver_version",
@@ -67,6 +71,11 @@ def gpu_info():
 
 
 def wait_health(base_url, timeout_s, proc=None):
+    """Poll <base_url>/health every 2 s until it returns 200; return seconds waited.
+
+    Raises TimeoutError after `timeout_s`, or RuntimeError as soon as `proc`
+    (the server we launched, if any) has exited, instead of waiting it out.
+    """
     t0 = time.time()
     while time.time() - t0 < timeout_s:
         if proc is not None and proc.poll() is not None:
@@ -82,6 +91,9 @@ def wait_health(base_url, timeout_s, proc=None):
 
 
 def parse_kv(log_text):
+    """Pull KV-cache capacity numbers out of a vLLM server log: KV cache memory
+    (GiB), KV cache size (tokens), max concurrency at max length, and model
+    weights (GiB), plus up to 8 matching raw lines for when a pattern misses."""
     kv = {}
     for key, pat in KV_PATTERNS.items():
         m = pat.search(log_text)
@@ -100,6 +112,14 @@ def parse_kv(log_text):
 
 
 def run_one(args, conc, out_dir, stamp):
+    """Run one `vllm bench serve` at `conc` requests in flight and return its summary row.
+
+    Sends max(--min-prompts, --prompts-per-conc * conc) prompts at an unlimited
+    request rate, so the concurrency cap is the only limiter. The raw result
+    JSON is saved in `out_dir`; the row keeps throughput (req/s, tok/s), TTFT /
+    TPOT / ITL / end-to-end latency p50/p99 (ms) and GPU memory used (MiB).
+    Raises RuntimeError if the benchmark fails.
+    """
     n = max(args.min_prompts, args.prompts_per_conc * conc)
     fname = f"{args.label}_c{conc}_{stamp}.json"
     cmd = [
@@ -130,6 +150,7 @@ def run_one(args, conc, out_dir, stamp):
     g = gpu_info()
 
     def p(name, pct):
+        """Percentile `pct` of a latency metric from the raw result (ms), or None."""
         return raw.get(f"p{pct}_{name}_ms")
 
     row = {
@@ -159,6 +180,8 @@ def run_one(args, conc, out_dir, stamp):
 
 
 def markdown(summary):
+    """Render the sweep summary as a Markdown heading, a config line and one table
+    row per concurrency level (latencies in ms)."""
     lines = [
         f"### {summary['label']}: {summary['model']} on {summary['gpu'].get('gpu')}",
         "",
@@ -178,6 +201,15 @@ def markdown(summary):
 
 
 def main():
+    """Run the sweep and write <label>_summary_<ts>.json / .md to --out-dir.
+
+    With --launch: start `vllm serve` in its own process group (so the whole
+    tree can be signalled), log to <label>_server_<ts>.log, wait up to 20 min
+    for /health, and always stop it at the end (SIGTERM, SIGKILL after 60 s).
+    Without it: require an already-healthy server at --base-url within 60 s.
+    An untimed warm-up run at the highest concurrency precedes the measured
+    levels. Returns the summary dict.
+    """
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--model", default=os.environ.get("MODEL", "Qwen/Qwen2.5-1.5B-Instruct"))
     ap.add_argument("--base-url", default="http://127.0.0.1:8000")
@@ -205,6 +237,7 @@ def main():
     log_path = Path(args.server_log) if args.server_log else None
     if args.launch:
         log_path = out_dir / f"{args.label}_server_{stamp}.log"
+        # serve on the port named in --base-url so the benchmark client finds it
         port = args.base_url.rsplit(":", 1)[-1].strip("/")
         cmd = [vllm_cli(), "serve", args.model, "--host", "127.0.0.1", "--port", port,
                "--gpu-memory-utilization", str(args.gpu_mem_util),

@@ -18,6 +18,9 @@ REPO = Path(__file__).resolve().parent.parent
 
 @dataclass(frozen=True)
 class Target:
+    """One place a job can run: the local card or a Modal GPU type, with the
+    per-GPU numbers route.evaluate() scores it on."""
+
     name: str  # "local" or a Modal GPU type ("H100", "L4", ...)
     vram_gb: float  # per GPU
     bf16_tflops: float  # per GPU
@@ -30,6 +33,7 @@ class Target:
 
     @property
     def local(self) -> bool:
+        """True for the home RTX 5070 (free, but only usable when online and idle)."""
         return self.name == "local"
 
 
@@ -46,7 +50,11 @@ DEFAULT_TARGETS = (
 
 
 def _measured_tflops(results_dir: Path) -> dict[str, float]:
-    """Best BF16 TFLOPS per target from smoke-test JSONs (local + modal_*)."""
+    """Best BF16 TFLOPS per target from smoke-test JSONs (local + modal_*).
+
+    Modal records are keyed by the GPU type they requested ("H100:2" -> "H100");
+    a record without a `modal` block counts only if it ran on the RTX 5070.
+    """
     best: dict[str, float] = {}
     for f in results_dir.glob("*.json"):
         try:
@@ -66,6 +74,8 @@ def _measured_tflops(results_dir: Path) -> dict[str, float]:
 
 
 def load_targets(results_dir: Path | None = None) -> list[Target]:
+    """DEFAULT_TARGETS with measured TFLOPS (from results/ by default) swapped in
+    and flagged `measured=True`; targets never benchmarked keep their estimate."""
     measured = _measured_tflops(results_dir or REPO / "results")
     return [
         replace(t, bf16_tflops=measured[t.name], measured=True) if t.name in measured else t

@@ -1,3 +1,7 @@
+# Prometheus config for the observability stack (docker-compose.yml): scrape dcgm-exporter
+# (GPU), node-exporter (host) and Prometheus itself every 5 s, and evaluate alerts.yml.
+# Targets are compose service names. Mounted at /etc/prometheus/prometheus.yml; reload after
+# edits with: curl -X POST <prometheus>:9090/-/reload (--web.enable-lifecycle is on).
 global:
   scrape_interval: 5s
   evaluation_interval: 15s

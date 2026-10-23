@@ -33,11 +33,16 @@ MPIRUN_FLAGS := --mca btl tcp,self --mca oob_tcp_if_include 100.64.0.0/10 \
                 --mca btl_tcp_if_include 100.64.0.0/10 \
                 --mca orte_launch_agent $(MAC_OMPI)/bin/orted
 
+# jacobi_hetero.cpp is plain C++ with an #ifdef USE_CUDA kernel: on Linux,
+# nvcc compiles it as CUDA (-x cu) with mpicxx as host compiler; on macOS it
+# is a CPU-only mpicxx build. netbench has no CUDA and uses mpicxx on both.
 ifeq ($(UNAME),Linux)
 NVCC  ?= /usr/local/cuda/bin/nvcc
 # -fmad=false: no FMA contraction, so GPU results match the CPU bit for bit
 JACOBI_BUILD = $(NVCC) -x cu -DUSE_CUDA -arch=sm_120 -O3 -fmad=false -std=c++17 -ccbin=$(MPICXX) -o $@ $<
 else
+# -ffp-contract=off: the CPU-side equivalent of -fmad=false (clang would
+# otherwise contract a*b+c into FMA on arm64 and break the bit-exact check)
 JACOBI_BUILD = $(MPICXX) -O3 -ffp-contract=off -std=c++17 -o $@ $<
 endif
 
@@ -53,6 +58,9 @@ $(BUILD)/jacobi_hetero: jacobi_hetero.cpp | $(BUILD)
 $(BUILD):
 	mkdir -p $@
 
+# MPMD launch: `a : b` starts one rank per host, each with its own binary path
+# (the Mac's checkout lives elsewhere) and, for jacobi, its own --weight.
+# Both machines must have built `make` first.
 net: $(BUILD)/netbench
 	$(MPIRUN) $(MPIRUN_FLAGS) \
 	  -np 1 --host $(GPU_HOST) $(CURDIR)/$(BUILD)/netbench : \

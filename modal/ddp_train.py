@@ -23,8 +23,15 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 
 
 def allreduce_sweep(world: int, device: torch.device, warmup: int, iters: int, max_mib: int) -> list[dict]:
+    """Time fp32 all_reduce at 1 MiB .. max_mib (powers of 4) across all ranks.
+
+    Each size gets `warmup` untimed calls, then `iters` timed ones; the mean per
+    call is MAX-reduced across ranks. Returns one row per size with time (us),
+    algbw and busbw (GB/s, 1e9 bytes, as nccl-tests reports them).
+    """
     results = []
     for mib in [m for m in (1, 4, 16, 64, 256, 1024) if m <= max_mib]:
+        # fp32 = 4 bytes per element
         numel = mib * 2**20 // 4
         buf = torch.ones(numel, dtype=torch.float32, device=device)
         for _ in range(warmup):
@@ -45,6 +52,8 @@ def allreduce_sweep(world: int, device: torch.device, warmup: int, iters: int, m
 
         nbytes = numel * 4
         algbw = nbytes / secs / 1e9
+        # ring all_reduce moves 2(n-1)/n of the buffer per rank, so busbw is comparable
+        # across GPU counts and to the link's raw bandwidth
         busbw = algbw * 2 * (world - 1) / world
         results.append({
             "size_mib": mib,
@@ -57,6 +66,8 @@ def allreduce_sweep(world: int, device: torch.device, warmup: int, iters: int, m
 
 
 def make_mlp(width: int, depth: int) -> nn.Module:
+    """`depth` Linear(width, width)+GELU blocks and a 10-class head: a cheap,
+    compute-heavy model whose gradients are big enough to exercise all_reduce."""
     layers = [nn.Linear(width, width), nn.GELU()]
     for _ in range(depth - 1):
         layers += [nn.Linear(width, width), nn.GELU()]
@@ -65,6 +76,13 @@ def make_mlp(width: int, depth: int) -> nn.Module:
 
 
 def train(device: torch.device, local_rank: int, world: int, args) -> dict:
+    """Time a DDP training loop on one fixed synthetic batch per rank (weak scaling).
+
+    Each rank seeds its own batch (1234 + rank) so ranks see different data, the
+    model init is identical (seed 0), and the forward runs under BF16 autocast.
+    Step time is the mean over `steps` after warmup, MAX-reduced across ranks;
+    samples/s counts the global batch. With world == 1 the model is not wrapped.
+    """
     torch.manual_seed(0)
     model = make_mlp(args.width, args.depth).to(device)
     ddp = DDP(model, device_ids=[local_rank]) if world > 1 else model
@@ -76,6 +94,7 @@ def train(device: torch.device, local_rank: int, world: int, args) -> dict:
     y = torch.randint(0, 10, (args.batch,), device=device, generator=g)
 
     def step():
+        """One optimizer step; DDP all-reduces gradients during backward()."""
         opt.zero_grad(set_to_none=True)
         with torch.autocast("cuda", dtype=torch.bfloat16):
             loss = loss_fn(ddp(x), y)
@@ -111,6 +130,9 @@ def train(device: torch.device, local_rank: int, world: int, args) -> dict:
 
 
 def main() -> None:
+    """torchrun worker: init NCCL on LOCAL_RANK's GPU, run the all_reduce sweep
+    (multi-GPU only, unless --skip-allreduce) and the training benchmark, then
+    rank 0 writes the JSON record to --out and prints a summary."""
     p = argparse.ArgumentParser()
     p.add_argument("--out", required=True)
     p.add_argument("--skip-allreduce", action="store_true")

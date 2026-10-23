@@ -14,8 +14,11 @@
 #include <unistd.h>
 #include <vector>
 
+// Set once after MPI_Init; MPI_COMM_WORLD rank and size.
 static int rank_, size_;
 
+// printf on rank 0 only (local, no MPI calls); flushes so output is not lost
+// if another rank aborts the job.
 static void root_printf(const char* fmt, ...) __attribute__((format(printf, 1, 2)));
 static void root_printf(const char* fmt, ...) {
     if (rank_ != 0) return;
@@ -26,6 +29,8 @@ static void root_printf(const char* fmt, ...) {
     std::fflush(stdout);
 }
 
+// Same as human_bytes() in ../mpi_common.cuh (duplicated so this file has no
+// CUDA dependency): "N MiB" / "N KiB" / "N B" into buf, returns buf.
 static const char* human(size_t b, char* buf, size_t n) {
     if (b >= (1u << 20)) std::snprintf(buf, n, "%zu MiB", b >> 20);
     else if (b >= (1u << 10)) std::snprintf(buf, n, "%zu KiB", b >> 10);
@@ -35,6 +40,12 @@ static const char* human(size_t b, char* buf, size_t n) {
 
 // Ranks 0 and 1 bounce a buffer; returns one-way microseconds. Rank 0 checks
 // the echoed payload byte for byte.
+//   bytes  message size (<= buf.size()); iters  timed round trips
+//   ok     out: verdict from rank 0, broadcast to both ranks
+// Must be called by exactly two ranks with identical arguments: blocking
+// Send/Recv pairs plus MPI_Barrier and MPI_Bcast (collectives). Latency is
+// half the round trip (~2.6 ms over Tailscale/Wi-Fi vs 0.17 us in shared
+// memory on one node; multinode/README.md).
 static double pingpong(size_t bytes, int iters, std::vector<char>& buf, bool* ok) {
     const int peer = 1 - rank_;
     std::vector<char> expect(bytes);
@@ -93,7 +104,10 @@ int main(int argc, char** argv) {
         root_printf("\n");
     }
 
-    // all-reduce sweep, nccl-tests busbw convention
+    // all-reduce sweep, nccl-tests busbw convention:
+    //   algbw = bytes / time, busbw = algbw * 2(n-1)/n (ring traffic per link).
+    // Units here are MB/s, not GB/s, because the network link is that slow.
+    // Every MPI_Allreduce below is a collective all ranks execute in lockstep.
     const float expect = size_ * (size_ + 1) / 2.0f;
     std::vector<float> send(max_bytes / 4, float(rank_ + 1)), recv(max_bytes / 4);
     root_printf("all-reduce, %d ranks\n%10s %12s %12s %12s %4s\n", size_, "size", "time_us", "algbw_MB/s",
