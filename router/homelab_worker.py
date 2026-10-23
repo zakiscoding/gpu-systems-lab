@@ -22,8 +22,9 @@ Submit a job (from anywhere on the tailnet, with the user API key):
   curl -X POST http://100.91.113.98:8000/jobs -H "x-api-key: $API_KEY" -H "Content-Type: application/json" \
     -d '{"route": {"command": "python benchmarks/smoke_test.py --size 4096", "vram_gb": 1, "local_minutes": 0.5}}'
 
-Leases last 15 min (LEASE_MINUTES_TRAIN on the API) and are not renewed, so keep routed jobs
-shorter than that or another worker's stale-lease sweep may requeue them.
+Leases last 15 min (LEASE_MINUTES_TRAIN on the API). While a job runs, a background thread
+renews the lease every LEASE_RENEW_SEC via POST /internal/worker/jobs/{id}/renew, so long jobs
+aren't requeued by another worker's stale-lease sweep.
 """
 
 from __future__ import annotations
@@ -32,6 +33,7 @@ import argparse
 import os
 import socket
 import subprocess
+import threading
 import time
 from pathlib import Path
 
@@ -43,6 +45,7 @@ from .probe import probe_local
 from .route import Decision, Job, decide
 
 ENV_FILE = Path(__file__).with_name("worker.local.env")
+LEASE_RENEW_SEC = 300  # train leases are 15 min on the API; renew every 5
 # Job fields a `route` spec may set; anything else in the spec is ignored (except `command`)
 ROUTE_KEYS = ("vram_gb", "local_minutes", "gpus", "max_usd", "deadline_min")
 
@@ -82,6 +85,20 @@ class Api:
         """Lease the next routed job, or None when the queue is empty (HTTP 204)."""
         r =self.post("/internal/worker/jobs/claim", params={"routed": "true"})
         return None if r.status_code == 204 else r.json()
+
+
+def _renew_lease_loop(api: "Api", job_id: str, stop: threading.Event) -> None:
+    """Background keep-alive: POST /renew every LEASE_RENEW_SEC until `stop` is set.
+
+    Uses its own HTTP client (httpx.Client isn't shared across threads here). A 409 means the
+    job was requeued or taken over; it's logged, and the run's final report will then fail.
+    """
+    with httpx.Client(timeout=30.0) as http:
+        while not stop.wait(LEASE_RENEW_SEC):
+            try:
+                http.post(f"{api.base}/internal/worker/jobs/{job_id}/renew", headers=api.headers).raise_for_status()
+            except httpx.HTTPError as e:
+                print(f"[router-worker] lease renew failed for {job_id}: {e}", flush=True)
 
 
 def job_from_payload(job_id: str, payload: dict) -> Job:
@@ -151,7 +168,14 @@ def run_job(api: Api, job: dict) -> None:
     # defaults to a legacy codepage) and drop deprecation noise from the captured log
     env = dict(os.environ, PYTHONUTF8="1", PYTHONIOENCODING="utf-8", PYTHONWARNINGS="ignore::DeprecationWarning")
     t0 = time.perf_counter()
-    p = subprocess.run(cmd, cwd=REPO, env=env, capture_output=True, text=True, encoding="utf-8", errors="replace")
+    stop = threading.Event()
+    keepalive = threading.Thread(target=_renew_lease_loop, args=(api, job_id, stop), daemon=True)
+    keepalive.start()
+    try:
+        p = subprocess.run(cmd, cwd=REPO, env=env, capture_output=True, text=True, encoding="utf-8", errors="replace")
+    finally:
+        stop.set()
+        keepalive.join(timeout=5)
     secs = time.perf_counter() - t0
     out = (p.stdout + p.stderr).strip()
     print(out[-3000:], flush=True)
