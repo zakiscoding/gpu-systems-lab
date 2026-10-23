@@ -1,5 +1,9 @@
 # GPU Systems Lab: results
 
+**[homelab](https://github.com/zakiscoding/homelab)** (docs hub) · [homelab-services](https://github.com/zakiscoding/homelab-services) · [homelab-web](https://github.com/zakiscoding/homelab-web) · [homelab-gpu](https://github.com/zakiscoding/homelab-gpu) · **gpu-systems-lab**
+
+[gpu-systems-lab](../README.md) / `docs/RESULTS.md` · [← repo README](../README.md) · [Code guide](CODE-GUIDE.md)
+
 Everything measured in this repo, from one RTX 5070 up to multi-GPU H100s on Modal and two-machine
 MPI over Tailscale. Every number links to the code and runbook that produced it.
 
@@ -7,32 +11,48 @@ MPI over Tailscale. Every number links to the code and runbook that produced it.
 
 ```mermaid
 flowchart LR
-    subgraph Laptop["Laptop (Windows): orchestration"]
-        R["router<br/>route / run"]
+    subgraph Laptop["hp-laptop (Windows): controller"]
+        RW["router worker<br/>router/homelab_worker.py"]
+        R["router CLI<br/>route / run"]
         M["Modal client"]
     end
     subgraph Home["Tailscale tailnet"]
-        subgraph G["zak-gpu-node: Ubuntu 24.04, RTX 5070 12 GB, CUDA 13.2"]
-            K["k3s + NVIDIA device plugin<br/>GPU job queue"]
-            V["vLLM server<br/>127.0.0.1:8000"]
-            O["dcgm-exporter → Prometheus → Grafana<br/>tailnet :3000 / :9090"]
+        subgraph I["mos-imac 100.91.113.98 (M1, macOS)"]
+            API["FastAPI :8000<br/>Postgres job queue"]
+            LLM["api/llm.py<br/>LLM_BACKEND=auto"]
+            IG["Grafana :3000"]
+            IR["Open MPI CPU rank"]
         end
-        I["mos-imac<br/>M1, macOS<br/>Open MPI (CPU rank)"]
+        subgraph G["zak-gpu-node 100.121.51.35 (Ubuntu 24.04, RTX 5070 12 GB, CUDA 13.2)"]
+            K["k3s :6443 + NVIDIA device plugin<br/>GPU job queue"]
+            V["vLLM :8000/v1 (always on)<br/>qwen2.5-1.5b-instruct, API key"]
+            O["dcgm-exporter 127.0.0.1:9400<br/>Prometheus :9090, Grafana :3000"]
+        end
+        OL["same PC, Windows boot 100.88.71.33<br/>Ollama :11434 (fallback)"]
     end
     subgraph Modal["Modal (gVisor containers)"]
         H1["1x H100<br/>parity, vLLM serving"]
         H2["2x H100 NVLink<br/>NCCL / DDP / FSDP / MPI / elastic"]
         L4["2x L4 PCIe<br/>NCCL / DDP"]
     end
+    RW <-- "claim routed jobs, renew lease, record decision" --> API
+    RW -- "decide()" --> R
     R -- "SSH probe + run" --> G
     R -- "modal run" --> M
     M --> H1 & H2 & L4
-    G <-- "MPI over Tailscale (Wi-Fi)" --> I
+    API --> LLM
+    LLM -- "OpenAI API when up" --> V
+    LLM -. "else" .-> OL
+    O -- "datasource" --> IG
+    G <-- "MPI over Tailscale (Wi-Fi)" --> IR
 ```
 
 The laptop never computes. It probes and dispatches. `router/` sends a job to the free local card
 when it fits, and otherwise to the cheapest Modal GPU that meets the VRAM, deadline and cost limits.
-On the node, k3s queues GPU jobs and the Grafana stack watches the card.
+The router worker takes routed jobs from the iMac's Postgres queue the same way. On the node, k3s
+queues GPU jobs, the Grafana stack watches the card (also a datasource in the iMac Grafana), and
+vLLM serves homelab chat. When the PC is booted into Windows, the iMac API falls back to Ollama.
+All node ports are tailnet-only.
 
 ## Headline numbers
 

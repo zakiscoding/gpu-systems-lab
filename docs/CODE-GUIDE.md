@@ -1,5 +1,9 @@
 # Code guide
 
+**[homelab](https://github.com/zakiscoding/homelab)** (docs hub) · [homelab-services](https://github.com/zakiscoding/homelab-services) · [homelab-web](https://github.com/zakiscoding/homelab-web) · [homelab-gpu](https://github.com/zakiscoding/homelab-gpu) · **gpu-systems-lab**
+
+[gpu-systems-lab](../README.md) / `docs/CODE-GUIDE.md` · [← repo README](../README.md) · [Results](RESULTS.md)
+
 A map of every part of this repo: what each file is for, how to run it, where it runs, and how
 the pieces connect to each other and to the rest of the homelab. Results live in
 [RESULTS.md](RESULTS.md); each directory's README has the details and measured numbers.
@@ -18,24 +22,41 @@ stripping CRLF). Modal scripts mount the repo directories they need into the con
 
 ## How the pieces connect
 
-```text
-             laptop                                   iMac (homelab-services)
-  ┌───────────────────────────┐   claim?routed=true  ┌──────────────────────────────┐
-  │ router/  route · run      │ ◄──────────────────► │ FastAPI /jobs  ·  Postgres   │
-  │ router/homelab_worker.py  │  experiments/status  │ /chat ─► api/llm.py (auto)   │
-  └─────┬───────────────┬─────┘                      └──────────────┬───────────────┘
-   SSH  │               │ modal run                                 │ OpenAI API (tailnet)
-        ▼               ▼                                           ▼
-  ┌──────────────────────────────┐   ┌──────────────────┐   ┌───────────────────────┐
-  │ GPU node                     │   │ Modal            │   │ serving/compose.yml   │
-  │ benchmarks/ cuda/ mpi/       │   │ modal/*.py       │   │ vLLM :8000 (on node)  │
-  │ scheduling/ (k3s GPU queue)  │   │ H100 · 2xH100    │   └───────────────────────┘
-  │ observability/ (DCGM→Prom→G) │   └──────────────────┘
-  └──────────────┬───────────────┘
-                 │ MPI over Tailscale (mpi/multinode)
-                 ▼
-            iMac CPU rank
+```mermaid
+flowchart TB
+    subgraph Laptop["hp-laptop (controller)"]
+        RT["router/<br/>route, run"]
+        RW["router/homelab_worker.py"]
+        MD["modal/*.py (client side)"]
+    end
+    subgraph IMac["mos-imac 100.91.113.98 (homelab-services)"]
+        API["FastAPI :8000 /jobs<br/>Postgres queue"]
+        LLM["chat: api/llm.py<br/>LLM_BACKEND=auto"]
+        IG["Grafana :3000"]
+        IR["CPU rank (mpi/multinode)"]
+    end
+    subgraph Node["zak-gpu-node 100.121.51.35"]
+        BEN["benchmarks/ cuda/ mpi/ docker/"]
+        SCH["scheduling/<br/>k3s :6443 GPU queue"]
+        OBS["observability/<br/>DCGM, Prometheus :9090, Grafana :3000"]
+        SRV["serving/compose.yml<br/>vLLM :8000/v1"]
+    end
+    subgraph Cloud["Modal"]
+        GPUS["H100, 2x H100, L4, L40S"]
+    end
+    RW <-- "claim?routed=true, renew, experiments" --> API
+    RW --> RT
+    RT -- "SSH" --> BEN
+    RT -- "modal run modal/run_job.py" --> MD
+    MD --> GPUS
+    API --> LLM
+    LLM -- "OpenAI API (tailnet)" --> SRV
+    OBS -- "datasource" --> IG
+    BEN <-- "MPI over Tailscale" --> IR
 ```
+
+When the GPU PC is booted into Windows instead, `api/llm.py` falls back to Ollama there
+(`100.88.71.33:11434`, [homelab-gpu](https://github.com/zakiscoding/homelab-gpu)).
 
 ## Directory by directory
 
@@ -139,7 +160,8 @@ Kubernetes Job and waits on it. `demo/` reproduces the queue and time-slicing ex
 |---|---|---|
 | [homelab-services](https://github.com/zakiscoding/homelab-services) | iMac stack: FastAPI, Postgres job queue, RAG, web UI, Grafana. See its `docs/API.md` | `api/llm.py` uses `serving/compose.yml`; `claim?routed=true` serves `router/homelab_worker.py`; its Grafana shows `observability/` |
 | [homelab](https://github.com/zakiscoding/homelab) | Docs: nodes, services, setup log | `docs/nodes/gpu-node-ubuntu.md` describes this node |
-| [homelab-gpu](https://github.com/zakiscoding/homelab-gpu) | Windows-side training (QLoRA) and the worker | Skips routed jobs; runs only when the PC boots Windows |
+| [homelab-web](https://github.com/zakiscoding/homelab-web) | Next.js UI on the iMac (:3081): chat, RAG, status | Its chat answers come from `serving/` vLLM when the PC runs Ubuntu |
+| [homelab-gpu](https://github.com/zakiscoding/homelab-gpu) | Windows-side Ollama, QLoRA training and the worker | Ollama is the chat fallback; its worker skips routed jobs; runs only when the PC boots Windows |
 
 ## Conventions
 

@@ -1,5 +1,9 @@
 # Profiling evidence (roadmap step 6)
 
+**[homelab](https://github.com/zakiscoding/homelab)** (docs hub) · [homelab-services](https://github.com/zakiscoding/homelab-services) · [homelab-web](https://github.com/zakiscoding/homelab-web) · [homelab-gpu](https://github.com/zakiscoding/homelab-gpu) · **gpu-systems-lab**
+
+[gpu-systems-lab](../../README.md) / `docs/profiling/` · [← repo README](../../README.md) · [Results](../RESULTS.md) · [Code guide](../CODE-GUIDE.md)
+
 Nsight Systems profiles of the `cuda/` kernels on the RTX 5070 node. Nsight
 Compute is installed but blocked by the driver's performance-counter permission
 (see [below](#nsight-compute-blocked-by-gpu-counter-permission)), so the

@@ -1,5 +1,9 @@
 # Modal runs (roadmap steps 4 and 5)
 
+**[homelab](https://github.com/zakiscoding/homelab)** (docs hub) · [homelab-services](https://github.com/zakiscoding/homelab-services) · [homelab-web](https://github.com/zakiscoding/homelab-web) · [homelab-gpu](https://github.com/zakiscoding/homelab-gpu) · **gpu-systems-lab**
+
+[gpu-systems-lab](../README.md) / `modal/` · [← repo README](../README.md) · [Results](../docs/RESULTS.md) · [Code guide](../docs/CODE-GUIDE.md)
+
 | File | What it does | Runs on |
 |---|---|---|
 | `smoke.py` | Step 4: runs `benchmarks/smoke_test.py` unchanged on one Modal GPU, saves `results/modal_<gpu>_<ts>.json` | Modal |

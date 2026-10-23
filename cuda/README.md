@@ -1,5 +1,9 @@
 # CUDA and LLVM foundations (roadmap step 2)
 
+**[homelab](https://github.com/zakiscoding/homelab)** (docs hub) · [homelab-services](https://github.com/zakiscoding/homelab-services) · [homelab-web](https://github.com/zakiscoding/homelab-web) · [homelab-gpu](https://github.com/zakiscoding/homelab-gpu) · **gpu-systems-lab**
+
+[gpu-systems-lab](../README.md) / `cuda/` · [← repo README](../README.md) · [Results](../docs/RESULTS.md) · [Code guide](../docs/CODE-GUIDE.md)
+
 Small, heavily commented CUDA C++ programs. Each one checks correctness against
 the CPU (or cuBLAS), times kernels with `cudaEvent`, prints a compact table, and
 exits nonzero on a mismatch.

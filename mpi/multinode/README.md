@@ -1,5 +1,9 @@
 # Multi-machine MPI: RTX 5070 + M1 iMac over Tailscale
 
+**[homelab](https://github.com/zakiscoding/homelab)** (docs hub) · [homelab-services](https://github.com/zakiscoding/homelab-services) · [homelab-web](https://github.com/zakiscoding/homelab-web) · [homelab-gpu](https://github.com/zakiscoding/homelab-gpu) · **gpu-systems-lab**
+
+[gpu-systems-lab](../../README.md) / `mpi/multinode/` · [← repo README](../../README.md) · [Results](../../docs/RESULTS.md) · [Code guide](../../docs/CODE-GUIDE.md)
+
 Real two-node MPI across a home network. Rank 0 runs on the Ubuntu node (RTX 5070, x86_64), rank 1
 on an M1 iMac (arm64, macOS, no CUDA). The two machines talk over Tailscale.
 

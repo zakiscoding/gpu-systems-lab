@@ -1,5 +1,9 @@
 # Inference serving: vLLM on the RTX 5070 vs 1x H100
 
+**[homelab](https://github.com/zakiscoding/homelab)** (docs hub) · [homelab-services](https://github.com/zakiscoding/homelab-services) · [homelab-web](https://github.com/zakiscoding/homelab-web) · [homelab-gpu](https://github.com/zakiscoding/homelab-gpu) · **gpu-systems-lab**
+
+[gpu-systems-lab](../README.md) / `serving/` · [← repo README](../README.md) · [Results](../docs/RESULTS.md) · [Code guide](../docs/CODE-GUIDE.md)
+
 An OpenAI-compatible LLM server ([vLLM](https://github.com/vllm-project/vllm)) on the home GPU node,
 benchmarked with a concurrency sweep, then the same model and the same benchmark on a Modal H100.
 The question: how far does batching push throughput before latency or KV-cache memory gives out, and

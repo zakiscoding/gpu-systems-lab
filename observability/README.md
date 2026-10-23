@@ -1,5 +1,9 @@
 # GPU observability
 
+**[homelab](https://github.com/zakiscoding/homelab)** (docs hub) · [homelab-services](https://github.com/zakiscoding/homelab-services) · [homelab-web](https://github.com/zakiscoding/homelab-web) · [homelab-gpu](https://github.com/zakiscoding/homelab-gpu) · **gpu-systems-lab**
+
+[gpu-systems-lab](../README.md) / `observability/` · [← repo README](../README.md) · [Results](../docs/RESULTS.md) · [Code guide](../docs/CODE-GUIDE.md)
+
 Prometheus + Grafana monitoring for `zak-gpu-node` (RTX 5070, 12 GB, driver 595.99.02). GPU metrics
 come from NVIDIA's **dcgm-exporter**, and host CPU, RAM and disk come from node-exporter. Anything
 else running on the card shows up here too, such as the vLLM benchmarks and the k3s/Slurm jobs.
@@ -53,8 +57,9 @@ docker compose down -v        # stop and delete Prometheus/Grafana data
 | dcgm-exporter | http://127.0.0.1:9400/metrics | from the node itself only |
 | node-exporter | none | reachable only on the compose network |
 
-Published ports bind to `BIND_IP` from `.env` (the Tailscale IP), never to `0.0.0.0`. The node's
-firewall is off and it sits on a home LAN, so this matters. I checked that `10.0.0.21:{3000,9090,9400,9100}`
+Published ports bind to `BIND_IP` from `.env` (the Tailscale IP), never to `0.0.0.0`. The node sits
+on a home LAN, and its firewall ([`scripts/harden_node.sh`](../scripts/harden_node.sh)) only blocks
+22/6443/10250 there, so this matters. I checked that `10.0.0.21:{3000,9090,9400,9100}`
 refuses connections and that both tailnet URLs return 200 from the laptop. One trade-off: if
 `tailscale0` is not up when Docker starts, the Grafana and Prometheus containers can't bind and
 won't start. Run `docker compose up -d` again once Tailscale is up, or set `BIND_IP=127.0.0.1` and
