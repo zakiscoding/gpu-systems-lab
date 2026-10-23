@@ -24,6 +24,9 @@ VRAM_HEADROOM = 0.9  # leave 10% for the CUDA context, allocator, fragmentation
 
 @dataclass(frozen=True)
 class Job:
+    """What the router needs to know about a job. Unset caps (max_usd,
+    deadline_min) default to infinity, i.e. no constraint."""
+
     name: str
     vram_gb: float  # per GPU
     local_minutes: float  # runtime on the RTX 5070 (or equivalent work)
@@ -35,6 +38,9 @@ class Job:
 
 @dataclass
 class Option:
+    """One target scored for one job. `reasons` lists every failed constraint
+    (empty iff feasible), so the CLI can explain why a target was rejected."""
+
     target: Target
     runtime_min: float
     total_min: float  # queue + runtime
@@ -45,6 +51,9 @@ class Option:
 
 @dataclass
 class Decision:
+    """The outcome of decide(): every scored option plus the winner (None if
+    nothing is feasible), and the local state the decision was made against."""
+
     job: Job
     choice: Option | None
     options: list[Option]
@@ -52,7 +61,16 @@ class Decision:
 
 
 def evaluate(job: Job, target: Target, local: LocalState, local_tflops: float) -> Option:
+    """Score one target for a job: estimated runtime and time-to-result (min),
+    cost (USD), and every rule from the module docstring it breaks.
+
+    Runtime = job.local_minutes * (local_tflops / target TFLOPS), then divided by
+    gpus * scaling efficiency for multi-GPU jobs. For the local card, usable VRAM
+    is the live free VRAM, and offline/busy are added as reasons. All checks run
+    (no early return) so the CLI can show every reason a target lost.
+    """
     reasons = []
+    # compute-bound scaling: a card with 2x the BF16 TFLOPS finishes in half the time
     runtime = job.local_minutes * local_tflops / target.bf16_tflops
     if job.gpus > 1:
         # data-parallel efficiency measured here: 2x H100 (NVLink) 78%, 2x L4 (PCIe) 17%
@@ -83,6 +101,12 @@ def evaluate(job: Job, target: Target, local: LocalState, local_tflops: float) -
 
 
 def decide(job: Job, targets: list[Target], local: LocalState) -> Decision:
+    """Evaluate every target and pick the winner among the feasible ones.
+
+    Order: the free local card first, then lowest cost (rounded to 1/100 cent so
+    float noise doesn't break ties), then shortest time to result. `targets`
+    must include the local target; its TFLOPS is the baseline for runtime scaling.
+    """
     local_tflops = next(t.bf16_tflops for t in targets if t.local)
     options = [evaluate(job, t, local, local_tflops) for t in targets]
     feasible = [o for o in options if o.feasible]

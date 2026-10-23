@@ -1,3 +1,7 @@
+# Grafana datasource provisioning: the stack's Prometheus as the default datasource
+# (uid "prometheus", which the dashboard JSON refers to), reached over the compose network.
+# timeInterval matches Prometheus's 5 s scrape interval so $__rate_interval stays sensible.
+# Read by Grafana at startup (mounted at /etc/grafana/provisioning by docker-compose.yml).
 apiVersion: 1
 datasources:
   - name: Prometheus

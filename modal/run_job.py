@@ -19,6 +19,7 @@ import modal
 
 REPO = Path(__file__).resolve().parent.parent
 REMOTE_REPO = "/root/lab"
+# the decorator's GPU; main() overrides it per call with .with_options(gpu=...)
 DEFAULT_GPU = os.environ.get("MODAL_LAB_JOB_GPU", "L4")
 
 # identical to modal/smoke.py's image, so its build cache is reused
@@ -33,6 +34,9 @@ app = modal.App("gpu-lab-job", image=image)
 
 @app.function(gpu=DEFAULT_GPU, timeout=60 * 60)
 def run_command(command: str) -> dict:
+    """Run `command` from the mounted repo inside the container and return
+    {exit, seconds, output}. Output is stdout+stderr, truncated to the last 20,000
+    characters to keep the return payload small. Billed for the whole call (1 h max)."""
     argv = shlex.split(command)
     if argv and argv[0] == "python":
         argv[0] = sys.executable
@@ -44,6 +48,8 @@ def run_command(command: str) -> dict:
 
 @app.local_entrypoint()
 def main(command: str, gpu: str = DEFAULT_GPU):
+    """Local entry point: launch `command` on one Modal `gpu` (e.g. "H100", "L4:2"),
+    print its output and timings, and exit with the command's exit code. Costs money."""
     t0 = time.perf_counter()
     r = run_command.with_options(gpu=gpu).remote(command)
     print(r["output"])

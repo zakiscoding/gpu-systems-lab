@@ -50,8 +50,13 @@ app = modal.App("gpu-lab-serve-vllm", image=image)
 @app.function(gpu=GPU, timeout=40 * 60, volumes={"/hf": hf_cache})
 def bench(models: list, concurrency: str, input_len: int, output_len: int,
           gpu_mem_util: float, max_model_len: int):
+    """Generator run in the container: for each model, run serving/bench_sweep.py
+    --launch (server + concurrency sweep + teardown) and yield its exit code,
+    time (s) and output files (JSON, Markdown summary, server log) as text.
+    Commits the HF cache Volume after each model so downloaded weights persist."""
     yield {"event": "started", "container_host": socket.gethostname()}
     for model in models:
+        # e.g. Qwen/Qwen2.5-1.5B-Instruct -> h100_qwen25-15b-instruct
         label = "h100_" + model.split("/")[-1].lower().replace(".", "")
         out = Path("/tmp/results") / label
         t0 = time.perf_counter()
@@ -72,6 +77,9 @@ def bench(models: list, concurrency: str, input_len: int, output_len: int,
 def main(models: str = "Qwen/Qwen2.5-1.5B-Instruct", concurrency: str = "1,4,16,64,256",
          input_len: int = 512, output_len: int = 256, gpu_mem_util: float = 0.90,
          max_model_len: int = 4096):
+    """Local entry point: benchmark each comma-separated model on 1x H100 (paid,
+    40 min timeout), write the returned files to results/serving/modal_<name>,
+    print the Markdown summaries and an approximate USD cost from wall time."""
     out = REPO / "results" / "serving"
     out.mkdir(parents=True, exist_ok=True)
     t_call = time.perf_counter()

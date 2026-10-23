@@ -1,3 +1,6 @@
+# Job template: 15 s bf16 matmul benchmark (bench.py from the gpu-bench ConfigMap, manifest 40)
+# on 1 GPU. Not retried on failure; the finished Job is cleaned up after 24 h.
+#   kubectl apply -f manifests/41-matmul-job.yaml && kubectl -n gpu-jobs logs -f job/matmul-bf16
 apiVersion: batch/v1
 kind: Job
 metadata:

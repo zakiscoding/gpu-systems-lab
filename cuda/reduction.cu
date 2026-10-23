@@ -21,13 +21,34 @@
 
 #include "common.cuh"
 
+// Block size for every kernel here; reduce_smem_tree and reduce_warp_shuffle
+// size their shared arrays from it, so they must be launched with THREADS.
 constexpr int THREADS = 256;
 
+// *out += sum(x[0..n)); *out must be zeroed before launch.
+// Mapping: one thread per element, ceil(n / 256) blocks (131072 at 32M), no loop.
+// Memory: the x loads are coalesced, but every thread then does atomicAdd to
+//   the SAME address. Float atomics resolve in L2, one at a time per address,
+//   so 32M updates serialize and DRAM bandwidth is irrelevant.
+// Measured: 43.9 ms / 3.1 GB/s (cuda/README.md), ~0.5% of peak and ~150-200x
+//   slower than the tree; 93% of all GPU time in docs/profiling nsys trace.
 __global__ void reduce_atomic_naive(const float* __restrict__ x, float* out, size_t n) {
     size_t i = (size_t)blockIdx.x * blockDim.x + threadIdx.x;
     if (i < n) atomicAdd(out, x[i]);
 }
 
+// *out += sum(x[0..n)); *out must be zeroed before launch. blockDim.x must
+// equal THREADS (a power of two).
+// Mapping: grid-stride loop, so a fixed grid (48 SMs * 8 = 384 blocks) covers
+//   any n; each thread accumulates ~340 elements in a register first.
+// Memory: coalesced scalar loads; then a log2(256) = 8-level tree in shared
+//   memory with a block-wide __syncthreads() per level. Sequential addressing
+//   (thread t reads t and t+s) keeps a warp's 32 accesses on 32 distinct
+//   banks, so no bank conflicts. One atomicAdd per block (384 total).
+// Measured: 0.272 ms / 494 GB/s (76% of peak). Slower than the shuffle
+//   version because the 8 barriers and the tail levels (s < 32, where most
+//   of the block idles) cost time, and scalar loads issue 4x more
+//   instructions than float4.
 __global__ void reduce_smem_tree(const float* __restrict__ x, float* out, size_t n) {
     __shared__ float sdata[THREADS];
     float sum = 0.f;
@@ -46,6 +67,10 @@ __global__ void reduce_smem_tree(const float* __restrict__ x, float* out, size_t
     if (threadIdx.x == 0) atomicAdd(out, sdata[0]);
 }
 
+// Tree reduction across one full warp with __shfl_down_sync. Must be called
+// by all 32 lanes (mask 0xffffffff); only lane 0's return value is the total,
+// other lanes hold partial sums. Data moves register-to-register, with no
+// shared memory or __syncthreads().
 __device__ __forceinline__ float warp_sum(float v) {
     // After offsets 16, 8, 4, 2, 1 lane 0 holds the sum of all 32 lanes.
 #pragma unroll
@@ -53,6 +78,17 @@ __device__ __forceinline__ float warp_sum(float v) {
     return v;
 }
 
+// *out += sum(x[0..n)); *out must be zeroed before launch. blockDim.x must
+// equal THREADS; n must be a multiple of 4 and x 16-byte aligned.
+// Mapping: grid-stride loop over n / 4 float4 elements (384 blocks of 256).
+// Memory: float4 loads, 512 contiguous bytes per warp per iteration. Then
+//   two warp_sum() levels: each of the 8 warps reduces in registers, lane 0
+//   writes one value to warp_sums[8] (the only shared-memory traffic, behind
+//   a single __syncthreads()), and warp 0 reduces those 8. One atomicAdd per
+//   block.
+// Measured: 0.213 ms / 630 GB/s, 95% of peak in the nsys trace
+//   (docs/profiling/README.md), tied with cub::DeviceReduce::Sum; the
+//   reduction now costs the same as reading the input once.
 __global__ void reduce_warp_shuffle(const float* __restrict__ x, float* out, size_t n) {
     __shared__ float warp_sums[THREADS / 32];
     float sum = 0.f;

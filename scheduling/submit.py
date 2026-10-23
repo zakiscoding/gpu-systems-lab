@@ -19,6 +19,8 @@ DEFAULT_IMAGE = "pytorch/pytorch:2.7.1-cuda12.8-cudnn9-runtime"
 
 
 def kubectl(*args, input=None, check=True):
+    """Run `kubectl <args>` (optionally feeding `input` on stdin) and return stdout.
+    With check=True a non-zero exit ends the program with kubectl's stderr."""
     r = subprocess.run(["kubectl", *args], input=input, capture_output=True, text=True)
     if check and r.returncode != 0:
         sys.exit(f"kubectl {' '.join(args)} failed:\n{r.stderr.strip()}")
@@ -26,6 +28,14 @@ def kubectl(*args, input=None, check=True):
 
 
 def build_job(spec):
+    """Turn a job spec dict into a batch/v1 Job manifest (as a dict).
+
+    One container requesting `gpus` nvidia.com/gpu (default 1) under the nvidia
+    RuntimeClass; gpus=0 drops both for a CPU-only job. "configmaps" entries
+    are NAME:PATH mounts. backoffLimit 0 means a failed pod is not retried;
+    `timeout` (s) becomes activeDeadlineSeconds and `ttl` (s) how long the
+    finished Job is kept. Defaults: namespace gpu-jobs, 1 h for both.
+    """
     name, ns = spec["name"], spec.get("namespace", "gpu-jobs")
     container = {
         "name": "main",
@@ -58,16 +68,25 @@ def build_job(spec):
 
 
 def ts(s):
+    """Parse a Kubernetes RFC 3339 timestamp ("...Z"); None for a missing one."""
     return datetime.fromisoformat(s.replace("Z", "+00:00")) if s else None
 
 
 def pod_for(name, ns):
+    """The pod the Job controller created for Job `name` (via its job-name
+    label), or None if it doesn't exist yet."""
     out = json.loads(kubectl("-n", ns, "get", "pods", "-l", f"job-name={name}", "-o", "json"))
     items = out["items"]
     return items[0] if items else None
 
 
 def wait(name, ns, timeout):
+    """Poll the Job every 2 s until it is Complete or Failed, or `timeout` s pass.
+
+    Prints a line whenever the pod's state changes, including why it is
+    unschedulable (e.g. waiting for the GPU) or what the container waits on
+    (e.g. image pull). Returns ("Complete" | "Failed" | "Timeout", job, pod).
+    """
     t0, last = time.time(), None
     while time.time() - t0 < timeout:
         job = json.loads(kubectl("-n", ns, "get", "job", name, "-o", "json"))
@@ -94,6 +113,9 @@ def wait(name, ns, timeout):
 
 
 def main():
+    """CLI: build the Job from flags or --spec, create it with kubectl, then (unless
+    --no-wait) wait, print the pod's logs and its queue+pull / run / total
+    seconds, and exit 0 only if the Job completed."""
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--spec", help="JSON job spec file")
     ap.add_argument("--name")

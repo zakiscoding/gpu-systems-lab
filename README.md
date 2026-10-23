@@ -2,7 +2,7 @@
 
 CUDA, NCCL, MPI, and LLVM experiments across a local RTX 5070 and Modal GPUs.
 
-**→ [Results, architecture and runbooks](docs/RESULTS.md)** · [job router](router/README.md) · [profiling](docs/profiling/README.md)
+**→ [Results, architecture and runbooks](docs/RESULTS.md)** · [code guide](docs/CODE-GUIDE.md) · [job router](router/README.md) · [profiling](docs/profiling/README.md)
 
 ## Goal
 Build practical GPU-systems skills by progressing from a verified single-GPU baseline to reproducible containers and distributed multi-GPU workloads.

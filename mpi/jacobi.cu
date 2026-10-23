@@ -18,6 +18,16 @@
 
 // One Jacobi sweep over the interior rows [1, rows] of a strip with halo rows
 // 0 and rows+1. Columns 0 and N-1 are fixed boundary.
+// out[r][c] = average of the 4 neighbours of in[r][c] (5-point stencil);
+// boundary columns are copied through unchanged.
+// Mapping: 2D grid of 32x8 blocks, thread (x, y) -> column c = x, strip row
+//   r = y + 1 (skipping halo row 0). One cell per thread, no loop.
+// Memory: a warp is 32 consecutive columns of one row, so the in[i +- N],
+//   in[i] and out[i] accesses are coalesced and the i +- 1 neighbours mostly
+//   hit the same cache lines; the vertical neighbours are reused through
+//   L1/L2 by the blocks above/below. ~5 loads + 1 store per 4 FLOPs, so it
+//   is memory-bound: 66.6 Gcell/s on 1 rank, 4096^2 (mpi/README.md).
+// in and out must be different buffers (Jacobi, not Gauss-Seidel).
 __global__ void jacobi_step(const float* __restrict__ in, float* __restrict__ out, int rows, int N) {
     int c = blockIdx.x * blockDim.x + threadIdx.x;
     int r = blockIdx.y * blockDim.y + threadIdx.y + 1;
@@ -29,12 +39,32 @@ __global__ void jacobi_step(const float* __restrict__ in, float* __restrict__ ou
 
 // Row-0 / row-(rows+1) halos of the global top and bottom strips are the
 // fixed boundary: top = 1.0, bottom = 0.0.
+// h holds (rows + 2) * N floats (halo, rows interior rows, halo); zeroed,
+// then row 0 set to 1.0 on the topmost rank. Host-only, no MPI.
 static void init_strip(std::vector<float>& h, int rows, int N, bool top, bool bottom) {
     std::fill(h.begin(), h.end(), 0.f);
     if (top) std::fill(h.begin(), h.begin() + N, 1.f);
     (void)bottom;  // bottom halo already 0
 }
 
+// Halo exchange for a device strip d of (rows + 2) x N floats:
+//   my first interior row -> `up`'s bottom halo; `down`'s first row -> my
+//   bottom halo (tag 0), and symmetrically last row -> `down` / top halo
+//   from `up` (tag 1).
+// up/down are neighbour ranks, MPI_PROC_NULL at the global edges (sends and
+// receives with MPI_PROC_NULL complete immediately and leave the buffer
+// alone, so edge halos keep their fixed boundary values).
+// MPI_Sendrecv pairs the send and receive in one call, so the chain of ranks
+// cannot deadlock the way blocking Send-then-Recv on every rank could.
+// It is point-to-point, but every rank must still make both calls each step
+// (in the same tag order) or its neighbours block.
+//   direct  (CUDA-aware MPI) device pointers go straight to MPI.
+//   staged  hbuf (pinned, >= 4 * N floats) holds two send and two receive
+//           rows: 2 blocking D2H copies, the two Sendrecvs on host memory,
+//           then 2 blocking H2D copies (skipped at the global edges).
+// Each message is one N-float row (16 KiB at N = 4096). On one shared GPU
+// this exchange is 40-68% of runtime at 2-8 ranks (mpi/README.md), mostly
+// context-switch cost that MPS removes.
 static void exchange_halos(float* d, int rows, int N, int up, int down, float* hbuf, bool direct) {
     const size_t row = size_t(N);
     float* first = d + row;               // first interior row
@@ -63,6 +93,15 @@ static void exchange_halos(float* d, int rows, int N, int up, int down, float* h
 
 // Runs `steps` sweeps on a strip of `rows` interior rows. Returns seconds,
 // split into compute and halo-exchange time.
+// a holds the current state, b the next (both device, same strip layout);
+// they are ping-ponged, so after an even step count the result is in a, odd
+// in b (the caller picks with steps % 2). Each step: launch the stencil,
+// cudaDeviceSynchronize (so compute time is real kernel time and the halo
+// rows are final), then exchange_halos on the freshly written buffer.
+// In the decomposed run every rank must call it with the same `steps`. With
+// up = down = MPI_PROC_NULL it communicates with nobody, which is how rank 0
+// alone computes the serial reference.
+// compute_s / comm_s are out-params, wall-clock seconds via MPI_Wtime.
 static void run(float* a, float* b, int rows, int N, int steps, int up, int down, float* hbuf,
                 bool direct, double* compute_s, double* comm_s) {
     dim3 block(32, 8), grid((N + 31) / 32, (rows + 7) / 8);
@@ -88,7 +127,9 @@ int main(int argc, char** argv) {
     const int rank = world_rank(), n = world_size();
     const bool direct = mpi_cuda_aware();
 
-    // interior rows are 1..N-2 globally (rows 0 and N-1 are boundary)
+    // interior rows are 1..N-2 globally (rows 0 and N-1 are boundary);
+    // block split: the first `extra` ranks get one extra row. Rank r's
+    // neighbours are r-1 (up) and r+1 (down), MPI_PROC_NULL at the ends.
     const int interior = N - 2;
     const int base = interior / n, extra = interior % n;
     const int rows = base + (rank < extra ? 1 : 0);
@@ -117,7 +158,8 @@ int main(int argc, char** argv) {
     double wall = MPI_Wtime() - t0;
     float* result = (steps % 2 == 0) ? a : b;
 
-    // gather interior rows on rank 0
+    // gather interior rows on rank 0 (MPI_Gatherv is a collective: every rank
+    // must reach it; counts/displs are in floats and mirror the row split)
     std::vector<float> mine(size_t(rows) * N);
     CUDA_CHECK(cudaMemcpy(mine.data(), result + N, mine.size() * 4, cudaMemcpyDeviceToHost));
     std::vector<int> counts(n), displs(n);
@@ -172,6 +214,8 @@ int main(int argc, char** argv) {
         std::printf("%-22s %10.4e  (total heat %.2f)\n", "max |diff| vs serial", max_diff, heat);
         std::printf("%-22s %10s\n", "match", ok ? "yes" : "NO");
     }
+    // Collective: every rank waits here while rank 0 runs the reference, then
+    // all ranks exit with rank 0's verdict.
     MPI_CHECK(MPI_Bcast(&ok, 1, MPI_INT, 0, MPI_COMM_WORLD));
 
     CUDA_CHECK(cudaFree(a));

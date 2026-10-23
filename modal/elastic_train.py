@@ -58,6 +58,16 @@ TINY = ["--mode", "fsdp", "--d-model", "256", "--n-layers", "2", "--n-heads", "4
 
 
 def analyze(events: list[dict], baseline: dict | None, steps: int) -> dict:
+    """Reconstruct the failure timeline of one kill run from its event log.
+
+    `events` are the JSON lines every rank wrote (attempt 0 = before the kill,
+    >= 1 = after torchrun's restart). Times are wall-clock seconds; the formulas
+    are in the module docstring. The checkpoint resumed from is the last rank-0
+    save at or before the kill step. recompute_s_est = recomputed steps x median
+    step time (steps <= 3 excluded as warmup). With `baseline` it also reports
+    extra wall time and the largest per-step loss difference after resuming
+    (0.0 with --deterministic).
+    """
     r0 = [e for e in events if e["rank"] == 0]
     kill = next((e for e in events if e["ev"] == "kill"), None)
     if kill is None:
@@ -109,6 +119,11 @@ def analyze(events: list[dict], baseline: dict | None, steps: int) -> dict:
 @app.function(gpu=DEFAULT_GPU, timeout=30 * 60)
 def run_elastic(model_args: list[str], steps: int, kill_at: int, intervals: list[int],
                 max_restarts: int, run_timeout: int):
+    """Generator run in the container: the baseline, then one kill run per
+    checkpoint interval in `intervals`, each a separate torchrun launch with
+    --max-restarts. Yields "started", one "run" event per launch, then "result"
+    with every run's analysis and raw events. A launch that exceeds
+    `run_timeout` seconds is recorded with returncode "timeout"."""
     yield {"event": "started"}
     import torch
 
@@ -119,9 +134,11 @@ def run_elastic(model_args: list[str], steps: int, kill_at: int, intervals: list
     for name, k in [("baseline", 0)] + [(f"kill_k{k}", k) for k in intervals]:
         evf, ck = Path(f"/tmp/{name}.events.jsonl"), f"/tmp/ckpt_{name}"
         extra = ["--steps", str(steps), "--events", str(evf)]
+        # k = checkpoint interval in steps; 0 = baseline (no checkpoints, no kill)
         if k:
             extra += ["--ckpt-dir", ck, "--ckpt-every", str(k), "--resume", "--kill-at-step", str(kill_at)]
         cmd = [sys.executable, "-m", "torch.distributed.run", "--standalone", f"--nproc-per-node={n}",
+               # poll workers every 0.1 s (default 5 s) so detect+respawn measures restart cost, not polling
                f"--max-restarts={max_restarts}", "--monitor-interval=0.1",
                f"{REMOTE}/fsdp_gpt.py", *model_args, *extra]
         print(f"\n=== {name}\n$ {' '.join(cmd)}", flush=True)
@@ -154,6 +171,9 @@ def run_elastic(model_args: list[str], steps: int, kill_at: int, intervals: list
 @app.local_entrypoint()
 def main(gpu: str = DEFAULT_GPU, steps: int = 60, kill_at: int = 48, intervals: str = "10,25",
          max_restarts: int = 3, tiny: bool = False, run_timeout: int = 400):
+    """Local entry point: validate --gpu (TYPE:N, N >= 2), run the experiment on
+    Modal (paid, 30 min timeout), write results/modal_elastic_<type>x<N>_<ts>.json
+    and print one row of timeline numbers per checkpoint interval."""
     gpu_type, _, count = gpu.partition(":")
     if not count.isdigit() or int(count) < 2:
         raise SystemExit(f"--gpu must look like TYPE:N with N>=2, got {gpu!r}")

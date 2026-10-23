@@ -1,3 +1,7 @@
+# Grafana dashboard provisioning: load every dashboard JSON in /var/lib/grafana/dashboards
+# (mounted from observability/grafana/dashboards/) into the "GPU Systems Lab" folder.
+# Read by Grafana at startup (mounted at /etc/grafana/provisioning by docker-compose.yml).
+# Dashboards are managed from the repo: UI edits and deletions are not allowed.
 apiVersion: 1
 providers:
   - name: gpu-systems-lab

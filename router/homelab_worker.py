@@ -43,10 +43,13 @@ from .probe import probe_local
 from .route import Decision, Job, decide
 
 ENV_FILE = Path(__file__).with_name("worker.local.env")
+# Job fields a `route` spec may set; anything else in the spec is ignored (except `command`)
 ROUTE_KEYS = ("vram_gb", "local_minutes", "gpus", "max_usd", "deadline_min")
 
 
 def _load_env_file() -> None:
+    """Load KEY=VALUE lines from ENV_FILE into os.environ, if the file exists.
+    Real environment variables win (setdefault); '#' lines are skipped."""
     if not ENV_FILE.exists():
         return
     for line in ENV_FILE.read_text().splitlines():
@@ -56,7 +59,11 @@ def _load_env_file() -> None:
 
 
 class Api:
+    """Thin client for the homelab API's worker endpoints, authenticated with the
+    worker key and identified by WORKER_ID / hostname headers."""
+
     def __init__(self) -> None:
+        """Read config from the environment; exits the process if WORKER_API_KEY is unset."""
         self.base = os.environ.get("API_BASE_URL", "http://100.91.113.98:8000").rstrip("/")
         key = os.environ.get("WORKER_API_KEY", "")
         if not key:
@@ -66,17 +73,25 @@ class Api:
         self.http = httpx.Client(timeout=30.0)
 
     def post(self, path: str, **kw) -> httpx.Response:
-        r = self.http.post(f"{self.base}{path}", headers=self.headers, **kw)
+        """POST to the API (30 s timeout); raises httpx.HTTPStatusError on 4xx/5xx."""
+        r =self.http.post(f"{self.base}{path}", headers=self.headers, **kw)
         r.raise_for_status()
         return r
 
     def claim(self) -> dict | None:
-        r = self.post("/internal/worker/jobs/claim", params={"routed": "true"})
+        """Lease the next routed job, or None when the queue is empty (HTTP 204)."""
+        r =self.post("/internal/worker/jobs/claim", params={"routed": "true"})
         return None if r.status_code == 204 else r.json()
 
 
 def job_from_payload(job_id: str, payload: dict) -> Job:
-    spec = payload["route"]
+    """Build a router Job from a queued job's `route` spec.
+
+    `command` is required; vram_gb and local_minutes default to 1, and max_usd
+    falls back to MAX_USD_PER_JOB so a job without a cap can't run up a bill.
+    Raises KeyError/TypeError/ValueError on a malformed spec.
+    """
+    spec =payload["route"]
     kw = {k: spec[k] for k in ROUTE_KEYS if spec.get(k) is not None}
     kw.setdefault("max_usd", float(os.environ.get("MAX_USD_PER_JOB", "1.0")))
     return Job(name=f"job-{job_id[:8]}", command=str(spec["command"]),
@@ -84,7 +99,10 @@ def job_from_payload(job_id: str, payload: dict) -> Job:
 
 
 def decision_record(d: Decision, exit_code: int | None, seconds: float) -> dict:
-    c = d.choice
+    """The routing decision and its outcome as JSON for the job's experiment record:
+    chosen target, estimates (min, USD), local state, why each other target was
+    rejected, exit code and wall time (s)."""
+    c =d.choice
     return {
         "router": {
             "target": c.target.name if c else None,
@@ -101,6 +119,14 @@ def decision_record(d: Decision, exit_code: int | None, seconds: float) -> dict:
 
 
 def run_job(api: Api, job: dict) -> None:
+    """Route and run one claimed job, then report the result to the API.
+
+    Side effects: an SSH probe of the node, then the job itself as a blocking
+    subprocess (SSH to the node, or a paid `modal run`; no --yes gate here, the
+    max_usd cap is the guard). Bad specs and unroutable jobs fail as
+    "permanent"; a non-zero exit fails as "transient" so the API may retry.
+    The experiment record is best-effort: an API error there only warns.
+    """
     job_id = job["id"]
     payload = job.get("payload") or {}
     try:
@@ -121,6 +147,8 @@ def run_job(api: Api, job: dict) -> None:
     cmd = build_command(d)
     print(f"[router-worker] {job_id}: -> {d.choice.target.name} "
           f"(~{d.choice.total_min:.1f} min, ~${d.choice.cost_usd:.2f}): {spec.command}", flush=True)
+    # output is decoded as UTF-8 below, so make the child write UTF-8 too (Windows
+    # defaults to a legacy codepage) and drop deprecation noise from the captured log
     env = dict(os.environ, PYTHONUTF8="1", PYTHONIOENCODING="utf-8", PYTHONWARNINGS="ignore::DeprecationWarning")
     t0 = time.perf_counter()
     p = subprocess.run(cmd, cwd=REPO, env=env, capture_output=True, text=True, encoding="utf-8", errors="replace")
@@ -146,7 +174,9 @@ def run_job(api: Api, job: dict) -> None:
 
 
 def main(argv: list[str] | None = None) -> int:
-    ap = argparse.ArgumentParser(prog="python -m router.homelab_worker")
+    """Poll loop: heartbeat, claim, run, sleep `--poll` seconds (WORKER_POLL_SEC,
+    default 10). API errors are logged and the loop carries on; jobs run one at a time."""
+    ap =argparse.ArgumentParser(prog="python -m router.homelab_worker")
     ap.add_argument("--once", action="store_true", help="one claim attempt, then exit")
     ap.add_argument("--poll", type=float, default=float(os.environ.get("WORKER_POLL_SEC", "10")))
     a = ap.parse_args(argv)

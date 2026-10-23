@@ -7,6 +7,8 @@
 NVCC       ?= /usr/local/cuda/bin/nvcc
 CUDA_PATH  ?= /usr/local/cuda
 ARCH       ?= sm_120
+# sm_120 = RTX 5070 (Blackwell consumer). -lineinfo keeps source-line tables
+# for Nsight / cuobjdump without disabling optimization the way -G would.
 NVCCFLAGS  ?= -arch=$(ARCH) -O3 -lineinfo -std=c++17
 
 CLANG      ?= clang-21
@@ -38,6 +40,8 @@ all: $(BINS)
 $(BUILD)/%: %.cu common.cuh | $(BUILD)
 	$(NVCC) $(NVCCFLAGS) -o $@ $<
 
+# matmul links cuBLAS; the rpath lets the binary find libcublas at run time
+# without LD_LIBRARY_PATH.
 $(BUILD)/matmul: matmul.cu common.cuh | $(BUILD)
 	$(NVCC) $(NVCCFLAGS) -o $@ $< -lcublas -Xlinker -rpath=$(CUDA_PATH)/lib64
 
@@ -59,6 +63,9 @@ $(BUILD)/ptx/%.ptx: %.cu common.cuh
 # frontend) and -O3 (after the optimizer), so the passes can be diffed.
 llvm: $(foreach s,$(LLVM_SRCS),$(BUILD)/llvm/$(s).O0.ll $(BUILD)/llvm/$(s).O3.ll $(BUILD)/llvm/$(s).clang.ptx)
 
+# -disable-O0-optnone: clang tags -O0 functions `optnone`, which would stop
+# opt from running passes on this IR later; dropping it keeps the -O0 file
+# usable as optimizer input.
 $(BUILD)/llvm/%.O0.ll: %.cu common.cuh $(COMPAT)/texture_fetch_functions.h
 	@mkdir -p $(@D)
 	$(CLANG) $(CLANGFLAGS) -O0 -Xclang -disable-O0-optnone -S -emit-llvm -o $@ $<

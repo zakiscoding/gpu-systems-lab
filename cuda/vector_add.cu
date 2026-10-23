@@ -12,6 +12,16 @@
 // Usage: build/vector_add [n_floats]
 #include "common.cuh"
 
+// c[i] = a[i] + b[i] for i in [0, n).
+// Mapping: 1D grid of 1D blocks; thread g = blockIdx.x * blockDim.x +
+//   threadIdx.x handles elements g, g + stride, g + 2*stride, ... where
+//   stride = total threads in the grid (grid-stride loop). Launched with
+//   48 SMs * 8 blocks * 256 threads, so each thread loops ~680 times at 64M.
+// Memory: consecutive lanes touch consecutive floats, so every warp access is
+//   one fully coalesced 128-byte transaction per array. No reuse, no shared
+//   memory; 1 FLOP per 12 bytes makes it purely DRAM-bound.
+// Measured (cuda/README.md): 569 GB/s at 64M floats, ~85% of the 672 GB/s
+//   peak and on par with a D2D cudaMemcpy (578 GB/s).
 __global__ void vector_add(const float* __restrict__ a, const float* __restrict__ b,
                            float* __restrict__ c, size_t n) {
     size_t stride = (size_t)gridDim.x * blockDim.x;
@@ -22,6 +32,14 @@ __global__ void vector_add(const float* __restrict__ a, const float* __restrict_
 
 // Same thing with float4: each thread moves 16 bytes per load/store, so the
 // GPU issues 4x fewer memory instructions for the same traffic.
+// Mapping: identical grid-stride loop, but over n4 = n / 4 float4 elements.
+//   Requires 16-byte-aligned pointers (cudaMalloc guarantees 256 B) and
+//   n % 4 == 0 (main rounds n down).
+// Memory: each warp moves 512 contiguous bytes per array per iteration; the
+//   const __restrict__ inputs compile to ld.global.nc.v4 (read-only path).
+// Measured: 590 GB/s vs 569 GB/s scalar, only ~4% faster, because the scalar
+//   kernel was already bandwidth-bound; fewer instructions help little once
+//   DRAM is the limit.
 __global__ void vector_add_f4(const float4* __restrict__ a, const float4* __restrict__ b,
                               float4* __restrict__ c, size_t n4) {
     size_t stride = (size_t)gridDim.x * blockDim.x;
@@ -57,6 +75,8 @@ int main(int argc, char** argv) {
 
     bool all_ok = true;
     print_header("GB/s");
+    // Copy c back, compare with the CPU reference, print the row (GB/s =
+    // 3 arrays * bytes / time), then zero c so the next kernel must rewrite it.
     auto check = [&](const char* name, float ms) {
         CUDA_CHECK(cudaMemcpy(hc.data(), c, bytes, cudaMemcpyDeviceToHost));
         double err = max_rel_err(hc.data(), ref.data(), n);

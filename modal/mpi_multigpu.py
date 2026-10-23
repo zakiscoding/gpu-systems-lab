@@ -7,7 +7,7 @@ programs are built inside the container with nvcc + Open MPI and run at 1 and
 
 The container uses Ubuntu 24.04's Open MPI 4.1.6 (same as the local node) and
 CUDA 12.8; the GPU's compute capability is read at runtime to pick -arch.
-Output is saved to results/modal_mpi_<gpu>_<ts>.txt.
+Output is saved to results/modal_mpi_<stock|cuda-aware>_<TYPE>x<N>_<ts>.txt.
 
 Usage (from the repo root):
     modal run modal/mpi_multigpu.py                 # default L4:2
@@ -34,6 +34,8 @@ OMPI_SHA256 = "f740994485516deb63b5311af122c265179f5328a0d857a567b85db00b11e415"
 
 
 def _add_repo(img: modal.Image) -> modal.Image:
+    """Mount what the MPI programs need to build: mpi/ (minus local build output
+    and the multinode setup) and cuda/common.cuh, which they include."""
     return img.add_local_dir(REPO / "mpi", f"{REMOTE_REPO}/mpi", ignore=["build", "multinode"]).add_local_file(
         REPO / "cuda" / "common.cuh", f"{REMOTE_REPO}/cuda/common.cuh"
     )
@@ -89,6 +91,10 @@ JACOBI = "8192 500"
 
 
 def _steps(ngpu: int) -> list[tuple[str, str]]:
+    """The (label, shell command) steps run in the container, in order: GPU and
+    topology info, Open MPI version and CUDA-awareness, `make` for the detected
+    arch ($ARCH), then Jacobi at 1 and `ngpu` ranks, ping-pong and a GPU-buffer
+    all-reduce."""
     mpirun = "mpirun --allow-run-as-root --bind-to none"
     return [
         ("gpus", "nvidia-smi --query-gpu=index,name,memory.total --format=csv,noheader"),
@@ -116,6 +122,10 @@ def run_mpi_cuda_aware():
 
 
 def _run_steps():
+    """Generator shared by both run functions: yields ("started", host, 0), then
+    (label, output + elapsed seconds, exit code) for each step. Copies the
+    read-only mount to /tmp/lab to build there, and derives ARCH (e.g. sm_90)
+    from the first GPU's compute capability. Failing steps don't stop the run."""
     import shutil
     import socket
 
@@ -140,6 +150,11 @@ def _run_steps():
 
 @app.local_entrypoint()
 def main(gpu: str = DEFAULT_GPU, cuda_aware: bool = False):
+    """Local entry point: run every step on a multi-GPU Modal container (paid, 30 min
+    timeout), stream each step's output, save the log to
+    results/modal_mpi_<stock|cuda-aware>_<TYPE>x<N>_<ts>.txt, and exit non-zero
+    if any step failed. The --cuda-aware image builds Open MPI from source the
+    first time (cached afterwards)."""
     if ":" not in gpu or int(gpu.split(":")[1]) < 2:
         raise SystemExit(f"--gpu needs a multi-GPU request like L4:2 or H100:2, got {gpu!r}")
 

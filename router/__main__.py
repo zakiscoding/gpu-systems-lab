@@ -18,10 +18,13 @@ from .jobs import JOBS
 from .probe import LocalState, probe_local
 from .route import Decision, Job, decide
 
+# argv prefix for a Modal launch; run from the repo root (execute() sets cwd=REPO)
 MODAL = [sys.executable, "-m", "modal", "run", "modal/run_job.py"]
 
 
 def job_from_args(a: argparse.Namespace) -> Job:
+    """Build the Job to route: a named job from JOBS (or a 1 GB / 1 min "custom"
+    placeholder), with any flags given on the command line overriding its fields."""
     base = JOBS[a.job] if a.job else Job("custom", vram_gb=1, local_minutes=1)
     over = {k: getattr(a, k) for k in ("vram_gb", "local_minutes", "gpus", "max_usd", "deadline_min", "command")
             if getattr(a, k) is not None}
@@ -29,6 +32,9 @@ def job_from_args(a: argparse.Namespace) -> Job:
 
 
 def show(d: Decision) -> None:
+    """Print the decision as a table: the job, the local card's live state, every
+    target's runtime / time-to-result (min) / estimated cost (USD) / verdict, and
+    the final choice with the reason it won. Estimated TFLOPS are marked with '*'."""
     j, loc = d.job, d.local
     print(f"job {j.name}: {j.vram_gb:g} GB/GPU x{j.gpus}, {j.local_minutes:g} min on RTX 5070, "
           f"cap ${j.max_usd:g}, deadline {j.deadline_min:g} min")
@@ -57,6 +63,7 @@ def build_command(d: Decision) -> list[str]:
     """argv that runs the job on the chosen target: SSH to the node, or modal/run_job.py."""
     c, j = d.choice, d.job
     if c.target.local:
+        # on the node, run Python jobs with the repo's own venv interpreter
         remote = j.command.replace("python ", ".venv/bin/python ", 1) if j.command.startswith("python ") else j.command
         return ["ssh", "-o", "BatchMode=yes", "gpu-ts", f"cd ~/gpu-systems-lab && {remote}"]
     gpu = c.target.name + (f":{j.gpus}" if j.gpus > 1 else "")
@@ -64,6 +71,11 @@ def build_command(d: Decision) -> list[str]:
 
 
 def execute(d: Decision, yes: bool) -> int:
+    """Run the chosen job in a subprocess (SSH or `modal run`) and return its exit code.
+
+    Refuses without running anything when there is no feasible target or no command
+    (exit 2), or when the choice is a paid Modal GPU and `yes` is False (exit 3).
+    """
     c, j = d.choice, d.job
     if c is None:
         return 2
@@ -79,7 +91,9 @@ def execute(d: Decision, yes: bool) -> int:
 
 
 def main(argv: list[str] | None = None) -> int:
-    p = argparse.ArgumentParser(prog="python -m router", description=__doc__,
+    """CLI entry point. Exit codes: 0 ok, 2 nothing feasible / no command,
+    3 paid Modal run not confirmed with --yes, otherwise the job's own exit code."""
+    p =argparse.ArgumentParser(prog="python -m router", description=__doc__,
                                 formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = p.add_subparsers(dest="cmd", required=True)
     for name in ("route", "run"):
@@ -106,6 +120,8 @@ def main(argv: list[str] | None = None) -> int:
                   f"${t.usd_per_gpu_hour:.2f}/h  queue ~{t.queue_s:g}s  {t.note}")
         return 0
 
+    # canned node states for --assume-local; "probe" (None) falls through to a live SSH probe.
+    # LocalState(online, vram_total_gb, vram_used_gb, util_pct, compute_procs)
     local = {
         "probe": None,
         "idle": LocalState(True, 12.0, 1.2, 0, 0),

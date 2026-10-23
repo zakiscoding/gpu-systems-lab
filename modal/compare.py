@@ -29,6 +29,9 @@ SHORT = {"bfloat16": "BF16", "float16": "FP16", "tf32": "TF32", "float32": "FP32
 
 
 def load(results_dir: Path) -> tuple[list[tuple[Path, dict]], list[tuple[Path, dict]]]:
+    """Read every results/*.json and split into (smoke records, DDP records),
+    each a list of (path, record) sorted by filename. Unreadable files are
+    skipped with a message; other JSON (e.g. FSDP runs) is ignored."""
     smoke, ddp = [], []
     for path in sorted(results_dir.glob("*.json")):
         try:
@@ -44,6 +47,8 @@ def load(results_dir: Path) -> tuple[list[tuple[Path, dict]], list[tuple[Path, d
 
 
 def est_cost(modal_meta: dict) -> float | None:
+    """Approximate USD for one run: laptop wall seconds x list price x GPU count.
+    None if the GPU type has no price or the record has no wall time."""
     price = PRICE_PER_GPU_HOUR_APPROX.get(modal_meta.get("gpu_request", "").split(":")[0])
     if price is None or modal_meta.get("wall_seconds") is None:
         return None
@@ -52,6 +57,8 @@ def est_cost(modal_meta: dict) -> float | None:
 
 
 def keep_latest(rows: list[tuple[Path, dict]], key) -> list[tuple[Path, dict]]:
+    """Keep one row per key(path, record), the last one seen (newest, since rows
+    are sorted by timestamped filename)."""
     latest = {}
     for path, rec in rows:  # sorted by filename, which ends in a timestamp
         latest[key(path, rec)] = (path, rec)
@@ -59,10 +66,14 @@ def keep_latest(rows: list[tuple[Path, dict]], key) -> list[tuple[Path, dict]]:
 
 
 def fmt(v, spec: str = "") -> str:
+    """format(v, spec), or "-" for a missing value."""
     return "-" if v is None else format(v, spec)
 
 
 def print_smoke(rows: list[tuple[Path, dict]]) -> None:
+    """Print the matmul table (TFLOPS per precision, H2D GiB/s, cold start and
+    wall seconds, ~USD per run), then each Modal run's BF16 speed relative to
+    the first local run in `rows`."""
     header = (f"{'source':<14}{'GPU':<30}" + "".join(f"{SHORT[p]:>7}" for p in PRECISIONS)
               + f"{'H2D':>7}{'cold s':>8}{'wall s':>8}{'~$/run':>9}")
     print("matmul TFLOPS (8192^2 unless noted), H2D pinned GiB/s")
@@ -97,6 +108,8 @@ def print_smoke(rows: list[tuple[Path, dict]]) -> None:
 
 
 def print_ddp(rows: list[tuple[Path, dict]]) -> None:
+    """Print one row per DDP/NCCL run: peak all-reduce bus bandwidth (GB/s),
+    1-GPU vs N-GPU samples/s, speedup, scaling efficiency and ~USD per run."""
     print("\nDDP / NCCL (weak scaling, fixed per-GPU batch)")
     header = (f"{'request':<12}{'GPU':<24}{'NCCL':>8}{'peak busbw':>12}{'1-GPU sps':>11}"
               f"{'N-GPU sps':>11}{'speedup':>9}{'eff':>6}{'~$/run':>9}")
@@ -114,6 +127,8 @@ def print_ddp(rows: list[tuple[Path, dict]]) -> None:
 
 
 def main() -> None:
+    """CLI: load results/, optionally keep only the newest run per host/GPU,
+    and print both tables."""
     default_results = Path(__file__).resolve().parent.parent / "results"
     p = argparse.ArgumentParser()
     p.add_argument("--results", type=Path, default=default_results)

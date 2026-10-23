@@ -17,11 +17,22 @@
 // Usage: build/fused [rows] [cols]
 #include "common.cuh"
 
+// Shared by all kernels below (the CPU reference in main uses a separate
+// double-precision formula). tanhf costs a few dozen instructions, but each
+// element also moves 8+ bytes of DRAM traffic, so the kernels below stay
+// memory-bound regardless.
 __host__ __device__ inline float gelu_tanh(float x) {
     const float k = 0.7978845608028654f;  // sqrt(2/pi)
     return 0.5f * x * (1.f + tanhf(k * (x + 0.044715f * x * x * x)));
 }
 
+// Unfused step 1: y = x + bias, with bias broadcast across rows
+// (x is rows x cols row-major, n = rows * cols, bias has `cols` entries).
+// Mapping: 1D grid-stride loop over the flattened tensor (384 blocks x 256).
+// Memory: x and y accesses are coalesced; bias[i % cols] is also contiguous
+//   within a warp and, at 16 KiB, stays cache-resident. Reads X and writes Y:
+//   2 * n * 4 bytes. Measured 1.041 ms / 516 GB/s (77% of peak,
+//   docs/profiling/README.md).
 __global__ void add_bias(const float* __restrict__ x, const float* __restrict__ bias,
                          float* __restrict__ y, size_t n, int cols) {
     for (size_t i = (size_t)blockIdx.x * blockDim.x + threadIdx.x; i < n;
@@ -29,12 +40,23 @@ __global__ void add_bias(const float* __restrict__ x, const float* __restrict__ 
         y[i] = x[i] + bias[i % cols];
 }
 
+// Unfused step 2: z = gelu(y), elementwise over n values. Same grid-stride
+// mapping and coalesced access as add_bias. It re-reads the intermediate Y
+// that add_bias just wrote to DRAM (256 MiB, too big for the L2), which is
+// the traffic fusion removes. Measured 1.025 ms / 524 GB/s: the tanh math
+// is hidden behind memory latency.
 __global__ void gelu(const float* __restrict__ y, float* __restrict__ z, size_t n) {
     for (size_t i = (size_t)blockIdx.x * blockDim.x + threadIdx.x; i < n;
          i += (size_t)gridDim.x * blockDim.x)
         z[i] = gelu_tanh(y[i]);
 }
 
+// Fused: z = gelu(x + bias) in one pass. Same mapping and access pattern as
+// add_bias, but the intermediate lives only in a register, so DRAM traffic is
+// 2 * n * 4 bytes instead of 4 * n * 4 and there is one launch instead of two.
+// Measured 1.087 ms vs 2.092 ms unfused: 1.93x, matching the 2x cut in bytes
+// (cuda/README.md). It runs at the same ~500 GB/s as add_bias alone, so the
+// extra math is free.
 __global__ void bias_gelu_fused(const float* __restrict__ x, const float* __restrict__ bias,
                                 float* __restrict__ z, size_t n, int cols) {
     for (size_t i = (size_t)blockIdx.x * blockDim.x + threadIdx.x; i < n;
@@ -74,6 +96,8 @@ int main(int argc, char** argv) {
     bool all_ok = true;
     // Metric column is effective bandwidth = bytes each version must move / time.
     print_header("GB/s");
+    // Copy z back, compare with the CPU double reference, print the row using
+    // `moved` (bytes that version must transfer), then zero z.
     auto check = [&](const char* name, float ms, double moved) {
         CUDA_CHECK(cudaMemcpy(hz.data(), z, bytes, cudaMemcpyDeviceToHost));
         double err = max_rel_err(hz.data(), ref.data(), n);

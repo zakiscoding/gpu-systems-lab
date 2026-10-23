@@ -27,6 +27,8 @@
 
 #ifdef USE_CUDA
 #include <cuda_runtime.h>
+// Like cuda/common.cuh's CUDA_CHECK, but MPI_Abort so the remote rank does
+// not hang in its next Sendrecv when this one fails.
 #define CUDA_CHECK(call)                                                                  \
     do {                                                                                  \
         cudaError_t e_ = (call);                                                          \
@@ -37,6 +39,11 @@
         }                                                                                 \
     } while (0)
 
+// Identical to jacobi_step in ../jacobi.cu: 5-point average over strip rows
+// 1..rows, boundary columns copied. 32x8 blocks, one cell per thread,
+// warp = 32 consecutive columns (coalesced). Built with -fmad=false so
+// 0.25f * (a + b + c + d) rounds exactly like jacobi_cpu; with FMA
+// contraction the GPU result would drift from the CPU reference.
 __global__ void jacobi_kernel(const float* __restrict__ in, float* __restrict__ out, int rows, int N) {
     int c = blockIdx.x * blockDim.x + threadIdx.x;
     int r = blockIdx.y * blockDim.y + threadIdx.y + 1;
@@ -48,6 +55,8 @@ __global__ void jacobi_kernel(const float* __restrict__ in, float* __restrict__ 
 #endif
 
 // Same arithmetic as the kernel, on the CPU (also used for the reference).
+// Single-threaded; in/out are (rows + 2) x N host strips, halo rows read only.
+// The macOS build uses -ffp-contract=off so clang does not fuse it into FMAs.
 static void jacobi_cpu(const float* in, float* out, int rows, int N) {
     for (int r = 1; r <= rows; ++r) {
         size_t row = size_t(r) * N;
@@ -76,6 +85,9 @@ struct Strip {
     }
 };
 
+// One sweep cur() -> nxt() on whichever device owns the strip. The GPU path
+// synchronizes so the compute timer measures the kernel and the halo copies
+// that follow read finished rows.
 static void step(Strip& s) {
 #ifdef USE_CUDA
     if (s.gpu) {
@@ -88,6 +100,10 @@ static void step(Strip& s) {
     jacobi_cpu(s.cur(), s.nxt(), s.rows, s.N);
 }
 
+// Copy one N-float row between the strip and a host staging buffer:
+// a blocking cudaMemcpy (direction from to_device) on a GPU rank, memcpy on a
+// CPU rank. There is no CUDA-aware path: halos always go through host
+// memory, so any (heterogeneous) Open MPI build works.
 static void copy_row(float* dst, const float* src, int N, bool gpu, bool to_device) {
 #ifdef USE_CUDA
     if (gpu) {
@@ -101,6 +117,12 @@ static void copy_row(float* dst, const float* src, int N, bool gpu, bool to_devi
 }
 
 // Swap edge rows of the freshly written buffer with the neighbours.
+// Same protocol as exchange_halos() in ../jacobi.cu (staged path): hb holds
+// 4 * N floats [send_up | send_down | recv_top | recv_bot]; two
+// MPI_Sendrecv calls (tags 0 and 1) that every rank must make each step;
+// MPI_PROC_NULL neighbours at the ends leave the boundary halos untouched.
+// Over Tailscale each step's exchange costs ~24 ms, ~100% of runtime
+// (multinode/README.md).
 static void exchange(Strip& s, int up, int down, std::vector<float>& hb) {
     const int N = s.N;
     float* d = s.nxt();
@@ -140,7 +162,9 @@ int main(int argc, char** argv) {
     }
 #endif
 
-    // split interior rows 1..N-2 by weight; last rank absorbs rounding
+    // split interior rows 1..N-2 by weight; last rank absorbs rounding.
+    // MPI_Allgather (collective) gives every rank every weight, so all ranks
+    // compute the same counts/starts without further communication.
     std::vector<double> w(n);
     MPI_Allgather(&weight, 1, MPI_DOUBLE, w.data(), 1, MPI_DOUBLE, MPI_COMM_WORLD);
     double wsum = 0;
@@ -202,7 +226,9 @@ int main(int argc, char** argv) {
     MPI_Gatherv(mine.data(), (int)mine.size(), MPI_FLOAT, global.data(), rc.data(), rd.data(), MPI_FLOAT, 0,
                 MPI_COMM_WORLD);
 
-    // per-rank report
+    // per-rank report: each rank's Row is gathered as raw bytes (MPI_BYTE),
+    // which is safe across x86_64/arm64 because it holds only chars and
+    // doubles with the same size, alignment and IEEE/little-endian layout.
     char host[64] = {};
     gethostname(host, sizeof host - 1);
     struct Row { char host[64]; char dev[64]; double compute, comm; } me{}, *all = nullptr;

@@ -27,6 +27,9 @@ REMOTE = (
 
 @dataclass(frozen=True)
 class LocalState:
+    """Snapshot of the RTX 5070 node as the router sees it (VRAM in GiB, as
+    nvidia-smi MiB / 1024). `online=False` carries the reason in `error`."""
+
     online: bool
     vram_total_gb: float = 0.0
     vram_used_gb: float = 0.0
@@ -37,16 +40,26 @@ class LocalState:
 
     @property
     def vram_free_gb(self) -> float:
+        """VRAM not held by anything right now, resident servers included."""
         return self.vram_total_gb - self.vram_used_gb
 
     @property
     def busy(self) -> bool:
+        """True when another job is using the card: >= 20% utilization or any
+        non-resident CUDA process."""
         # The desktop (~1.2 GB) and a resident vLLM server (~5 GB) hold VRAM without
         # computing, so used VRAM isn't a signal; another job or real utilization is.
         return self.util_pct >= 20 or self.compute_procs > 0
 
 
 def parse(stdout: str) -> LocalState:
+    """Turn the output of REMOTE into a LocalState.
+
+    Takes the max of the utilization samples (one quiet sample shouldn't hide a
+    running job), converts MiB to GiB, and splits compute processes into
+    resident servers (matching RESIDENT_PROCS) and everything else. Raises
+    ValueError/IndexError on malformed output; probe_local() handles that.
+    """
     util_part, mem_part, procs_part = (stdout.strip() + "\n").split("---", 2)
     util = max(float(x) for x in util_part.split())
     total, used = (float(x) for x in mem_part.strip().splitlines()[0].split(","))
@@ -56,6 +69,12 @@ def parse(stdout: str) -> LocalState:
 
 
 def probe_local(host: str = SSH_HOST, timeout_s: float = 10.0) -> LocalState:
+    """SSH to the node (non-interactive, BatchMode) and read its GPU state.
+
+    Never raises: an SSH timeout, missing ssh binary, non-zero exit or
+    unparseable output all come back as an offline LocalState with the reason.
+    Takes ~1.5 s plus SSH setup when the node is up.
+    """
     cmd = ["ssh", "-o", "BatchMode=yes", "-o", f"ConnectTimeout={int(timeout_s)}", host, REMOTE]
     try:
         out = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout_s + 10)

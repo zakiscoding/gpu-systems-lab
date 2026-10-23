@@ -16,6 +16,8 @@
 
 #include "mpi_common.cuh"
 
+// x[0..n) = v. Initialises the device send buffer without a host copy.
+// Grid-stride loop (launched 256 x 256), coalesced stores; not timed.
 __global__ void fill(float* x, size_t n, float v) {
     for (size_t i = blockIdx.x * blockDim.x + threadIdx.x; i < n; i += size_t(gridDim.x) * blockDim.x)
         x[i] = v;
@@ -60,6 +62,11 @@ int main(int argc, char** argv) {
         const size_t bytes = count * sizeof(float);
         const int iters = bytes <= (1 << 20) ? 200 : bytes <= (64 << 20) ? 20 : 5;
 
+        // One all-reduce of `count` floats on the selected path. MPI_Allreduce
+        // is a collective: every rank must call `one` the same number of
+        // times with the same count, or the job hangs. The staged branch's
+        // two blocking cudaMemcpys (pinned host <-> device) are part of the
+        // measured time, as they would be in a real training step.
         auto one = [&] {
             if (direct) {
                 MPI_CHECK(MPI_Allreduce(d_send, d_recv, (int)count, MPI_FLOAT, MPI_SUM, MPI_COMM_WORLD));
@@ -80,7 +87,9 @@ int main(int argc, char** argv) {
         double secs = 0;  // slowest rank defines collective time
         MPI_CHECK(MPI_Allreduce(&local, &secs, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD));
 
-        // verify a sample of the final result on every rank
+        // verify a sample of the final result on every rank (~1024 strided
+        // elements plus the last), then AND the verdicts with a collective so
+        // all ranks agree on pass/fail
         std::vector<float> check(count);
         if (device) CUDA_CHECK(cudaMemcpy(check.data(), d_recv, bytes, cudaMemcpyDeviceToHost));
         else std::memcpy(check.data(), h_recv, bytes);
@@ -91,6 +100,10 @@ int main(int argc, char** argv) {
         MPI_CHECK(MPI_Allreduce(&ok, &all, 1, MPI_INT, MPI_LAND, MPI_COMM_WORLD));
         all_ok &= all;
 
+        // algbw = buffer bytes / time; busbw = algbw * 2(n-1)/n (ring traffic
+        // per link, see allreduce_busbw). Measured on one node, 4 ranks
+        // (mpi/README.md): host peaks ~9.3 GB/s busbw at 256 KiB, GPU staged
+        // ~3.3 GB/s.
         double algbw = bytes / secs / 1e9;
         root_printf("%10s %12.1f %12.2f %12.2f %4s\n", human_bytes(bytes, sz, sizeof sz), secs * 1e6,
                     algbw, allreduce_busbw(algbw, n), all ? "yes" : "NO");

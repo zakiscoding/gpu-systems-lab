@@ -43,6 +43,8 @@ app = modal.App("gpu-lab-ddp-nccl", image=image)
 
 
 def _torchrun(nproc: int, out: str, extra: list[str], env: dict) -> dict:
+    """Run ddp_train.py under torchrun with `nproc` local ranks (blocking; raises
+    CalledProcessError on failure) and return the JSON record rank 0 wrote to `out`."""
     cmd = [sys.executable, "-m", "torch.distributed.run", "--standalone",
            f"--nproc-per-node={nproc}", f"{REMOTE}/ddp_train.py", "--out", out, *extra]
     print("$", " ".join(cmd), flush=True)
@@ -52,6 +54,9 @@ def _torchrun(nproc: int, out: str, extra: list[str], env: dict) -> dict:
 
 @app.function(gpu=DEFAULT_GPU, timeout=30 * 60)
 def run_ddp(train_args: list[str]):
+    """Generator run in the container: yield "started" (for cold-start timing), run
+    the 1-GPU baseline and the N-GPU run back to back, then yield the combined
+    record with speedup = sps_N / sps_1 and scaling_efficiency = speedup / N."""
     yield {"event": "started"}
 
     import torch  # only needed in the container
@@ -61,6 +66,7 @@ def run_ddp(train_args: list[str]):
     subprocess.run(["nvidia-smi", "topo", "-m"])  # show NVLink vs PCIe between GPUs
 
     t0 = time.perf_counter()
+    # baseline: one rank pinned to GPU 0; no all_reduce sweep (nothing to reduce across)
     single = _torchrun(1, "/tmp/ddp_1.json", ["--skip-allreduce", *train_args],
                        {**env, "CUDA_VISIBLE_DEVICES": "0"})
     multi = _torchrun(n, f"/tmp/ddp_{n}.json", train_args, env)
@@ -84,6 +90,9 @@ def run_ddp(train_args: list[str]):
 
 @app.local_entrypoint()
 def main(gpu: str = DEFAULT_GPU, steps: int = 100, batch: int = 256, max_mib: int = 1024):
+    """Local entry point: validate --gpu (TYPE:N, N >= 2), run run_ddp on Modal
+    (paid, 30 min timeout), add timing metadata and write
+    results/modal_ddp_<type>x<N>_<ts>.json."""
     gpu_type, _, count = gpu.partition(":")
     if gpu_type not in ALLOWED_TYPES or not count.isdigit() or int(count) < 2:
         raise SystemExit(f"--gpu must look like TYPE:N with N>=2 and TYPE in {ALLOWED_TYPES}, got {gpu!r}")
