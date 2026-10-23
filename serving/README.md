@@ -11,6 +11,31 @@ what does a token cost on each machine?
 | [launch_server.sh](launch_server.sh) | `vllm serve` on `127.0.0.1:8000` (refuses `0.0.0.0`). Optional `VLLM_API_KEY`. |
 | [bench_sweep.py](bench_sweep.py) | Runs `vllm bench serve` at concurrency 1, 4, 16, 64, 256. Writes raw JSON, a summary JSON and a Markdown table to `results/serving/` (gitignored). With `--launch` it also starts and stops the server and parses the KV-cache size from its log. |
 | [../modal/serve_vllm.py](../modal/serve_vllm.py) | Runs the same `bench_sweep.py --launch` inside one Modal H100 container, with server and client together, and copies the results back. |
+| [compose.yml](compose.yml) + [make-env.sh](make-env.sh) | The **always-on chat backend** for the homelab web UI: `vllm/vllm-openai:v0.32.0` in Docker on the tailnet, with an API key. |
+
+## Homelab chat backend (always on)
+
+The homelab web UI's `/chat` and RAG answers come from this server whenever the GPU PC runs Ubuntu.
+The iMac API ([homelab-services](https://github.com/zakiscoding/homelab-services) `api/llm.py`,
+`LLM_BACKEND=auto`) uses vLLM when it answers, and falls back to Ollama when the PC is booted into
+Windows.
+
+```bash
+# on the node, once
+cd ~/gpu-systems-lab/serving && ./make-env.sh && docker compose up -d
+```
+
+| Setting | Value | Why |
+|---|---|---|
+| Image | `vllm/vllm-openai:v0.32.0` (pinned) | same vLLM as the benchmarks, runs on sm_120 |
+| Address | `100.121.51.35:8000/v1` | tailnet only; the LAN IP refuses connections (tested) |
+| Auth | bearer `VLLM_API_KEY` from `serving/.env` (mode 600, gitignored) | requests without the key get 401 (tested) |
+| Model | `Qwen/Qwen2.5-1.5B-Instruct`, served as `qwen2.5-1.5b-instruct` | fits beside other GPU work |
+| GPU memory | `--gpu-memory-utilization 0.45` (~5.4 GB) | leaves room for the desktop and k3s jobs. k3s can't see this usage, so `docker compose stop` before big GPU jobs |
+| Restart | `unless-stopped` + healthcheck on `/health` | comes back after a reboot |
+
+Tested from the laptop through the homelab API code: the UI's default `llama3.2:latest` maps to the
+served model, a one-sentence answer takes 0.9 s, and with vLLM unreachable `auto` switches to Ollama.
 
 ## Setup and commands
 

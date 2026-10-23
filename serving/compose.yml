@@ -1,0 +1,47 @@
+# Always-on vLLM chat backend for the homelab web UI / API (iMac homelab-services).
+#
+#   cd ~/gpu-systems-lab/serving
+#   ./make-env.sh          # once: random VLLM_API_KEY into .env (mode 600, never committed)
+#   docker compose up -d
+#
+# OpenAI-compatible API on the tailnet only: http://100.121.51.35:8000/v1
+# Requires the bearer key from .env. Served name: qwen2.5-1.5b-instruct.
+#
+# GPU budget: 0.45 of 12 GB (~5.4 GB: 3 GB weights + ~2 GB KV cache), leaving
+# room for the desktop and k3s GPU jobs. k3s does not see this container's GPU
+# use, so very large k3s jobs can still run out of memory while it is up.
+# `docker compose stop` frees the card.
+services:
+  vllm:
+    image: vllm/vllm-openai:v0.32.0
+    container_name: vllm-chat
+    restart: unless-stopped
+    ipc: host  # PyTorch shared memory between vLLM processes
+    ports:
+      - "100.121.51.35:8000:8000"
+    env_file: .env  # VLLM_API_KEY (read by the server from the environment)
+    environment:
+      HF_HUB_OFFLINE: "1"  # weights already in the cache; no network at start
+      VLLM_USE_FLASHINFER_SAMPLER: "0"  # it JIT-compiles a kernel on first use (see README)
+    volumes:
+      - ${HOME}/.cache/huggingface:/root/.cache/huggingface
+    command:
+      - Qwen/Qwen2.5-1.5B-Instruct
+      - --served-model-name
+      - qwen2.5-1.5b-instruct
+      - --gpu-memory-utilization
+      - "0.45"
+      - --max-model-len
+      - "4096"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')"]
+      interval: 30s
+      timeout: 5s
+      start_period: 180s
