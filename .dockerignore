@@ -1,0 +1,13 @@
+# Keep the build context small; the image only needs docker/ and benchmarks/.
+.git
+.gitignore
+.gitattributes
+.claude
+.venv
+**/__pycache__
+**/*.pyc
+results
+cuda/build
+**/build
+.env
+*.local.*
