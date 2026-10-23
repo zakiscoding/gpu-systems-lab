@@ -51,6 +51,17 @@ inline int world_size() {
     return n;
 }
 
+// One GPU per rank on multi-GPU nodes: bind each rank to (local rank % GPU
+// count). On a single-GPU node every rank lands on device 0, as before.
+// Call right after MPI_Init. Returns the number of GPUs visible on this node.
+inline int bind_local_gpu() {
+    const char* lr = std::getenv("OMPI_COMM_WORLD_LOCAL_RANK");
+    int local = lr ? std::atoi(lr) : 0, ndev = 0;
+    CUDA_CHECK(cudaGetDeviceCount(&ndev));
+    CUDA_CHECK(cudaSetDevice(local % ndev));
+    return ndev;
+}
+
 // printf on rank 0 only, so tables are not duplicated per rank.
 inline void root_printf(const char* fmt, ...) {
     if (world_rank() != 0) return;

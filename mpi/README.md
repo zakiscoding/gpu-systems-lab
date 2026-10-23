@@ -67,6 +67,46 @@ GPUs and uses NVLink/PCIe peer-to-peer, so it should be one to two orders of mag
 | 8 | 0.703 s | 33% / 67% | 11.9 | yes |
 | 4, MPS | 0.132 s | 57% / 43% | 63.7 | yes |
 
+### One rank per GPU: 2x H100 on Modal
+
+`modal/mpi_multigpu.py` builds these programs in a 2-GPU container (CUDA 12.8, the same Ubuntu
+Open MPI 4.1.6) and binds each rank to its own GPU (`bind_local_gpu()`). Jacobi at 8192², 500 steps:
+
+| Ranks / GPUs | wall | compute / halo | Gcell/s | matches serial |
+|---|---:|---|---:|---|
+| 1 / 1 | 0.143 s | 94% / 6% | 234.6 | yes |
+| 2 / 2 | 0.104 s | 67% / 33% | 322.7 | yes |
+
+**1.38x on 2 GPUs.** It's a real speedup at last, unlike the shared-GPU runs above, but below 2x:
+compute halves (0.134 s to 0.070 s), while the halo exchange goes through host memory because this
+Open MPI isn't CUDA-aware. Inside Modal's gVisor sandbox even host ping-pong peaks at 5.7 GB/s
+(21 GB/s on the local node), and staged GPU all-reduce at 1.9 GB/s busbw. CUDA-aware MPI or NCCL
+(GPU to GPU over NVLink) is what would close the gap to 2x.
+
+#### CUDA-aware Open MPI (`modal run modal/mpi_multigpu.py --gpu H100:2 --cuda-aware`)
+
+The same Open MPI 4.1.6 built from source `--with-cuda`. Device pointers go straight to MPI, and
+the programs switch to the direct path automatically.
+
+| Test (2x H100) | stock (staged via host) | CUDA-aware (direct) |
+|---|---:|---:|
+| ping-pong 8 B latency | 15.2 µs | 9.7 µs |
+| ping-pong 16 MiB | 4.2 GB/s | **324 GB/s** |
+| all-reduce 256 MiB, busbw | 1.51 GB/s | 0.69 GB/s |
+| Jacobi 2 ranks, halo time | 0.034 s | 0.072 s |
+| Jacobi 2 ranks vs 1 rank | 1.38x | 0.95x |
+
+- **Point-to-point is a huge win.** Large GPU-to-GPU messages hit 324 GB/s, the same NVLink speed
+  NCCL reached (329 GB/s): the `smcuda` BTL moves the data with CUDA IPC, and IPC works inside
+  Modal's gVisor sandbox.
+- **Collectives and small messages got worse.** Open MPI 4.1's reductions on GPU buffers still copy
+  to the host, and every run warns `cuMemHostRegister ... failed`: the sandbox won't let CUDA pin
+  MPI's shared-memory segment, so those copies use slow pageable memory. Jacobi's 32 KiB halo rows
+  take that path, and its 2-GPU run lost its speedup.
+- **Lesson:** "CUDA-aware" isn't one switch. Big point-to-point transfers get NVLink speed, but
+  collectives need NCCL (or UCC/UCX-based MPI) to stay on the GPU. In a sandbox that blocks host
+  pinning, hand-written staging with your own pinned buffers can beat the library.
+
 ## Takeaways
 
 - **One GPU does not strong-scale.** Every rank shares the same SMs, so splitting the grid adds

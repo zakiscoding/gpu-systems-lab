@@ -82,6 +82,7 @@ static void run(float* a, float* b, int rows, int N, int steps, int up, int down
 
 int main(int argc, char** argv) {
     MPI_CHECK(MPI_Init(&argc, &argv));
+    const int ngpu = bind_local_gpu();
     const int N = argc > 1 ? std::atoi(argv[1]) : 4096;
     const int steps = argc > 2 ? std::atoi(argv[2]) : 500;
     const int rank = world_rank(), n = world_size();
@@ -96,8 +97,9 @@ int main(int argc, char** argv) {
     const int down = rank == n - 1 ? MPI_PROC_NULL : rank + 1;
 
     if (rank == 0) print_device();
-    root_printf("grid %dx%d, %d steps, %d ranks (%d-%d rows each), halo path: %s\n\n", N, N, steps, n,
-                base, base + (extra ? 1 : 0), direct ? "CUDA-aware direct" : "staged via host");
+    root_printf("grid %dx%d, %d steps, %d ranks (%d-%d rows each) on %d GPU(s), halo path: %s\n\n", N, N, steps,
+                n, base, base + (extra ? 1 : 0), std::min(n, ngpu),
+                direct ? "CUDA-aware direct" : "staged via host");
 
     const size_t strip = size_t(rows + 2) * N;
     std::vector<float> h(strip);

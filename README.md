@@ -63,7 +63,10 @@ Build practical GPU-systems skills by progressing from a verified single-GPU bas
 - [x] System deps: CUDA 13.2 toolkit, LLVM 21, Docker + NVIDIA Container Toolkit (`sudo bash scripts/install_system_deps.sh`)
 - [x] CUDA kernels + PTX/LLVM IR inspection (`cuda/`: vector add, tiled matmul vs cuBLAS, reductions, fused bias+GELU)
 - [x] MPI on one node (`mpi/`: ping-pong, all-reduce, Jacobi halo exchange; MPS gives 3x on shared-GPU runs)
+- [x] MPI one rank per GPU on Modal (`modal/mpi_multigpu.py`: 2x H100, Jacobi 1.38x faster, halo staged via host)
+- [x] CUDA-aware Open MPI on 2x H100 (`--cuda-aware`: 324 GB/s point-to-point, but collectives slower in the sandbox)
+- [x] Multi-GPU NCCL run (2x H100: all-reduce 329 GB/s busbw; DDP 1.02x at batch 256, 1.57x at batch 4096)
+- [x] MPI across two machines (`mpi/multinode/`: RTX 5070 + M1 iMac over Tailscale; GPU and CPU results bit-exact, network-bound)
 - [x] Modal account connected; parity and NCCL scripts ready in `modal/` (not yet run)
 - [x] Containerized benchmark (`docker/`: pinned cu128 image, `run.sh validate`; matches native within 1%)
-- [ ] Modal parity run
-- [ ] Multi-GPU NCCL/DDP run
+- [x] Modal parity run (H100: BF16 677.8 TFLOPS, 10x the RTX 5070; cold start 3.7 s)

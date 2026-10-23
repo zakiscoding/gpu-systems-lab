@@ -23,6 +23,7 @@ __global__ void fill(float* x, size_t n, float v) {
 
 int main(int argc, char** argv) {
     MPI_CHECK(MPI_Init(&argc, &argv));
+    const int ngpu = bind_local_gpu();
     bool device = false;
     size_t max_mib = 256;
     for (int i = 1; i < argc; ++i) {
@@ -35,7 +36,7 @@ int main(int argc, char** argv) {
     const float expect = n * (n + 1) / 2.0f;
 
     if (world_rank() == 0) print_device();
-    root_printf("ranks: %d | data: %s | path: %s\n\n", n, device ? "GPU" : "host",
+    root_printf("ranks: %d | GPUs on node: %d | data: %s | path: %s\n\n", n, ngpu, device ? "GPU" : "host",
                 !device ? "host buffers" : direct ? "CUDA-aware direct" : "staged via pinned host");
 
     // send/recv pairs on host (always, for staging) and on device (--device)
