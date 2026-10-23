@@ -240,9 +240,10 @@ sudo /usr/local/bin/k3s-uninstall.sh
 
 - The k3s API server (`*:6443`) and kubelet (`*:10250`) listen on **all interfaces**, not only the
   Tailscale IP 100.121.51.35 (`ss -ltn`). Both require TLS client-certificate auth, but they are
-  still exposed on the LAN. Fix by binding them (`--bind-address 100.121.51.35`, kubelet
-  `--kubelet-arg=address=100.121.51.35`) or with host firewall rules. That is a k3s or host change
-  for the user. Controller-manager and scheduler (10257 and 10259) are already on 127.0.0.1.
+  still exposed on the LAN. **Fix:** [`scripts/harden_node.sh`](../scripts/harden_node.sh), run by
+  the owner, enables ufw and blocks 22/6443/10250 on the LAN interfaces only (Tailscale, Docker and
+  pod networking untouched). Controller-manager and scheduler (10257 and 10259) are already on
+  127.0.0.1.
 - The device plugin runs with `allowPrivilegeEscalation: false` and all capabilities dropped. It
   needs only the hostPath `/var/lib/kubelet/device-plugins`.
 - **The GPU limit is accounting, not enforcement** (tested). A pod with
@@ -256,4 +257,8 @@ sudo /usr/local/bin/k3s-uninstall.sh
   plus `accept-nvidia-visible-devices-as-volume-mounts = true` in the runtime config, with the
   plugin's `deviceListStrategy: volume-mounts` (a host change for the user), or add an admission
   policy (ValidatingAdmissionPolicy) that rejects `runtimeClassName: nvidia` pods without a GPU limit.
+  **Fixed with the admission policy:** `manifests/50-require-gpu-limit-policy.yaml` (built-in CEL
+  policy, no webhook; kube-system exempt for the device plugin). Tested with server-side dry runs:
+  an nvidia-runtime pod without a limit is **denied**; pods with a GPU limit, and pods without the
+  runtime class, are allowed; the device plugin still reports `nvidia.com/gpu: 1`.
 - The kubeconfig is mode 600 and holds cluster-admin credentials.

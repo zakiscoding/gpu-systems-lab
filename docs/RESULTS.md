@@ -12,12 +12,16 @@ flowchart LR
         M["Modal client"]
     end
     subgraph Home["Tailscale tailnet"]
-        G["zak-gpu-node<br/>Ubuntu 24.04, RTX 5070 12 GB<br/>CUDA 13.2, Docker, Open MPI"]
+        subgraph G["zak-gpu-node: Ubuntu 24.04, RTX 5070 12 GB, CUDA 13.2"]
+            K["k3s + NVIDIA device plugin<br/>GPU job queue"]
+            V["vLLM server<br/>127.0.0.1:8000"]
+            O["dcgm-exporter → Prometheus → Grafana<br/>tailnet :3000 / :9090"]
+        end
         I["mos-imac<br/>M1, macOS<br/>Open MPI (CPU rank)"]
     end
     subgraph Modal["Modal (gVisor containers)"]
-        H1["1x H100<br/>parity runs"]
-        H2["2x H100 NVLink<br/>NCCL / DDP / MPI"]
+        H1["1x H100<br/>parity, vLLM serving"]
+        H2["2x H100 NVLink<br/>NCCL / DDP / FSDP / MPI / elastic"]
         L4["2x L4 PCIe<br/>NCCL / DDP"]
     end
     R -- "SSH probe + run" --> G
@@ -28,6 +32,7 @@ flowchart LR
 
 The laptop never computes. It probes and dispatches. `router/` sends a job to the free local card
 when it fits, and otherwise to the cheapest Modal GPU that meets the VRAM, deadline and cost limits.
+On the node, k3s queues GPU jobs and the Grafana stack watches the card.
 
 ## Headline numbers
 
@@ -74,6 +79,55 @@ $0.01 and starts in ~4 s.
 | 2 ranks on 2x H100, stock Open MPI | **1.38x** | halo staged via host |
 | 2x H100, CUDA-aware Open MPI | 0.95x | **324 GB/s** point-to-point, but collectives and small messages slower in the sandbox |
 
+### Inference serving: vLLM ([serving/](../serving/), [modal/serve_vllm.py](../modal/serve_vllm.py))
+
+Qwen2.5-1.5B with vLLM 0.32, 512 input / 256 output tokens, output tokens/s:
+
+| Concurrent requests | RTX 5070 | H100 | H100 / 5070 |
+|---:|---:|---:|---:|
+| 1 | 172 | 434 | 2.5x |
+| 16 | 1,987 | 5,842 | 2.9x |
+| 64 | 4,430 | **16,843** | 3.8x |
+| 256 | 4,791 (KV cache full, TTFT p99 7.4 s) | 11,989 | 2.5x |
+
+- **Batching is what pays:** on the 5070, 1 → 64 concurrent requests gave 25.7x the throughput for
+  2.3x the per-token latency.
+- **The 7B model** doesn't fit the 12 GB card. On the H100 it peaks at 8,436 tok/s.
+- **Cost:** about $0.07 per 1M tokens on an H100 at concurrency 64, vs about $2.50 serving one
+  request at a time (approximate list prices).
+
+### Sharded training and fault tolerance ([distributed/](../distributed/), [modal/fsdp_train.py](../modal/fsdp_train.py), [modal/elastic_train.py](../modal/elastic_train.py))
+
+| 2x H100, per GPU | DDP | FSDP2 |
+|---|---:|---:|
+| 1.34B params: peak memory | 31.0 GiB | **15.6 GiB** (12.8 with activation checkpointing) |
+| 1.34B params: step time | 125.8 ms | 113.6 ms |
+| 5.64B params | **OOM** at 77 of 79 GiB | trains, 52.7 GiB, 293 ms/step |
+
+- **Checkpoint/resume** with `torch.distributed.checkpoint` is bit-exact in deterministic mode
+  (2.45 GiB checkpoint: 2.0 s save, 1.5 s load).
+- **Elastic restart:** `torchrun --max-restarts`, one rank killed at step 48 of 60. Training resumed
+  from the last checkpoint and ended with a bit-identical final loss. Time lost was 11.0 s
+  (checkpoint every 10 steps) or 14.4 s (every 25).
+
+### Operations: observability and scheduling ([observability/](../observability/), [scheduling/](../scheduling/))
+
+- **Observability:** dcgm-exporter works on the GeForce card, including the SM-active,
+  tensor-pipe and DRAM profiling fields. Under a benchmark: GPU 0 → 100%, power 2 → 229 W,
+  temperature 36 → 63 °C, SM clock 180 → 2,820 MHz. The benchmark result was unchanged
+  (67.7 TFLOPS).
+- **k3s scheduling:** GPU pods run at native speed (67.7 TFLOPS). Three 1-GPU jobs submitted at
+  once queue and run one at a time.
+
+| Same work, 3 jobs | per job | combined | mean finish |
+|---|---:|---:|---:|
+| Exclusive (queue) | 67.5 TFLOPS | 67.5 | **101 s** |
+| Time-sliced x4 | 21.4 TFLOPS | 64.2 | 149 s |
+
+  Time-slicing a saturated GPU adds ~5% overhead and makes jobs finish later. It only helps jobs
+  that leave the GPU idle. A ValidatingAdmissionPolicy now blocks pods that would use the GPU
+  without requesting it (a queue bypass found during testing).
+
 ## What the numbers say
 
 1. **Develop locally, scale on rented H100s.** The 5070 is free and fast enough for kernels and
@@ -85,7 +139,15 @@ $0.01 and starts in ~4 s.
 4. **Sandboxes have costs.** Modal's gVisor blocks TUN devices (no Tailscale interface) and host
    memory pinning (`cuMemHostRegister` fails), and roughly halves host shared-memory bandwidth.
 5. **Correctness first.** Every benchmark checks its result: matmul against cuBLAS and the CPU,
-   Jacobi bit-exact against a serial run, all-reduce sums verified on every rank.
+   Jacobi bit-exact against a serial run, all-reduce sums verified on every rank, resumed training
+   bit-exact against an uninterrupted run.
+6. **Memory decides the training strategy.** DDP keeps a full copy of params, grads and Adam state
+   (16 bytes/param) on every GPU. FSDP shards it, which turned a 5.6B-parameter OOM into a working
+   run on the same two GPUs.
+7. **Serving is a batching problem.** Throughput comes from concurrency until the KV cache fills.
+   After that, latency explodes and throughput stops growing.
+8. **Measure what the platform hides.** The GPU limit in Kubernetes turned out to be accounting,
+   not enforcement, until an admission policy made it real.
 
 ## Runbooks
 
@@ -99,5 +161,10 @@ $0.01 and starts in ~4 s.
 | MPI on one node and on 2 GPUs | [mpi/README.md](../mpi/README.md) |
 | MPI across two machines | [mpi/multinode/README.md](../mpi/multinode/README.md) |
 | Job router | [router/README.md](../router/README.md) |
+| vLLM serving (node + H100) | [serving/README.md](../serving/README.md) |
+| FSDP, checkpoints, elastic restart | [distributed/README.md](../distributed/README.md) |
+| GPU monitoring stack | [observability/README.md](../observability/README.md) |
+| k3s GPU scheduling | [scheduling/README.md](../scheduling/README.md) |
+| Node hardening (firewall, profiling, sudo) | [scripts/harden_node.sh](../scripts/harden_node.sh) |
 
-Total Modal spend for all of the above: about $0.25.
+Total Modal spend for all of the above: about $3.20.
