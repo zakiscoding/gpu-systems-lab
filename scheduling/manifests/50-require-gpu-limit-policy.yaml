@@ -1,0 +1,44 @@
+# Close the "GPU without a limit" hole found in the scheduling demo.
+#
+# k3s's nvidia runtime honours NVIDIA_VISIBLE_DEVICES from the image, so a
+# pod with runtimeClassName: nvidia but no nvidia.com/gpu limit still saw the
+# GPU and skipped the scheduler's queue. This policy rejects such pods: with
+# the nvidia runtime class, every container must request nvidia.com/gpu.
+# kube-system is exempt (the device plugin itself uses the runtime class
+# without a GPU limit). Built-in ValidatingAdmissionPolicy (CEL), no webhook.
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: require-gpu-limit-with-nvidia-runtime
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+      - apiGroups: [""]
+        apiVersions: ["v1"]
+        operations: ["CREATE", "UPDATE"]
+        resources: ["pods"]
+  validations:
+    - expression: >-
+        !has(object.spec.runtimeClassName) || object.spec.runtimeClassName != 'nvidia' ||
+        (object.spec.containers.all(c, has(c.resources) && has(c.resources.limits) &&
+          'nvidia.com/gpu' in c.resources.limits) &&
+         (!has(object.spec.initContainers) || object.spec.initContainers.all(c, has(c.resources) &&
+          has(c.resources.limits) && 'nvidia.com/gpu' in c.resources.limits)))
+      message: >-
+        Pods using runtimeClassName nvidia must set resources.limits["nvidia.com/gpu"]
+        on every container; otherwise they get the GPU without being scheduled for it.
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: require-gpu-limit-with-nvidia-runtime
+spec:
+  policyName: require-gpu-limit-with-nvidia-runtime
+  validationActions: [Deny]
+  matchResources:
+    namespaceSelector:
+      matchExpressions:
+        - key: kubernetes.io/metadata.name
+          operator: NotIn
+          values: [kube-system]
