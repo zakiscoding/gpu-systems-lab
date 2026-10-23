@@ -1,0 +1,46 @@
+# bf16 matmul benchmark used by the matmul Job and the queue / time-slicing demos.
+# Env: N (matrix size, default 8192), DURATION (seconds of timed work, default 10),
+#      ITERS (if set: a fixed amount of work instead of a fixed time).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gpu-bench
+  namespace: gpu-jobs
+data:
+  bench.py: |
+    import json, os, socket, time
+    import torch
+
+    n = int(os.environ.get("N", "8192"))
+    duration = float(os.environ.get("DURATION", "10"))
+    target_iters = int(os.environ.get("ITERS", "0"))
+    dev = torch.device("cuda")
+    print(f"host={socket.gethostname()} gpu={torch.cuda.get_device_name(0)} "
+          f"cap={torch.cuda.get_device_capability(0)} torch={torch.__version__} cuda={torch.version.cuda}",
+          flush=True)
+    a = torch.randn(n, n, device=dev, dtype=torch.bfloat16)
+    b = torch.randn(n, n, device=dev, dtype=torch.bfloat16)
+    for _ in range(5):
+        a @ b
+    torch.cuda.synchronize()
+
+    flop = 2 * n ** 3
+    t_start = time.time()
+    iters, windows = 0, []
+    while (iters < target_iters) if target_iters else (time.time() - t_start < duration):
+        w0 = time.perf_counter()
+        for _ in range(20):
+            a @ b
+        torch.cuda.synchronize()
+        dt = time.perf_counter() - w0
+        iters += 20
+        windows.append(20 * flop / dt / 1e12)
+    t_end = time.time()
+    total = iters * flop / (t_end - t_start) / 1e12
+    print(json.dumps({
+        "pod": socket.gethostname(), "n": n, "iters": iters,
+        "work_start": round(t_start, 2), "work_end": round(t_end, 2),
+        "seconds": round(t_end - t_start, 2),
+        "tflops_avg": round(total, 1), "tflops_best_window": round(max(windows), 1),
+        "mem_alloc_gb": round(torch.cuda.memory_allocated() / 1e9, 2),
+    }), flush=True)

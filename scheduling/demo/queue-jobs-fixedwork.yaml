@@ -1,0 +1,102 @@
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: fixed-1
+  namespace: gpu-jobs
+  labels:
+    demo: gpu-queue-fixed
+spec:
+  backoffLimit: 0
+  template:
+    metadata:
+      labels:
+        demo: gpu-queue-fixed
+    spec:
+      restartPolicy: Never
+      runtimeClassName: nvidia
+      containers:
+        - name: bench
+          image: pytorch/pytorch:2.7.1-cuda12.8-cudnn9-runtime
+          command: ["python", "/bench/bench.py"]
+          env:
+            - name: ITERS
+              value: "2800"
+          resources:
+            limits:
+              nvidia.com/gpu: 1
+          volumeMounts:
+            - name: bench
+              mountPath: /bench
+      volumes:
+        - name: bench
+          configMap:
+            name: gpu-bench
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: fixed-2
+  namespace: gpu-jobs
+  labels:
+    demo: gpu-queue-fixed
+spec:
+  backoffLimit: 0
+  template:
+    metadata:
+      labels:
+        demo: gpu-queue-fixed
+    spec:
+      restartPolicy: Never
+      runtimeClassName: nvidia
+      containers:
+        - name: bench
+          image: pytorch/pytorch:2.7.1-cuda12.8-cudnn9-runtime
+          command: ["python", "/bench/bench.py"]
+          env:
+            - name: ITERS
+              value: "2800"
+          resources:
+            limits:
+              nvidia.com/gpu: 1
+          volumeMounts:
+            - name: bench
+              mountPath: /bench
+      volumes:
+        - name: bench
+          configMap:
+            name: gpu-bench
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: fixed-3
+  namespace: gpu-jobs
+  labels:
+    demo: gpu-queue-fixed
+spec:
+  backoffLimit: 0
+  template:
+    metadata:
+      labels:
+        demo: gpu-queue-fixed
+    spec:
+      restartPolicy: Never
+      runtimeClassName: nvidia
+      containers:
+        - name: bench
+          image: pytorch/pytorch:2.7.1-cuda12.8-cudnn9-runtime
+          command: ["python", "/bench/bench.py"]
+          env:
+            - name: ITERS
+              value: "2800"
+          resources:
+            limits:
+              nvidia.com/gpu: 1
+          volumeMounts:
+            - name: bench
+              mountPath: /bench
+      volumes:
+        - name: bench
+          configMap:
+            name: gpu-bench

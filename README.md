@@ -77,5 +77,5 @@ Build practical GPU-systems skills by progressing from a verified single-GPU bas
 - [x] Sharded training (`distributed/`: FSDP2 halves per-GPU state; 5.6B model OOMs under DDP, trains under FSDP on 2x H100)
 - [x] Fault tolerance (torchrun restarts + DCP checkpoints: killed rank recovered in 11-14 s, bit-identical final loss)
 - [x] Observability (`observability/`: dcgm-exporter + Prometheus + Grafana on the node, tailnet-only)
-- [ ] Scheduling: k3s + NVIDIA device plugin (needs k3s installed on the node)
+- [x] Scheduling (`scheduling/`: k3s + NVIDIA device plugin; GPU jobs queue one at a time at native 67.5 TFLOPS; time-slicing gives no gain on a saturated GPU)
 - [ ] Nsight Compute counters (needs `NVreg_RestrictProfilingToAdminUsers=0` on the node)
