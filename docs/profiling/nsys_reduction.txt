@@ -1,0 +1,59 @@
+# nsys profile -t cuda --stats=false -o nsys_reduction ~/gpu-systems-lab/cuda/build/reduction
+# Nsight Systems 2025.6.3.541, driver 595.99.02, CUDA 13.2, RTX 5070
+
+## Program output (under nsys)
+
+device: NVIDIA GeForce RTX 5070 (sm_120, 48 SMs, 11.5 GiB)  CUDA runtime 13.2, driver API 13.2
+reduction: n = 33554432 (128 MiB)
+
+kernel                               ms         GB/s    max_err   ok
+---------------------------- ---------- ------------ ---------- ----
+atomic (1 per element)          40.3125          3.3   8.33e-10  yes
+smem tree (1 atomic/block)       0.2661        504.3   7.22e-12  yes
+warp shuffle + float4            0.2131        629.9   4.72e-11  yes
+cub::DeviceReduce::Sum           0.2116        634.4   2.19e-11  yes
+
+CPU double sum = 646.142823, sum|x| = 16776191.2; err = |gpu - cpu| / sum|x|, tol 1e-06
+PASS
+
+## nsys stats --report cuda_gpu_kern_sum,cuda_gpu_kern_gb_sum,cuda_gpu_mem_time_sum,cuda_gpu_mem_size_sum
+
+ ** CUDA GPU Kernel Summary (cuda_gpu_kern_sum):
+
+ Time (%)  Total Time (ns)  Instances   Avg (ns)    Med (ns)   Min (ns)  Max (ns)  StdDev (ns)                                                  Name                                                
+ --------  ---------------  ---------  ----------  ----------  --------  --------  -----------  ----------------------------------------------------------------------------------------------------
+     93.1        201535965          5  40307193.0  40307116.0  40306924  40307597        259.0  reduce_atomic_naive(const float *, float *, unsigned long)                                          
+      2.7          5802324         22    263742.0    263809.0    262528    265057        605.1  reduce_smem_tree(const float *, float *, unsigned long)                                             
+      2.1          4607601         22    209436.4    210065.0    194465    211969       3372.4  reduce_warp_shuffle(const float *, float *, unsigned long)                                          
+      2.1          4602736         22    209215.3    209744.5    197377    210049       2646.4  void cub::_V_300200_SM_1200::detail::reduce::DeviceReduceKernel<cub::_V_300200_SM_1200::detail::red…
+      0.0            22976         22      1044.4      1056.0       992      1120         33.6  void cub::_V_300200_SM_1200::detail::reduce::DeviceReduceSingleTileKernel<cub::_V_300200_SM_1200::d…
+
+
+ ** CUDA GPU Kernel/Grid/Block Summary (cuda_gpu_kern_gb_sum):
+
+ Time (%)  Total Time (ns)  Instances   Avg (ns)    Med (ns)   Min (ns)  Max (ns)  StdDev (ns)      GridXYZ          BlockXYZ                                                     Name                                                
+ --------  ---------------  ---------  ----------  ----------  --------  --------  -----------  ----------------  --------------  ----------------------------------------------------------------------------------------------------
+     93.1        201535965          5  40307193.0  40307116.0  40306924  40307597        259.0  131072    1    1   256    1    1  reduce_atomic_naive(const float *, float *, unsigned long)                                          
+      2.7          5802324         22    263742.0    263809.0    262528    265057        605.1   384    1    1     256    1    1  reduce_smem_tree(const float *, float *, unsigned long)                                             
+      2.1          4607601         22    209436.4    210065.0    194465    211969       3372.4   384    1    1     256    1    1  reduce_warp_shuffle(const float *, float *, unsigned long)                                          
+      2.1          4602736         22    209215.3    209744.5    197377    210049       2646.4   720    1    1     512    1    1  void cub::_V_300200_SM_1200::detail::reduce::DeviceReduceKernel<cub::_V_300200_SM_1200::detail::red…
+      0.0            22976         22      1044.4      1056.0       992      1120         33.6     1    1    1     512    1    1  void cub::_V_300200_SM_1200::detail::reduce::DeviceReduceSingleTileKernel<cub::_V_300200_SM_1200::d…
+
+
+ ** CUDA GPU MemOps Summary (by Time) (cuda_gpu_mem_time_sum):
+
+ Time (%)  Total Time (ns)  Count  Avg (ns)   Med (ns)   Min (ns)  Max (ns)  StdDev (ns)           Operation          
+ --------  ---------------  -----  ---------  ---------  --------  --------  -----------  ----------------------------
+     99.9          9111712      1  9111712.0  9111712.0   9111712   9111712          0.0  [CUDA memcpy Host-to-Device]
+      0.1            11840     49      241.6      224.0       224       416         30.0  [CUDA memset]               
+      0.0             1536      4      384.0      352.0       288       544        122.6  [CUDA memcpy Device-to-Host]
+
+
+ ** CUDA GPU MemOps Summary (by Size) (cuda_gpu_mem_size_sum):
+
+ Total (MB)  Count  Avg (MB)  Med (MB)  Min (MB)  Max (MB)  StdDev (MB)           Operation          
+ ----------  -----  --------  --------  --------  --------  -----------  ----------------------------
+    134.218      1   134.218   134.218   134.218   134.218        0.000  [CUDA memcpy Host-to-Device]
+      0.000     49     0.000     0.000     0.000     0.000        0.000  [CUDA memset]               
+      0.000      4     0.000     0.000     0.000     0.000        0.000  [CUDA memcpy Device-to-Host]
+

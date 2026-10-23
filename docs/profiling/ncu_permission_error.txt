@@ -1,0 +1,7 @@
+# ncu --section SpeedOfLight -k regex:matmul_naive -c 1 ~/gpu-systems-lab/cuda/build/matmul 1024
+# Nsight Compute Version 2026.1.1.0 (build 37634170) (public-release)
+# /proc/driver/nvidia/params: RmProfilingAdminOnly: 1
+
+==PROF== Connected to process 342167 (/home/zak/gpu-systems-lab/cuda/build/matmul)
+==ERROR== ERR_NVGPUCTRPERM - The user does not have permission to access NVIDIA GPU Performance Counters on the target device 0. For instructions on enabling permissions and to get more information see https://developer.nvidia.com/ERR_NVGPUCTRPERM
+==PROF== Disconnected from process 342167

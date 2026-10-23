@@ -1,0 +1,55 @@
+# nsys profile -t cuda --stats=false -o nsys_fused ~/gpu-systems-lab/cuda/build/fused
+# Nsight Systems 2025.6.3.541, driver 595.99.02, CUDA 13.2, RTX 5070
+
+## Program output (under nsys)
+
+device: NVIDIA GeForce RTX 5070 (sm_120, 48 SMs, 11.5 GiB)  CUDA runtime 13.2, driver API 13.2
+fused bias+GELU: 16384 x 4096 (256 MiB per tensor)
+
+kernel                               ms         GB/s    max_err   ok
+---------------------------- ---------- ------------ ---------- ----
+  add_bias alone                 1.0425        515.0          -    -
+  gelu alone                     1.0249        523.8          -    -
+unfused (add_bias + gelu)        2.0673        519.4   1.19e-07  yes
+fused bias_gelu                  1.0679        502.7   1.19e-07  yes
+
+DRAM traffic: unfused 1024 MiB, fused 512 MiB; speedup 1.94x
+PASS
+
+## nsys stats --report cuda_gpu_kern_sum,cuda_gpu_kern_gb_sum,cuda_gpu_mem_time_sum,cuda_gpu_mem_size_sum
+
+ ** CUDA GPU Kernel Summary (cuda_gpu_kern_sum):
+
+ Time (%)  Total Time (ns)  Instances  Avg (ns)   Med (ns)   Min (ns)  Max (ns)  StdDev (ns)                                     Name                                   
+ --------  ---------------  ---------  ---------  ---------  --------  --------  -----------  --------------------------------------------------------------------------
+     40.0         47875949         46  1040781.5  1041364.0   1003075   1046212       5962.3  add_bias(const float *, const float *, float *, unsigned long, int)       
+     39.4         47145095         46  1024893.4  1024883.5   1020579   1028259       1774.4  gelu(const float *, float *, unsigned long)                               
+     20.5         24563448         23  1067976.0  1067652.0   1059811   1087748       5906.9  bias_gelu_fused(const float *, const float *, float *, unsigned long, int)
+
+
+ ** CUDA GPU Kernel/Grid/Block Summary (cuda_gpu_kern_gb_sum):
+
+ Time (%)  Total Time (ns)  Instances  Avg (ns)   Med (ns)   Min (ns)  Max (ns)  StdDev (ns)     GridXYZ         BlockXYZ                                        Name                                   
+ --------  ---------------  ---------  ---------  ---------  --------  --------  -----------  --------------  --------------  --------------------------------------------------------------------------
+     40.0         47875949         46  1040781.5  1041364.0   1003075   1046212       5962.3   384    1    1   256    1    1  add_bias(const float *, const float *, float *, unsigned long, int)       
+     39.4         47145095         46  1024893.4  1024883.5   1020579   1028259       1774.4   384    1    1   256    1    1  gelu(const float *, float *, unsigned long)                               
+     20.5         24563448         23  1067976.0  1067652.0   1059811   1087748       5906.9   384    1    1   256    1    1  bias_gelu_fused(const float *, const float *, float *, unsigned long, int)
+
+
+ ** CUDA GPU MemOps Summary (by Time) (cuda_gpu_mem_time_sum):
+
+ Time (%)  Total Time (ns)  Count   Avg (ns)    Med (ns)   Min (ns)  Max (ns)  StdDev (ns)           Operation          
+ --------  ---------------  -----  ----------  ----------  --------  --------  -----------  ----------------------------
+     67.0         38194122      2  19097061.0  19097061.0  19071973  19122149      35479.8  [CUDA memcpy Device-to-Host]
+     31.6         18025312      2   9012656.0   9012656.0      1120  18024192   12744236.4  [CUDA memcpy Host-to-Device]
+      1.4           783426      2    391713.0    391713.0    389633    393793       2941.6  [CUDA memset]               
+
+
+ ** CUDA GPU MemOps Summary (by Size) (cuda_gpu_mem_size_sum):
+
+ Total (MB)  Count  Avg (MB)  Med (MB)  Min (MB)  Max (MB)  StdDev (MB)           Operation          
+ ----------  -----  --------  --------  --------  --------  -----------  ----------------------------
+    536.871      2   268.435   268.435   268.435   268.435        0.000  [CUDA memcpy Device-to-Host]
+    536.871      2   268.435   268.435   268.435   268.435        0.000  [CUDA memset]               
+    268.452      2   134.226   134.226     0.016   268.435      189.801  [CUDA memcpy Host-to-Device]
+

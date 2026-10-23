@@ -2,6 +2,8 @@
 
 CUDA, NCCL, MPI, and LLVM experiments across a local RTX 5070 and Modal GPUs.
 
+**→ [Results, architecture and runbooks](docs/RESULTS.md)** · [job router](router/README.md) · [profiling](docs/profiling/README.md)
+
 ## Goal
 Build practical GPU-systems skills by progressing from a verified single-GPU baseline to reproducible containers and distributed multi-GPU workloads.
 
@@ -67,6 +69,8 @@ Build practical GPU-systems skills by progressing from a verified single-GPU bas
 - [x] CUDA-aware Open MPI on 2x H100 (`--cuda-aware`: 324 GB/s point-to-point, but collectives slower in the sandbox)
 - [x] Multi-GPU NCCL run (2x H100: all-reduce 329 GB/s busbw; DDP 1.02x at batch 256, 1.57x at batch 4096)
 - [x] MPI across two machines (`mpi/multinode/`: RTX 5070 + M1 iMac over Tailscale; GPU and CPU results bit-exact, network-bound)
-- [x] Modal account connected; parity and NCCL scripts ready in `modal/` (not yet run)
 - [x] Containerized benchmark (`docker/`: pinned cu128 image, `run.sh validate`; matches native within 1%)
 - [x] Modal parity run (H100: BF16 677.8 TFLOPS, 10x the RTX 5070; cold start 3.7 s)
+- [x] Portfolio write-up ([docs/RESULTS.md](docs/RESULTS.md)) and Nsight Systems profiles ([docs/profiling/](docs/profiling/))
+- [x] Job router (`router/`: local RTX vs Modal by VRAM, deadline, cost, NVLink; 8 unit tests)
+- [ ] Nsight Compute counters (needs `NVreg_RestrictProfilingToAdminUsers=0` on the node)

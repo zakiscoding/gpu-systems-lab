@@ -1,0 +1,57 @@
+# nsys profile -t cuda --stats=false -o nsys_matmul ~/gpu-systems-lab/cuda/build/matmul
+# Nsight Systems 2025.6.3.541, driver 595.99.02, CUDA 13.2, RTX 5070
+
+## Program output (under nsys)
+
+device: NVIDIA GeForce RTX 5070 (sm_120, 48 SMs, 11.5 GiB)  CUDA runtime 13.2, driver API 13.2
+matmul: N = 4096 (FP32, row-major)
+
+kernel                               ms       GFLOPS    max_err   ok
+---------------------------- ---------- ------------ ---------- ----
+cuBLAS sgemm (reference)         6.0284      22798.6   3.22e-05  yes
+naive (16x16 block)             67.1174       2047.7   0.00e+00  yes
+tiled TILE=16                   47.9067       2868.9   0.00e+00  yes
+tiled TILE=32                   57.5989       2386.1   0.00e+00  yes
+
+errors vs cuBLAS (tiled rows) / vs CPU double (cuBLAS row); tol 1e-03
+PASS
+
+## nsys stats --report cuda_gpu_kern_sum,cuda_gpu_kern_gb_sum,cuda_gpu_mem_time_sum,cuda_gpu_mem_size_sum
+
+ ** CUDA GPU Kernel Summary (cuda_gpu_kern_sum):
+
+ Time (%)  Total Time (ns)  Instances   Avg (ns)    Med (ns)   Min (ns)  Max (ns)  StdDev (ns)                                       Name                                     
+ --------  ---------------  ---------  ----------  ----------  --------  --------  -----------  ------------------------------------------------------------------------------
+     38.1        691235175         12  57602931.3  57596014.0  57573277  57670334      24886.4  void matmul_tiled<(int)32>(const float *, const float *, float *, int)        
+     31.7        574891910         12  47907659.2  47907176.5  47902649  47922649       5266.8  void matmul_tiled<(int)16>(const float *, const float *, float *, int)        
+     22.2        402842256          6  67140376.0  67129171.0  66991458  67261059      96255.9  matmul_naive(const float *, const float *, float *, int)                      
+      8.0        144452940         24   6018872.5   6037127.5   5961399   6071351      35359.3  void cutlass::Kernel2<cutlass_80_simt_sgemm_128x128_8x4_nn_align1>(T1::Params)
+
+
+ ** CUDA GPU Kernel/Grid/Block Summary (cuda_gpu_kern_gb_sum):
+
+ Time (%)  Total Time (ns)  Instances   Avg (ns)    Med (ns)   Min (ns)  Max (ns)  StdDev (ns)     GridXYZ         BlockXYZ                                          Name                                     
+ --------  ---------------  ---------  ----------  ----------  --------  --------  -----------  --------------  --------------  ------------------------------------------------------------------------------
+     38.1        691235175         12  57602931.3  57596014.0  57573277  57670334      24886.4   128  128    1    32   32    1  void matmul_tiled<(int)32>(const float *, const float *, float *, int)        
+     31.7        574891910         12  47907659.2  47907176.5  47902649  47922649       5266.8   256  256    1    16   16    1  void matmul_tiled<(int)16>(const float *, const float *, float *, int)        
+     22.2        402842256          6  67140376.0  67129171.0  66991458  67261059      96255.9   256  256    1    16   16    1  matmul_naive(const float *, const float *, float *, int)                      
+      8.0        144452940         24   6018872.5   6037127.5   5961399   6071351      35359.3   256    4    1   128    1    1  void cutlass::Kernel2<cutlass_80_simt_sgemm_128x128_8x4_nn_align1>(T1::Params)
+
+
+ ** CUDA GPU MemOps Summary (by Time) (cuda_gpu_mem_time_sum):
+
+ Time (%)  Total Time (ns)  Count  Avg (ns)   Med (ns)   Min (ns)  Max (ns)  StdDev (ns)           Operation          
+ --------  ---------------  -----  ---------  ---------  --------  --------  -----------  ----------------------------
+     71.9         23310395      4  5827598.8  4690866.5   4657586   9271076    2295706.2  [CUDA memcpy Device-to-Host]
+     27.3          8864992      2  4432496.0  4432496.0   4408656   4456336      33714.9  [CUDA memcpy Host-to-Device]
+      0.8           262208      4    65552.0    65184.0     64608     67232       1155.1  [CUDA memset]               
+
+
+ ** CUDA GPU MemOps Summary (by Size) (cuda_gpu_mem_size_sum):
+
+ Total (MB)  Count  Avg (MB)  Med (MB)  Min (MB)  Max (MB)  StdDev (MB)           Operation          
+ ----------  -----  --------  --------  --------  --------  -----------  ----------------------------
+    268.435      4    67.109    67.109    67.109    67.109        0.000  [CUDA memcpy Device-to-Host]
+    268.435      4    67.109    67.109    67.109    67.109        0.000  [CUDA memset]               
+    134.218      2    67.109    67.109    67.109    67.109        0.000  [CUDA memcpy Host-to-Device]
+
