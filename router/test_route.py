@@ -3,7 +3,7 @@
 import unittest
 
 from router.catalog import DEFAULT_TARGETS
-from router.probe import LocalState
+from router.probe import LocalState, parse
 from router.route import Job, decide
 
 IDLE = LocalState(True, 12.0, 1.2, 0, 0)  # desktop holds ~1.2 GB even when idle
@@ -33,6 +33,18 @@ class RouteTest(unittest.TestCase):
 
     def test_desktop_vram_alone_is_not_busy(self):
         self.assertFalse(IDLE.busy)
+
+    def test_resident_vllm_is_not_busy_but_takes_vram(self):
+        # live output shape: 3 util samples, memory, compute apps (vLLM holding 5 GB at 0%)
+        s = parse("0\n0\n3\n---\n12227, 6291\n---\nVLLM::EngineCore, 5090\n")
+        self.assertTrue(s.online and not s.busy)
+        self.assertEqual(s.resident, ("VLLM::EngineCore",))
+        self.assertEqual(pick(Job("small", vram_gb=1, local_minutes=1), s), "local")
+        self.assertNotEqual(pick(Job("big", vram_gb=8, local_minutes=1), s), "local")  # ~5.8 GB free
+
+    def test_other_cuda_job_or_load_is_busy(self):
+        self.assertTrue(parse("0\n0\n0\n---\n12227, 9000\n---\npython3, 8000\n").busy)
+        self.assertTrue(parse("5\n90\n10\n---\n12227, 2000\n---\n").busy)  # peak util counts
 
     def test_big_model_needs_80gb_card(self):
         self.assertIn(pick(Job("big", vram_gb=60, local_minutes=10)), {"A100-80GB", "H100"})

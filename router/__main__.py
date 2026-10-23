@@ -32,7 +32,8 @@ def show(d: Decision) -> None:
     j, loc = d.job, d.local
     print(f"job {j.name}: {j.vram_gb:g} GB/GPU x{j.gpus}, {j.local_minutes:g} min on RTX 5070, "
           f"cap ${j.max_usd:g}, deadline {j.deadline_min:g} min")
-    state = (f"online, {loc.util_pct:.0f}% util, {loc.compute_procs} CUDA procs, "
+    resident = f", resident: {', '.join(loc.resident)}" if loc.resident else ""
+    state = (f"online, {loc.util_pct:.0f}% util, {loc.compute_procs} other CUDA procs{resident}, "
              f"{loc.vram_free_gb:.1f}/{loc.vram_total_gb:.1f} GB free"
              if loc.online else f"offline ({loc.error})")
     print(f"local RTX 5070: {state}\n")
@@ -52,6 +53,16 @@ def show(d: Decision) -> None:
               f"~{c.total_min:.1f} min to result")
 
 
+def build_command(d: Decision) -> list[str]:
+    """argv that runs the job on the chosen target: SSH to the node, or modal/run_job.py."""
+    c, j = d.choice, d.job
+    if c.target.local:
+        remote = j.command.replace("python ", ".venv/bin/python ", 1) if j.command.startswith("python ") else j.command
+        return ["ssh", "-o", "BatchMode=yes", "gpu-ts", f"cd ~/gpu-systems-lab && {remote}"]
+    gpu = c.target.name + (f":{j.gpus}" if j.gpus > 1 else "")
+    return MODAL + ["--gpu", gpu, "--command", j.command]
+
+
 def execute(d: Decision, yes: bool) -> int:
     c, j = d.choice, d.job
     if c is None:
@@ -59,15 +70,10 @@ def execute(d: Decision, yes: bool) -> int:
     if not j.command:
         print("job has no command to run")
         return 2
-    if c.target.local:
-        remote = j.command.replace("python ", ".venv/bin/python ", 1) if j.command.startswith("python ") else j.command
-        cmd = ["ssh", "-o", "BatchMode=yes", "gpu-ts", f"cd ~/gpu-systems-lab && {remote}"]
-    else:
-        if not yes:
-            print(f"\nModal run costs money (~${c.cost_usd:.2f}); re-run with --yes to launch")
-            return 3
-        gpu = c.target.name + (f":{j.gpus}" if j.gpus > 1 else "")
-        cmd = MODAL + ["--gpu", gpu, "--command", j.command]
+    if not c.target.local and not yes:
+        print(f"\nModal run costs money (~${c.cost_usd:.2f}); re-run with --yes to launch")
+        return 3
+    cmd = build_command(d)
     print(f"\n$ {shlex.join(cmd)}\n", flush=True)
     return subprocess.run(cmd, cwd=REPO).returncode
 

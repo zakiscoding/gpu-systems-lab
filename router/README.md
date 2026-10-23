@@ -10,6 +10,39 @@ python -m router run --vram-gb 40 --local-minutes 90 --max-usd 3 --command "pyth
 python -m unittest router.test_route         # routing rules, no SSH or Modal needed
 ```
 
+## Homelab job queue integration
+
+`router/homelab_worker.py` connects the router to the homelab control plane
+([homelab-services](https://github.com/zakiscoding/homelab-services) on the iMac, with Postgres as
+the source of truth). Submit a job with a `route` spec. The router worker is the only one that
+claims it (`/internal/worker/jobs/claim?routed=true`; the Windows QLoRA worker skips routed jobs),
+decides, runs it locally over SSH or on Modal, and records the decision as the job's experiment.
+
+```bash
+# submit (any tailnet machine, user API key)
+curl -X POST http://100.91.113.98:8000/jobs -H "x-api-key: $API_KEY" -H "Content-Type: application/json" \
+  -d '{"route": {"command": "python benchmarks/smoke_test.py --size 4096", "vram_gb": 1, "local_minutes": 0.5, "max_usd": 0.50}}'
+
+# worker on the laptop (controller): config in router/worker.local.env (gitignored)
+python -m router.homelab_worker            # poll every 10 s
+python -m router.homelab_worker --once     # one claim (tests)
+```
+
+Tested end to end. Rows from the iMac's Postgres (`jobs` joined to `experiments`):
+
+| Job | Chosen | Runtime | Est. $ | Local busy | Note |
+|---|---|---:|---:|---|---|
+| 80911ec2 | L40S (Modal) | 18 s | 0.003 | true | bug: the always-on vLLM server counted as a busy GPU |
+| defdd23f | **local** | 21 s | 0.00 | false | after the fix: vLLM is "resident", its 5 GB comes out of free VRAM |
+
+- **Resident servers.** Processes matching `ROUTER_RESIDENT_PROCS` (default `VLLM::EngineCore`)
+  count against free VRAM but don't make the card busy. "Busy" means another CUDA process, or peak
+  utilization ≥ 20% over three samples.
+- **Spend guard.** Jobs without `max_usd` get `MAX_USD_PER_JOB` (default $1). Modal launches need
+  no `--yes` here, because the cap is the confirmation.
+- **Lease limit.** Train leases are 15 min and aren't renewed. Keep routed jobs shorter, or
+  another worker's stale-lease sweep can requeue them.
+
 ## How it decides
 
 1. **Live probe** of `zak-gpu-node` over SSH (`nvidia-smi`): online? free VRAM? utilization? any CUDA
