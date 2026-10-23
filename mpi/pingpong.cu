@@ -75,6 +75,7 @@ static double pingpong(Path path, size_t bytes, int iters, char* host, char* dev
 
 int main(int argc, char** argv) {
     MPI_CHECK(MPI_Init(&argc, &argv));
+    const int ngpu = bind_local_gpu();
     if (world_size() != 2) {
         root_printf("pingpong needs exactly 2 ranks (mpirun -np 2)\n");
         MPI_Finalize();
@@ -84,7 +85,7 @@ int main(int argc, char** argv) {
     const bool aware = mpi_cuda_aware();
 
     if (world_rank() == 0) print_device();
-    root_printf("MPI CUDA-aware: %s\n\n", aware ? "yes" : "no (direct path skipped)");
+    root_printf("GPUs on node: %d | MPI CUDA-aware: %s\n\n", ngpu, aware ? "yes" : "no (direct path skipped)");
 
     char *host = nullptr, *dev = nullptr;
     CUDA_CHECK(cudaMallocHost(&host, max_bytes));
