@@ -59,7 +59,8 @@ Build practical GPU-systems skills by progressing from a verified single-GPU bas
 ## Status
 - [x] Ubuntu 24.04.5 installed on external 750 GB drive
 - [x] RTX 5070 recognized by NVIDIA driver and `nvidia-smi`
-- [ ] Local PyTorch CUDA smoke test
+- [x] Local PyTorch CUDA smoke test (torch 2.11.0+cu128; BF16 67.7 / FP16 64.1 / TF32 33.8 / FP32 23.7 TFLOPS at 8192², H2D 44 GiB/s)
+- [ ] System deps: CUDA 13.2 toolkit, LLVM 21, Docker + NVIDIA Container Toolkit (`sudo bash scripts/install_system_deps.sh`)
 - [ ] First CUDA kernel
 - [ ] Containerized benchmark
 - [ ] Modal parity run
