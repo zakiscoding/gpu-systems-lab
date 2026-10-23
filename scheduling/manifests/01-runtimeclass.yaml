@@ -1,0 +1,8 @@
+# k3s creates this RuntimeClass automatically when it detects nvidia-container-runtime
+# (containerd runtime "nvidia", BinaryName /usr/bin/nvidia-container-runtime).
+# Kept here for clusters that do not; on k3s applying it is unnecessary.
+apiVersion: node.k8s.io/v1
+kind: RuntimeClass
+metadata:
+  name: nvidia
+handler: nvidia
