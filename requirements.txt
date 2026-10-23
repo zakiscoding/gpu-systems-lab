@@ -1,0 +1,2 @@
+# torch is installed separately from the PyTorch CUDA index (see scripts/setup_venv.sh)
+numpy
