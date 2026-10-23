@@ -1,0 +1,9 @@
+apiVersion: 1
+providers:
+  - name: gpu-systems-lab
+    folder: GPU Systems Lab
+    type: file
+    disableDeletion: true
+    allowUiUpdates: false
+    options:
+      path: /var/lib/grafana/dashboards

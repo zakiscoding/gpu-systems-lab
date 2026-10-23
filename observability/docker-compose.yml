@@ -1,0 +1,82 @@
+# GPU observability stack for zak-gpu-node (RTX 5070).
+#   dcgm-exporter -> Prometheus <- node-exporter ; Grafana reads Prometheus.
+# Published ports bind to BIND_IP (Tailscale IP by default), never 0.0.0.0.
+# Start:  docker compose up -d      Stop: docker compose down
+name: gpu-observability
+
+services:
+  dcgm-exporter:
+    image: nvcr.io/nvidia/k8s/dcgm-exporter:4.6.1-4.8.4-distroless
+    container_name: obs-dcgm-exporter
+    restart: unless-stopped
+    # SYS_ADMIN is required for the DCGM profiling fields (DCGM_FI_PROF_*).
+    cap_add: [SYS_ADMIN]
+    command: ["-f", "/etc/dcgm-exporter/custom.csv", "-c", "5000"]
+    volumes:
+      - ./dcgm/counters.csv:/etc/dcgm-exporter/custom.csv:ro
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    ports:
+      - "127.0.0.1:9400:9400"   # local only, for curl checks
+
+  node-exporter:
+    image: prom/node-exporter:v1.9.1
+    container_name: obs-node-exporter
+    restart: unless-stopped
+    pid: host
+    command:
+      - --path.rootfs=/host
+      - --collector.filesystem.mount-points-exclude=^/(dev|proc|sys|run|var/lib/docker/.+|var/lib/kubelet/.+|var/lib/rancher/.+|run/k3s/.+)($|/)
+    volumes:
+      - /:/host:ro,rslave
+
+  prometheus:
+    image: prom/prometheus:v3.5.0
+    container_name: obs-prometheus
+    restart: unless-stopped
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=15d
+      - --web.enable-lifecycle
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - prometheus-data:/prometheus
+    ports:
+      - "${BIND_IP:-127.0.0.1}:9090:9090"
+    depends_on: [dcgm-exporter, node-exporter]
+
+  grafana:
+    image: grafana/grafana:12.1.1
+    container_name: obs-grafana
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+      # SQLite WAL + retries: first start on a busy disk hit "database is locked".
+      GF_DATABASE_WAL: "true"
+      GF_DATABASE_QUERY_RETRIES: "5"
+      GF_DATABASE_TRANSACTION_RETRIES: "10"
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /var/lib/grafana/dashboards/gpu-node.json
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    ports:
+      - "${BIND_IP:-127.0.0.1}:3000:3000"
+    depends_on: [prometheus]
+
+volumes:
+  prometheus-data:
+  grafana-data:
