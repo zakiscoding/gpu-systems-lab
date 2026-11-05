@@ -131,9 +131,9 @@ Spend is capped by Modal's $10 usage limit. Windows needs `PYTHONUTF8=1`.
 
 | File | Purpose |
 |---|---|
-| `src/index.js` | Worker: client key auth, rate limit, body and token caps, streaming passthrough to vLLM, Workers AI fallback for chat when the GPU is unreachable |
+| `src/index.js` | Worker: client key auth, per-client rate limit (Durable Object), body and token caps, streaming passthrough to vLLM, Workers AI fallback for chat when the GPU is unreachable |
 | `test/gateway.test.js` | Unit tests with a stubbed binding and rate limiter (`npm test`) |
-| `wrangler.jsonc` | VPC Service, Workers AI and rate limit bindings, fallback model, limits |
+| `wrangler.jsonc` | VPC Service, Workers AI and Durable Object bindings, fallback model, limits |
 | `make-key.sh` | Creates a client key and its hashed `GATEWAY_KEYS` entry |
 
 ### `cloudflare/` — tunnel connector (Docker Compose)
@@ -146,7 +146,8 @@ limits it to `serving` for WSL2 on the Windows boot, which is where it runs toda
 
 `build.mjs` turns `docs/RESULTS.md` into one static page. The repo is private, so it drops the architecture map and
 runbooks, turns repo links into text, and refuses to build if an IP, machine name or private repo link survives.
-`npm run deploy` publishes it.
+It reads the chart data from the doc's own tables, and fails if a table or number is missing. `charts.client.js` draws
+the charts in the browser at the real page width. `npm run deploy` builds and publishes.
 
 ### `distributed/`
 

@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { test } from "node:test";
 
-import { handle } from "../src/index.js";
+import { ClientRateLimiter, handle } from "../src/index.js";
 
 const KEY = "client-secret-key";
 const BASE = "https://api.example.com";
@@ -19,11 +19,14 @@ function makeEnv({ reply = () => Response.json({ ok: true }), allowed = true, ..
     GATEWAY_KEYS: `other=${hash("other-key")},alice=${hash(KEY)}`,
     MAX_BODY_BYTES: "1024",
     MAX_TOKENS: "100",
-    RATE_LIMITER: {
-      async limit(options) {
-        limits.push(options);
-        return { success: allowed };
-      },
+    CLIENT_LIMITER: {
+      idFromName: (name) => name,
+      get: (id) => ({
+        async fetch(url) {
+          limits.push({ id, url });
+          return Response.json(allowed ? { success: true } : { success: false, retryAfter: 17 });
+        },
+      }),
     },
     VLLM: {
       async fetch(url, init) {
@@ -97,14 +100,61 @@ test("rate limit is keyed by client name and returns 429", async () => {
   const env = makeEnv({ allowed: false });
   const res = await handle(chat(), env, silent);
   assert.equal(res.status, 429);
-  assert.equal(res.headers.get("retry-after"), "60");
-  assert.deepEqual(env.limits, [{ key: "alice" }]);
+  assert.equal(res.headers.get("retry-after"), "17");
+  assert.deepEqual(env.limits, [{ id: "alice", url: "http://limiter/check?limit=60" }]);
   assert.equal(env.calls.length, 0);
+});
+
+// The real limiter on fake storage, called with a controllable clock.
+function limiterAt(clock) {
+  const data = new Map();
+  const limiter = new ClientRateLimiter({
+    storage: { get: async (k) => data.get(k), put: async (k, v) => data.set(k, v) },
+  });
+  return async (limit = 3) => {
+    const realNow = Date.now;
+    Date.now = () => clock.now;
+    try {
+      return await (await limiter.fetch(new Request(`http://limiter/check?limit=${limit}`))).json();
+    } finally {
+      Date.now = realNow;
+    }
+  };
+}
+
+test("limiter allows exactly the limit, then refuses with an accurate Retry-After", async () => {
+  const clock = { now: 1_000_000 };
+  const check = limiterAt(clock);
+  for (let i = 0; i < 3; i++) assert.equal((await check()).success, true);
+  clock.now += 10_000;
+  assert.deepEqual(await check(), { success: false, retryAfter: 50 });
+});
+
+test("limiter window slides: capacity returns only as each request ages out", async () => {
+  const clock = { now: 1_000_000 };
+  const check = limiterAt(clock);
+  await check();
+  clock.now += 30_000;
+  await check();
+  await check();
+  assert.equal((await check()).success, false);
+  clock.now += 30_001; // only the first request has aged out
+  assert.equal((await check()).success, true);
+  assert.equal((await check()).success, false);
+});
+
+test("refused requests don't count against the client", async () => {
+  const clock = { now: 1_000_000 };
+  const check = limiterAt(clock);
+  for (let i = 0; i < 3; i++) await check();
+  for (let i = 0; i < 10; i++) await check();
+  clock.now += 60_001;
+  assert.equal((await check()).success, true);
 });
 
 test("a failing rate limiter fails closed with a JSON 503", async () => {
   const env = makeEnv();
-  env.RATE_LIMITER.limit = async () => { throw new Error("internal error"); };
+  env.CLIENT_LIMITER.get = () => ({ fetch: async () => { throw new Error("internal error"); } });
   const res = await handle(chat(), env, silent);
   assert.equal(res.status, 503);
   assert.equal((await res.json()).error.type, "rate_limiter_unavailable");
