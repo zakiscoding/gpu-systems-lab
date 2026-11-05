@@ -1,0 +1,8 @@
+# Override for running the chat backend in WSL2 on the GPU PC's Windows boot.
+# WSL has no tailnet IP, so publish on localhost; the tunnel reaches vllm over Docker's network.
+#
+#   docker compose -f compose.yml -f compose.wsl.yml up -d
+services:
+  vllm:
+    ports: !override
+      - "127.0.0.1:8000:8000"
