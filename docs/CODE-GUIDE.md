@@ -68,6 +68,7 @@ When the GPU PC is booted into Windows instead, `api/llm.py` falls back to Ollam
 | `setup_venv.sh` | Creates `.venv` with PyTorch for CUDA 12.8 (needed for sm_120) |
 | `install_system_deps.sh` | One-time root install: CUDA 13.2 toolkit, LLVM 21, Docker + NVIDIA Container Toolkit |
 | `harden_node.sh` | Owner-run hardening: LAN firewall for 22/6443/10250, Nsight counters, sudo cleanup |
+| `sync_results_r2.sh` | Laptop, not the node: copies raw `results/` to a private R2 bucket (`--dry-run` lists the files) |
 
 ### `benchmarks/` — the shared yardstick
 
@@ -140,6 +141,12 @@ Spend is capped by Modal's $10 usage limit. Windows needs `PYTHONUTF8=1`.
 `compose.yml` runs `cloudflared` on the `serving` and `observability` Docker networks, with no published ports.
 It carries the gateway's private path to vLLM and `grafana.<domain>` behind Cloudflare Access. `compose.wsl.yml`
 limits it to `serving` for WSL2 on the Windows boot, which is where it runs today.
+
+### `site/` — public results page (Cloudflare Pages)
+
+`build.mjs` turns `docs/RESULTS.md` into one static page. The repo is private, so it drops the architecture map and
+runbooks, turns repo links into text, and refuses to build if an IP, machine name or private repo link survives.
+`npm run deploy` publishes it.
 
 ### `distributed/`
 

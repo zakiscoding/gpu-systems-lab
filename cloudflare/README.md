@@ -62,6 +62,32 @@ To undo, run this in an elevated PowerShell, then `wsl.exe --terminate Ubuntu`:
 Unregister-ScheduledTask -TaskName 'WSL Keep Alive' -Confirm:$false
 ```
 
+## Ubuntu boot
+
+**Written but not tested:** the PC hasn't been booted into Ubuntu since this was added. Only one boot runs at a time, and both
+can use the same tunnel. The Worker holds one `VLLM_API_KEY`, and `homelab-services` already uses the node's key, so make the
+node's key the shared one.
+
+1. Get this code onto the node (`git pull` once it's pushed), then on the node:
+
+   ```bash
+   cd ~/gpu-systems-lab/serving && docker compose up -d
+   cd ~/gpu-systems-lab/observability && docker compose up -d
+   cd ~/gpu-systems-lab/cloudflare && cp .env.example .env && chmod 600 .env
+   # edit .env: paste TUNNEL_TOKEN
+   docker compose up -d && docker compose logs --tail 20 cloudflared
+   ```
+
+2. From the laptop, in `gateway/`, give the Worker the node's key. The value is piped, so it isn't displayed:
+
+   ```bash
+   ssh gpu-ts "grep ^VLLM_API_KEY= ~/gpu-systems-lab/serving/.env | cut -d= -f2" | tr -d '\r\n' | npx wrangler secret put VLLM_API_KEY
+   ```
+
+3. Next time the PC is on Windows, put the same value in `serving/.env` in WSL and recreate that container, or the gateway gets a 502.
+
+4. Confirm chat replies carry `x-gateway-backend: gpu`.
+
 ## Rules
 
 - **Never add a hostname for Prometheus or node-exporter.** `cloudflared` shares a Docker network with both.
