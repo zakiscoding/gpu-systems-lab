@@ -130,9 +130,9 @@ Spend is capped by Modal's $10 usage limit. Windows needs `PYTHONUTF8=1`.
 
 | File | Purpose |
 |---|---|
-| `src/index.js` | Worker: client key auth, rate limit, body and token caps, streaming passthrough to vLLM, 503 when the node is offline |
+| `src/index.js` | Worker: client key auth, rate limit, body and token caps, streaming passthrough to vLLM, Workers AI fallback for chat when the GPU is unreachable |
 | `test/gateway.test.js` | Unit tests with a stubbed binding and rate limiter (`npm test`) |
-| `wrangler.jsonc` | Custom domain, VPC Service and rate limit bindings, limits |
+| `wrangler.jsonc` | VPC Service, Workers AI and rate limit bindings, fallback model, limits |
 | `make-key.sh` | Creates a client key and its hashed `GATEWAY_KEYS` entry |
 
 ### `cloudflare/` — tunnel connector (Docker Compose)
