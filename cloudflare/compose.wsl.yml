@@ -1,8 +1,9 @@
-# Override for WSL2 on the GPU PC's Windows boot, where only serving/ runs.
-# Without the observability network, the grafana.<domain> route has no origin here.
+# Override for WSL2 on the GPU PC's Windows boot. Same networks as compose.yml:
+# start serving/ and observability/ first, each with its own compose.wsl.yml.
 #
 #   docker compose -f compose.yml -f compose.wsl.yml up -d
 services:
   cloudflared:
     networks: !override
       - serving
+      - observability

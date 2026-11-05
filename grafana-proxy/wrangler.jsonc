@@ -1,0 +1,17 @@
+// Fails closed: ACCESS_TEAM_DOMAIN and ACCESS_AUD stay unset until Access is enabled
+// on this Worker (see cloudflare/README.md). Version URLs are off so that nothing
+// serves this Worker outside the protected workers.dev address.
+{
+  "name": "grafana-proxy",
+  "main": "src/index.js",
+  "compatibility_date": "2026-11-01",
+  "workers_dev": true,
+  "preview_urls": false,
+  "vpc_services": [
+    { "binding": "GRAFANA", "service_id": "01a1a9f8-3430-7551-abf6-e7af85e5f10f", "remote": true }
+  ],
+  "vars": {
+    "ACCESS_TEAM_DOMAIN": "",
+    "ACCESS_AUD": ""
+  }
+}
