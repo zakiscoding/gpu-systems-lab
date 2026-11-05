@@ -4,7 +4,8 @@
   "type": "module",
   "scripts": {
     "build": "node build.mjs",
-    "deploy": "node build.mjs && wrangler pages deploy dist --project-name gpu-systems-lab-results --branch main"
+    "deploy": "node build.mjs && wrangler deploy",
+    "preview": "node build.mjs && wrangler dev"
   },
   "devDependencies": {
     "marked": "18.1.3",
