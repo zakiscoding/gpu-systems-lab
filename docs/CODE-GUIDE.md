@@ -126,6 +126,21 @@ Spend is capped by Modal's $10 usage limit. Windows needs `PYTHONUTF8=1`.
 | `bench_sweep.py` | `vllm bench serve` at concurrency 1–256: throughput, TTFT, TPOT, KV cache |
 | `compose.yml` + `make-env.sh` | **Always-on chat backend** for the homelab (tailnet `:8000`, API key, 0.45 of VRAM) |
 
+### `gateway/` — public vLLM API (Cloudflare Worker)
+
+| File | Purpose |
+|---|---|
+| `src/index.js` | Worker: client key auth, rate limit, body and token caps, streaming passthrough to vLLM, 503 when the node is offline |
+| `test/gateway.test.js` | Unit tests with a stubbed binding and rate limiter (`npm test`) |
+| `wrangler.jsonc` | Custom domain, VPC Service and rate limit bindings, limits |
+| `make-key.sh` | Creates a client key and its hashed `GATEWAY_KEYS` entry |
+
+### `cloudflare/` — tunnel connector (Docker Compose)
+
+`compose.yml` runs `cloudflared` on the `serving` and `observability` Docker networks, with no published ports.
+It carries the gateway's private path to vLLM and `grafana.<domain>` behind Cloudflare Access. `compose.wsl.yml`
+limits it to `serving` for WSL2 on the Windows boot, which is where it runs today.
+
 ### `distributed/`
 
 `README.md` only. It holds the FSDP, checkpoint and elastic-restart results. The code lives in `modal/fsdp_*.py` and `modal/elastic_train.py`.
