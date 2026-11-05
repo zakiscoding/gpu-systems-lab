@@ -1,6 +1,7 @@
 // Public OpenAI-compatible gateway for the vLLM server on zak-gpu-node.
 //
 //   client --gateway key--> this Worker --VPC Service binding--> Tunnel --> vllm:8000
+//                                       \--offline, chat only--> Workers AI
 //
 // Clients never see VLLM_API_KEY, and only the routes below reach vLLM.
 
@@ -126,13 +127,64 @@ function upstreamUnavailable() {
   );
 }
 
-async function forward(path, init, env) {
+// Workers AI ends its streams with a {"response":...} event that has no
+// `choices`, which breaks OpenAI clients. Everything else is already OpenAI format.
+function dropNonOpenAIEvents(stream) {
+  const decoder = new TextDecoder();
+  const encoder = new TextEncoder();
+  const keep = (line) => !line.startsWith('data: {"response"');
+  let partial = "";
+  return stream.pipeThrough(new TransformStream({
+    transform(chunk, controller) {
+      const lines = (partial + decoder.decode(chunk, { stream: true })).split("\n");
+      partial = lines.pop();
+      const kept = lines.filter(keep);
+      if (kept.length) controller.enqueue(encoder.encode(kept.join("\n") + "\n"));
+    },
+    flush(controller) {
+      if (partial && keep(partial)) controller.enqueue(encoder.encode(partial));
+    },
+  }));
+}
+
+// Answers a chat request from Workers AI while the GPU is offline. Requests that
+// depend on features this path doesn't forward get the 503 instead of a wrong answer.
+async function fallback(path, init, env, context) {
+  if (path !== CHAT_PATH || !env.FALLBACK_MODEL || !env.AI) return upstreamUnavailable();
+  const payload = JSON.parse(init.body);
+  if (payload.tools || payload.functions || payload.response_format) return upstreamUnavailable();
+  const input = {
+    messages: payload.messages,
+    max_tokens: payload.max_tokens ?? payload.max_completion_tokens,
+  };
+  for (const field of ["temperature", "top_p", "stream"]) {
+    if (payload[field] != null) input[field] = payload[field];
+  }
+  let result;
+  try {
+    result = await env.AI.run(env.FALLBACK_MODEL, input);
+  } catch (error) {
+    // The message can quote the input, so log only its numeric code (3036 is the daily quota).
+    context.fallbackError = /^\d+/.exec(error?.message ?? "")?.[0] ?? "unknown";
+    return upstreamUnavailable();
+  }
+  context.backend = "workers-ai";
+  const headers = { "x-gateway-backend": "workers-ai" };
+  if (input.stream) {
+    return new Response(dropNonOpenAIEvents(result), {
+      headers: { ...headers, "content-type": "text/event-stream" },
+    });
+  }
+  return Response.json(result, { headers });
+}
+
+async function forward(path, init, env, context) {
   let upstream;
   try {
     // The binding routes the request; this host only sets the Host header.
     upstream = await env.VLLM.fetch(`http://vllm${path}`, init);
   } catch {
-    return upstreamUnavailable();
+    return fallback(path, init, env, context);
   }
   if (upstream.status === 401) {
     await upstream.body?.cancel();
@@ -141,9 +193,10 @@ async function forward(path, init, env) {
   // 502 and up come from the tunnel when the node is down. A 500 is vLLM's own.
   if (upstream.status >= 502) {
     await upstream.body?.cancel();
-    return upstreamUnavailable();
+    return fallback(path, init, env, context);
   }
-  const headers = new Headers();
+  context.backend = "gpu";
+  const headers = new Headers({ "x-gateway-backend": "gpu" });
   for (const name of FORWARDED_RESPONSE_HEADERS) {
     const value = upstream.headers.get(name);
     if (value) headers.set(name, value);
@@ -181,17 +234,19 @@ async function route(request, env, url, context) {
   }
   const init = await buildUpstreamInit(request, url.pathname, env);
   if (init instanceof Response) return init;
-  return forward(url.pathname, init, env);
+  return forward(url.pathname, init, env, context);
 }
 
 export async function handle(request, env, log = console.log) {
   const start = Date.now();
   const url = new URL(request.url);
-  const context = { client: null };
+  const context = { client: null, backend: null, fallbackError: null };
   const response = await route(request, env, url, context);
   // Metadata only: prompts, completions and keys must never reach the logs.
   log(JSON.stringify({
     client: context.client,
+    backend: context.backend,
+    fallbackError: context.fallbackError,
     method: request.method,
     path: url.pathname,
     status: response.status,

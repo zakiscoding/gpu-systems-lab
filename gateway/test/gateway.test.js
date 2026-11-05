@@ -233,6 +233,108 @@ test("vLLM validation errors reach the client unchanged", async () => {
   assert.deepEqual(await res.json(), { error: "bad model" });
 });
 
+// env whose GPU is offline, with a stub Workers AI binding that records its input.
+function offlineEnv(run = async () => ({ object: "chat.completion", model: "fallback" })) {
+  const inputs = [];
+  return {
+    inputs,
+    env: makeEnv({
+      reply: () => { throw new Error("connection failed"); },
+      FALLBACK_MODEL: "@cf/test/model",
+      AI: {
+        async run(model, input) {
+          inputs.push({ model, input });
+          return run(input);
+        },
+      },
+    }),
+  };
+}
+
+test("GPU responses are labelled, and online requests never touch Workers AI", async () => {
+  const { env, inputs } = offlineEnv();
+  env.VLLM.fetch = async () => Response.json({ ok: true });
+  const res = await handle(chat(), env, silent);
+  assert.equal(res.headers.get("x-gateway-backend"), "gpu");
+  assert.equal(inputs.length, 0);
+});
+
+test("offline chat falls back to Workers AI and says so", async () => {
+  const { env, inputs } = offlineEnv();
+  const res = await handle(chat({ model: "m", messages: [{ role: "user", content: "hi" }], max_tokens: 5000, temperature: 0.5, seed: 7 }), env, silent);
+  assert.equal(res.status, 200);
+  assert.equal(res.headers.get("x-gateway-backend"), "workers-ai");
+  assert.equal((await res.json()).model, "fallback");
+  assert.deepEqual(inputs, [{
+    model: "@cf/test/model",
+    input: { messages: [{ role: "user", content: "hi" }], max_tokens: 100, temperature: 0.5 },
+  }]);
+});
+
+test("tunnel 5xx also falls back", async () => {
+  const { env, inputs } = offlineEnv();
+  env.VLLM.fetch = async () => new Response("down", { status: 530 });
+  assert.equal((await handle(chat(), env, silent)).status, 200);
+  assert.equal(inputs[0].input.max_tokens, 100);
+});
+
+test("max_completion_tokens carries over as the fallback limit", async () => {
+  const { env, inputs } = offlineEnv();
+  await handle(chat({ messages: [], max_completion_tokens: 50 }), env, silent);
+  assert.equal(inputs[0].input.max_tokens, 50);
+});
+
+test("fallback streams drop the non-OpenAI event, even split across chunks", async () => {
+  const encoder = new TextEncoder();
+  const parts = ['data: {"choices":[{"delta":{"content":"hi"}}]}\n\nda', 'ta: {"respon', 'se":"","usage":{}}\n\ndata: [DONE]\n\n'];
+  const { env, inputs } = offlineEnv(async () => new ReadableStream({
+    start(controller) {
+      for (const part of parts) controller.enqueue(encoder.encode(part));
+      controller.close();
+    },
+  }));
+  const res = await handle(chat({ messages: [], stream: true }), env, silent);
+  assert.equal(inputs[0].input.stream, true);
+  assert.equal(res.headers.get("content-type"), "text/event-stream");
+  const text = await res.text();
+  assert.ok(text.includes('"content":"hi"'));
+  assert.ok(text.includes("data: [DONE]"));
+  assert.ok(!text.includes('"response"'));
+});
+
+test("requests needing unforwarded features get the 503, not a wrong answer", async () => {
+  for (const extra of [{ tools: [{}] }, { functions: [{}] }, { response_format: { type: "json_object" } }]) {
+    const { env, inputs } = offlineEnv();
+    assert.equal((await handle(chat({ messages: [], ...extra }), env, silent)).status, 503);
+    assert.equal(inputs.length, 0);
+  }
+});
+
+test("only chat falls back", async () => {
+  const { env, inputs } = offlineEnv();
+  assert.equal((await handle(post("/v1/completions", { prompt: "hi" }), env, silent)).status, 503);
+  const models = new Request(`${BASE}/v1/models`, { headers: { authorization: `Bearer ${KEY}` } });
+  assert.equal((await handle(models, env, silent)).status, 503);
+  assert.equal(inputs.length, 0);
+});
+
+test("no fallback when upstream rejects the gateway's key", async () => {
+  const { env, inputs } = offlineEnv();
+  env.VLLM.fetch = async () => new Response("no", { status: 401 });
+  assert.equal((await handle(chat(), env, silent)).status, 502);
+  assert.equal(inputs.length, 0);
+});
+
+test("a failing fallback returns the 503 and logs only the error code", async () => {
+  const lines = [];
+  const { env } = offlineEnv(async () => { throw new Error("3036: quota, input was PRIVATE-PROMPT"); });
+  const res = await handle(chat(), env, (l) => lines.push(l));
+  assert.equal(res.status, 503);
+  assert.equal((await res.json()).error.type, "upstream_unavailable");
+  assert.ok(!lines[0].includes("PRIVATE-PROMPT"));
+  assert.equal(JSON.parse(lines[0]).fallbackError, "3036");
+});
+
 test("logs hold metadata only, never prompts or keys", async () => {
   const lines = [];
   await handle(chat({ messages: [{ role: "user", content: "PRIVATE-PROMPT" }] }), makeEnv(), (l) => lines.push(l));

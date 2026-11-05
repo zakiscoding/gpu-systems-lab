@@ -15,8 +15,10 @@
       "simple": { "limit": 60, "period": 60 }
     }
   ],
+  "ai": { "binding": "AI" },
   "vars": {
     "MAX_BODY_BYTES": "262144",
-    "MAX_TOKENS": "1024"
+    "MAX_TOKENS": "1024",
+    "FALLBACK_MODEL": "@cf/meta/llama-3.2-3b-instruct"
   }
 }
