@@ -32,7 +32,7 @@ Service limited to one host and port. `homelab-services` keeps using the tailnet
 |---|---|
 | Routes | `POST /v1/chat/completions`, `POST /v1/completions`, `GET /v1/models`. Public `GET /health` reports the gateway only. Anything else is 404, so other vLLM endpoints stay private |
 | Bad or missing key | 401 |
-| Over the rate limit | 429 with `Retry-After`. Default 60 requests/min per client |
+| Over the rate limit | 429 with `Retry-After`. Default 60 requests in any 60 s per client (`RATE_LIMIT_PER_MINUTE`), enforced by a Durable Object |
 | Rate limiter failing | 503 `rate_limiter_unavailable`. Requests are refused rather than let through unlimited |
 | Body over 256 KiB, or not a JSON object | 413, or 400 |
 | `max_tokens` / `max_completion_tokens` | Clamped to 1024. Chat requests with neither get 1024 |
@@ -81,10 +81,10 @@ Measured against the deployed Worker, with vLLM and the tunnel in WSL2 on the RT
 | Added latency | 200 tokens: 1.31 s direct, 1.53 s through the gateway |
 | No key, wrong key, unlisted path | 401, 401, 404 |
 | `cloudflared` stopped, or vLLM stopped | Chat, including streaming, answered by Workers AI; other routes 503. Returns to the GPU by itself after restart (vLLM reload 55 s) |
-| Fallback stream format | Every event has `choices`, and it ends with `[DONE]`. Tested by parsing the events, not with an OpenAI SDK |
+| Fallback stream format | Every event has `choices`, and it ends with `[DONE]` |
 | Workers AI quota exhausted | Unit-tested only: returns the 503 |
-| Sequential requests over the rate limit | 429 starts at request 61 |
-| Concurrent requests over the rate limit | **Not limited:** 300 of 300 allowed at 15 at a time |
+| Rate limit, 300 requests at once | Exactly 60 allowed, 240 got 429; capacity returned after the `Retry-After` wait. The earlier per-location binding allowed 300 of 300 |
+| Official OpenAI SDK (Node, v7) | Chat, streaming and error types all work, on both the GPU and the fallback |
 | CPU time | 0–2 ms per request on a short stream and `/v1/models`; longer streams not measured |
 | Prompts in Worker logs | None found |
 | Request over 125 s | Not reached: the longest allowed completion (1024 tokens) took 7 s when idle |
@@ -116,5 +116,5 @@ tailnet path still works, `10.0.0.21:{3000,8000,9090}` still refuses connections
 - **Fallback cost and privacy:** Workers AI includes 10,000 Neurons a day (a 44-token exchange used 0.3). Beyond that, the Workers Free plan returns errors, and Workers Paid bills $0.011 per 1,000 Neurons. Prompts go to a Cloudflare-hosted model rather than your GPU; Cloudflare lists this model as zero data retention.
 - **Long requests:** Cloudflare documents a 125 s proxy read timeout (error 524) for proxied traffic below Enterprise. Long completions should stream.
 - **Workers Free:** 100,000 requests/day (Error 1027 beyond that) and 10 ms CPU per request. Waiting on the network doesn't count as CPU time.
-- **Rate limiting:** approximate and counted per Cloudflare location. It stops sequential overuse but did not stop concurrent bursts (see [spike results](#spike-results)), so it won't protect the GPU from a client sending many requests at once. A strict limit would need a Durable Object.
+- **Rate limiting:** it counts requests per client, not tokens or concurrent generations, so 60 long requests at once are all allowed. Each client's limiter runs in one location, which adds a little latency for distant clients. Durable Objects on the Free plan have daily limits (each request is one limiter call), and if the limiter is unavailable, API requests get a 503.
 - **`n` is not limited:** a client can multiply GPU load with `n` up to what vLLM accepts, so only give keys to clients you trust.

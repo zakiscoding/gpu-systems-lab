@@ -7,6 +7,7 @@
 
 const DEFAULT_MAX_BODY_BYTES = 262144;
 const DEFAULT_MAX_TOKENS = 1024;
+const DEFAULT_RATE_LIMIT = 60;
 const RATE_LIMIT_PERIOD_SECONDS = 60;
 const OFFLINE_RETRY_SECONDS = 60;
 
@@ -218,23 +219,49 @@ async function route(request, env, url, context) {
       "www-authenticate": "Bearer",
     });
   }
-  let success;
+  let verdict;
   try {
-    ({ success } = await env.RATE_LIMITER.limit({ key: context.client }));
+    const limiter = env.CLIENT_LIMITER.get(env.CLIENT_LIMITER.idFromName(context.client));
+    const limit = Number(env.RATE_LIMIT_PER_MINUTE) || DEFAULT_RATE_LIMIT;
+    verdict = await (await limiter.fetch(`http://limiter/check?limit=${limit}`)).json();
   } catch {
     // Fail closed: the limiter is what protects the GPU from a runaway client.
     return errorResponse(503, "rate_limiter_unavailable", "Rate limiter unavailable. Try again later.", {
       "retry-after": String(RATE_LIMIT_PERIOD_SECONDS),
     });
   }
-  if (!success) {
+  if (!verdict.success) {
     return errorResponse(429, "rate_limit_exceeded", "Rate limit exceeded.", {
-      "retry-after": String(RATE_LIMIT_PERIOD_SECONDS),
+      "retry-after": String(verdict.retryAfter),
     });
   }
   const init = await buildUpstreamInit(request, url.pathname, env);
   if (init instanceof Response) return init;
   return forward(url.pathname, init, env, context);
+}
+
+// One instance per client. A Durable Object handles its requests one at a time, so
+// concurrent bursts can't slip past the count the way they do with per-location limits.
+// Storing the timestamps makes this a true sliding window: never more than `limit`
+// requests in any 60 s. It's a plain class with a fetch handler so tests can run it in Node.
+export class ClientRateLimiter {
+  constructor(ctx) {
+    this.storage = ctx.storage;
+  }
+
+  async fetch(request) {
+    const limit = Number(new URL(request.url).searchParams.get("limit"));
+    const now = Date.now();
+    const periodMs = RATE_LIMIT_PERIOD_SECONDS * 1000;
+    const recent = ((await this.storage.get("requests")) ?? []).filter((t) => t > now - periodMs);
+    if (recent.length >= limit) {
+      const retryAfter = Math.max(1, Math.ceil((recent[recent.length - limit] + periodMs - now) / 1000));
+      return Response.json({ success: false, retryAfter });
+    }
+    recent.push(now);
+    await this.storage.put("requests", recent);
+    return Response.json({ success: true });
+  }
 }
 
 export async function handle(request, env, log = console.log) {
