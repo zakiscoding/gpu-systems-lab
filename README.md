@@ -50,6 +50,9 @@ flowchart LR
         end
         OL["same PC, Windows boot 100.88.71.33<br/>Ollama :11434 (fallback)"]
     end
+    subgraph CF["Cloudflare"]
+        GW["Worker gateway<br/>api keys, rate limit"]
+    end
     subgraph Modal["Modal (gVisor containers)"]
         H1["1x H100<br/>parity, vLLM"]
         H2["2x H100 NVLink<br/>NCCL, DDP, FSDP, MPI, elastic"]
@@ -65,11 +68,12 @@ flowchart LR
     LLM -. "else" .-> OL
     OBS -- "datasource" --> IG
     Node <-- "MPI over Tailscale" --> IR
+    GW -. "Tunnel, outbound from node" .-> V
 ```
 
 - The laptop never computes. It probes and dispatches: free local card when the job fits, else the cheapest Modal GPU that meets the VRAM, deadline and cost limits.
 - The GPU PC runs Windows **or** Ubuntu, never both. When it is on Ubuntu, homelab chat goes to vLLM. Otherwise the iMac API falls back to Ollama on Windows (rechecked every 30 s).
-- Node services are tailnet-only. ufw blocks 22/6443/10250 on the LAN ([scripts/harden_node.sh](scripts/harden_node.sh)).
+- Node services are tailnet-only. ufw blocks 22/6443/10250 on the LAN ([scripts/harden_node.sh](scripts/harden_node.sh)). The [Cloudflare gateway](gateway/README.md) adds a keyed public path to vLLM through an outbound tunnel, with no ports opened. It currently runs from WSL2 on the Windows boot; the Ubuntu node and the Grafana route aren't set up.
 
 ## Quickstart
 
@@ -106,6 +110,8 @@ Modal setup and spend limits: [modal/README.md](modal/README.md).
 | `modal/ddp_nccl.py` | NCCL collectives and DDP scaling | 329 GB/s busbw; DDP 1.57x at batch 4096 | [modal/README.md](modal/README.md) |
 | `distributed/` | FSDP2, sharded checkpoints, elastic restart | 5.6B OOM under DDP, trains under FSDP; restart in 11–14 s | [distributed/README.md](distributed/README.md) |
 | `serving/` | vLLM concurrency sweep; always-on homelab chat backend | 4.4k tok/s RTX 5070 vs 16.8k H100 | [serving/README.md](serving/README.md) |
+| `gateway/` + `cloudflare/` | Public vLLM API on a Cloudflare Worker, reached through a Tunnel | adds 0.2 s to 200 tokens; streaming not buffered | [gateway/README.md](gateway/README.md) |
+| `site/` | Public results page with charts, built from `docs/RESULTS.md` | build refuses to publish network details | [CODE-GUIDE](docs/CODE-GUIDE.md#site--public-results-page-cloudflare-static-assets) |
 | `observability/` | dcgm-exporter + Prometheus + Grafana on a GeForce card | full profiling fields on the 5070 | [observability/README.md](observability/README.md) |
 | `scheduling/` | k3s GPU queue, time-slicing, admission policy | pods at native 67.7 TFLOPS | [scheduling/README.md](scheduling/README.md) |
 | `router/` | Local-vs-cloud placement, homelab queue worker | picks local, L40S or 2x H100 by VRAM, deadline, cost | [router/README.md](router/README.md) |
@@ -201,6 +207,7 @@ All on the GPU node unless noted.
 |---|---|
 | [docs/RESULTS.md](docs/RESULTS.md) | Every measured number, the architecture, conclusions, runbook index |
 | [docs/CODE-GUIDE.md](docs/CODE-GUIDE.md) | File-by-file map: what each file does, where it runs, how the parts connect |
+| [docs/CLOUDFLARE.md](docs/CLOUDFLARE.md) | The Cloudflare gateway, tunnel, fallback and results site: status, decisions, test results and how to run them |
 | [docs/profiling/README.md](docs/profiling/README.md) | Nsight Systems profiles of the CUDA kernels; why Nsight Compute is blocked |
 | [router/README.md](router/README.md) | How the router decides, and the homelab queue integration |
 

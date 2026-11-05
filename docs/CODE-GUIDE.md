@@ -68,6 +68,7 @@ When the GPU PC is booted into Windows instead, `api/llm.py` falls back to Ollam
 | `setup_venv.sh` | Creates `.venv` with PyTorch for CUDA 12.8 (needed for sm_120) |
 | `install_system_deps.sh` | One-time root install: CUDA 13.2 toolkit, LLVM 21, Docker + NVIDIA Container Toolkit |
 | `harden_node.sh` | Owner-run hardening: LAN firewall for 22/6443/10250, Nsight counters, sudo cleanup |
+| `sync_results_r2.sh` | Laptop, not the node: copies raw `results/` to a private R2 bucket (`--dry-run` lists the files) |
 
 ### `benchmarks/` — the shared yardstick
 
@@ -125,6 +126,33 @@ Spend is capped by Modal's $10 usage limit. Windows needs `PYTHONUTF8=1`.
 | `setup_node.sh` / `launch_server.sh` | venv-based vLLM for interactive runs and benchmarks (localhost by default) |
 | `bench_sweep.py` | `vllm bench serve` at concurrency 1–256: throughput, TTFT, TPOT, KV cache |
 | `compose.yml` + `make-env.sh` | **Always-on chat backend** for the homelab (tailnet `:8000`, API key, 0.45 of VRAM) |
+
+### `gateway/` — public vLLM API (Cloudflare Worker)
+
+| File | Purpose |
+|---|---|
+| `src/index.js` | Worker: client key auth, per-client rate limit (Durable Object), body and token caps, streaming passthrough to vLLM, Workers AI fallback for chat when the GPU is unreachable |
+| `test/gateway.test.js` | Unit tests with a stubbed binding and rate limiter (`npm test`) |
+| `wrangler.jsonc` | VPC Service, Workers AI and Durable Object bindings, fallback model, limits |
+| `make-key.sh` | Creates a client key and its hashed `GATEWAY_KEYS` entry |
+
+### `cloudflare/` — tunnel connector (Docker Compose)
+
+`compose.yml` runs `cloudflared` on the `serving` and `observability` Docker networks, with no published ports.
+It carries the gateway's private path to vLLM and `grafana.<domain>` behind Cloudflare Access. `compose.wsl.yml`
+limits it to `serving` for WSL2 on the Windows boot, which is where it runs today.
+
+### `grafana-proxy/` — Grafana behind Cloudflare Access (Worker)
+
+`src/index.js` forwards requests to Grafana through a VPC Service, after validating the Access token. It refuses everything
+if Access isn't configured. `test/proxy.test.js` covers forged, expired and wrong-audience tokens.
+
+### `site/` — public results page (Cloudflare static assets)
+
+`build.mjs` turns `docs/RESULTS.md` into one static page. The repo is private, so it drops the architecture map and
+runbooks, turns repo links into text, and refuses to build if an IP, machine name or private repo link survives.
+It reads the chart data from the doc's own tables, and fails if a table or number is missing. `charts.client.js` draws
+the charts in the browser at the real page width. `npm run deploy` builds and publishes.
 
 ### `distributed/`
 

@@ -65,6 +65,10 @@ refuses connections and that both tailnet URLs return 200 from the laptop. One t
 won't start. Run `docker compose up -d` again once Tailscale is up, or set `BIND_IP=127.0.0.1` and
 use an SSH tunnel instead.
 
+For Grafana access from outside the tailnet, see [Grafana Access](../cloudflare/README.md#grafana-access). It requires an
+Access login because Grafana allows anonymous viewers. Prometheus stays private. The stack also runs in WSL2 on the
+Windows boot, using [compose.wsl.yml](compose.wsl.yml).
+
 ## What the dashboard shows
 
 - **GPU now (stat tiles):** GPU utilization, memory used %, power draw, temperature, SM clock, and PCIe link generation and width.

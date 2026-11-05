@@ -16,6 +16,7 @@ what does a token cost on each machine?
 | [bench_sweep.py](bench_sweep.py) | Runs `vllm bench serve` at concurrency 1, 4, 16, 64, 256. Writes raw JSON, a summary JSON and a Markdown table to `results/serving/` (gitignored). With `--launch` it also starts and stops the server and parses the KV-cache size from its log. |
 | [../modal/serve_vllm.py](../modal/serve_vllm.py) | Runs the same `bench_sweep.py --launch` inside one Modal H100 container, with server and client together, and copies the results back. |
 | [compose.yml](compose.yml) + [make-env.sh](make-env.sh) | The **always-on chat backend** for the homelab web UI: `vllm/vllm-openai:v0.32.0` in Docker on the tailnet, with an API key. |
+| [compose.wsl.yml](compose.wsl.yml) | Override for WSL2 on the Windows boot: publishes on `127.0.0.1` because WSL has no tailnet IP. The iMac API can't reach this copy, so it still falls back to Ollama. |
 
 ## Homelab chat backend (always on)
 
@@ -37,6 +38,9 @@ cd ~/gpu-systems-lab/serving && ./make-env.sh && docker compose up -d
 | Model | `Qwen/Qwen2.5-1.5B-Instruct`, served as `qwen2.5-1.5b-instruct` | fits beside other GPU work |
 | GPU memory | `--gpu-memory-utilization 0.45` (~5.4 GB) | leaves room for the desktop and k3s jobs. k3s can't see this usage, so `docker compose stop` before big GPU jobs |
 | Restart | `unless-stopped` + healthcheck on `/health` | comes back after a reboot |
+
+For access from outside the tailnet, see the [Cloudflare Worker gateway](../gateway/README.md). The tailnet
+address above remains the internal path.
 
 Tested from the laptop through the homelab API code: the UI's default `llama3.2:latest` maps to the
 served model, a one-sentence answer takes 0.9 s, and with vLLM unreachable `auto` switches to Ollama.

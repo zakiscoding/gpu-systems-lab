@@ -1,0 +1,9 @@
+# Override for WSL2 on the GPU PC's Windows boot. Set BIND_IP=127.0.0.1 in .env,
+# since WSL has no tailnet IP; the tunnel reaches Grafana over Docker's network.
+#
+#   docker compose -f docker-compose.yml -f compose.wsl.yml up -d
+services:
+  # Keeps the host mount from failing: WSL's root isn't a shared mount.
+  node-exporter:
+    volumes: !override
+      - /:/host:ro

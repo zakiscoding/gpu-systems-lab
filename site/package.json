@@ -1,0 +1,14 @@
+{
+  "name": "gpu-systems-lab-results",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "deploy": "node build.mjs && wrangler deploy",
+    "preview": "node build.mjs && wrangler dev"
+  },
+  "devDependencies": {
+    "marked": "18.1.3",
+    "wrangler": "4.157.0"
+  }
+}
