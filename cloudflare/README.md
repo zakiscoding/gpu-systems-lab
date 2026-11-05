@@ -10,14 +10,14 @@ ports are opened and nothing is published on the node. It serves two paths:
 | Path | Origin | Who gets in |
 |---|---|---|
 | Private, through the [Worker gateway](../gateway/README.md) | `vllm:8000` (no public hostname) | clients with a gateway key |
-| `grafana.<domain>` | `grafana:3000` | emails on an Access allow policy |
+| Private, through the [Grafana proxy](../grafana-proxy/src/index.js) on workers.dev | `grafana:3000` (no public hostname) | emails on an Access allow policy |
 
 The tailnet addresses in [serving/](../serving/README.md) and [observability/](../observability/README.md)
 don't change, and `homelab-services` keeps calling vLLM over Tailscale.
 
-**Status: running in [WSL2](#wsl2-on-the-windows-boot) for the gateway path only.** The Ubuntu node and the
-Grafana route haven't been set up or tested. `serving_default` is confirmed in WSL2; `gpu-observability_default`
-comes from the compose project name, so confirm it with `docker network ls` on the node.
+**Status: running in [WSL2](#wsl2-on-the-windows-boot).** The gateway path is tested. The Grafana proxy is deployed but
+refuses all requests until [Access is enabled](#grafana-access). The Ubuntu node isn't set up. Both Docker network names
+are confirmed in WSL2; confirm them with `docker network ls` on the node.
 
 ## Setup
 
@@ -32,18 +32,27 @@ comes from the compose project name, so confirm it with `docker network ls` on t
    docker compose up -d && docker compose logs --tail 20 cloudflared
    ```
 
-3. **Grafana, in this order.** Create an Access application for `grafana.<domain>` with an Allow policy for
-   your email first. Only then add the tunnel's public hostname `grafana.<domain>` -> `http://grafana:3000`.
-   Grafana allows anonymous viewers, so without Access the dashboard would be public.
+3. **Grafana:** add no public hostname. Follow [Grafana Access](#grafana-access).
 4. **vLLM:** add no public hostname. Follow the [gateway setup](../gateway/README.md#setup).
+
+## Grafana Access
+
+[`grafana-proxy/`](../grafana-proxy/src/index.js) is a Worker that reaches Grafana through a VPC Service. It checks the
+Access token on every request. Grafana allows anonymous viewers, so with `ACCESS_TEAM_DOMAIN` or `ACCESS_AUD` unset it
+refuses everything.
+
+1. In the dashboard, open **Workers & Pages**, select `grafana-proxy`, and enable Cloudflare Access for its workers.dev URL.
+2. Under **Manage Cloudflare Access**, limit the policy to your email, then copy the team domain and the application audience (AUD).
+3. Set `ACCESS_TEAM_DOMAIN` (`https://<team>.cloudflareaccess.com`) and `ACCESS_AUD` in `grafana-proxy/wrangler.jsonc`, then `npm run deploy`.
 
 ## WSL2 on the Windows boot
 
-The GPU PC can run this path from Ubuntu in WSL2 (`zak-ts`) while it is booted into Windows. Only `serving/`
-runs there, so the tunnel carries the gateway path and has no Grafana origin:
+The GPU PC can run all of this from Ubuntu in WSL2 (`zak-ts`) while it is booted into Windows. Set `BIND_IP=127.0.0.1`
+in `observability/.env`, because WSL has no tailnet IP. `dcgm-exporter` works there, with 22 GPU series (tested):
 
 ```bash
 cd ~/gpu-systems-lab/serving && docker compose -f compose.yml -f compose.wsl.yml up -d
+cd ~/gpu-systems-lab/observability && docker compose -f docker-compose.yml -f compose.wsl.yml up -d
 cd ~/gpu-systems-lab/cloudflare && cp .env.example .env && chmod 600 .env
 # edit .env: paste TUNNEL_TOKEN
 docker compose -f compose.yml -f compose.wsl.yml up -d

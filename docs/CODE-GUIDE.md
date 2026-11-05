@@ -142,6 +142,11 @@ Spend is capped by Modal's $10 usage limit. Windows needs `PYTHONUTF8=1`.
 It carries the gateway's private path to vLLM and `grafana.<domain>` behind Cloudflare Access. `compose.wsl.yml`
 limits it to `serving` for WSL2 on the Windows boot, which is where it runs today.
 
+### `grafana-proxy/` — Grafana behind Cloudflare Access (Worker)
+
+`src/index.js` forwards requests to Grafana through a VPC Service, after validating the Access token. It refuses everything
+if Access isn't configured. `test/proxy.test.js` covers forged, expired and wrong-audience tokens.
+
 ### `site/` — public results page (Cloudflare static assets)
 
 `build.mjs` turns `docs/RESULTS.md` into one static page. The repo is private, so it drops the architecture map and
