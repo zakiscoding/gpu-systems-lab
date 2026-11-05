@@ -1,0 +1,22 @@
+// Serves on workers.dev until a domain is added (see README.md).
+// Secrets, set with `wrangler secret put`: VLLM_API_KEY, GATEWAY_KEYS.
+{
+  "name": "vllm-gateway",
+  "main": "src/index.js",
+  "compatibility_date": "2026-11-01",
+  "workers_dev": true,
+  "vpc_services": [
+    { "binding": "VLLM", "service_id": "01a1a9b4-e111-76e1-b5cb-253423426be8", "remote": true }
+  ],
+  "ratelimits": [
+    {
+      "name": "RATE_LIMITER",
+      "namespace_id": "1001",
+      "simple": { "limit": 60, "period": 60 }
+    }
+  ],
+  "vars": {
+    "MAX_BODY_BYTES": "262144",
+    "MAX_TOKENS": "1024"
+  }
+}
