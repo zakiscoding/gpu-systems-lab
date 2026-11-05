@@ -142,7 +142,7 @@ Spend is capped by Modal's $10 usage limit. Windows needs `PYTHONUTF8=1`.
 It carries the gateway's private path to vLLM and `grafana.<domain>` behind Cloudflare Access. `compose.wsl.yml`
 limits it to `serving` for WSL2 on the Windows boot, which is where it runs today.
 
-### `site/` — public results page (Cloudflare Pages)
+### `site/` — public results page (Cloudflare static assets)
 
 `build.mjs` turns `docs/RESULTS.md` into one static page. The repo is private, so it drops the architecture map and
 runbooks, turns repo links into text, and refuses to build if an IP, machine name or private repo link survives.
