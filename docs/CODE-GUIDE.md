@@ -149,8 +149,8 @@ if Access isn't configured. `test/proxy.test.js` covers forged, expired and wron
 
 ### `site/` — public results page (Cloudflare static assets)
 
-`build.mjs` turns `docs/RESULTS.md` into one static page. The repo is private, so it drops the architecture map and
-runbooks, turns repo links into text, and refuses to build if an IP, machine name or private repo link survives.
+`build.mjs` turns `docs/RESULTS.md` into one static page. It drops the architecture map and runbooks, which map the home
+network, turns relative repo links into text, and refuses to build if an IP, machine name or GitHub link survives.
 It reads the chart data from the doc's own tables, and fails if a table or number is missing. `charts.client.js` draws
 the charts in the browser at the real page width. `npm run deploy` builds and publishes.
 

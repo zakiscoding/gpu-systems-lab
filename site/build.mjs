@@ -1,8 +1,8 @@
 // Builds the public results page from docs/RESULTS.md into dist/index.html.
 //
-// The repo is private and the doc describes the private network, so this drops
-// the architecture map and runbooks, turns repo links into plain text, and
-// refuses to build if anything that identifies the network survives.
+// The doc describes the home network, so this drops the architecture map and
+// runbooks, turns relative repo links into plain text, and refuses to build if
+// anything that identifies the network survives.
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { marked } from "marked";
 
@@ -12,7 +12,7 @@ const DROPPED_SECTIONS = new Set(["Architecture", "Runbooks"]);
 const FORBIDDEN = [
   /\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/, // IP addresses
   /zak-gpu-node|mos-imac|hp-laptop|zakar|zak_pc|gpu-ts|zak-ts|imac-ts/i, // machine names
-  /github\.com\/zakiscoding/i, // private repos
+  /github\.com\/zakiscoding/i, // repo links, some of them to private repos
   /\]\(\.\.?\//, // leftover relative links
 ];
 
@@ -26,7 +26,7 @@ export function publicMarkdown(source) {
   const body = kept.join("")
     // "([modal/smoke.py](../modal/smoke.py))" after a heading or claim
     .replace(/ \((?:\[[^\]]+\]\([^)\s]+\)(?:, )?)+\)/g, "")
-    // any other link becomes its text, since visitors can't open the repo
+    // any other link becomes its text, since relative paths don't work on the site
     .replace(/\[([^\]]+)\]\([^)\s]+\)/g, "$1");
   return `${title}\n\n${summary}\n\n${body}`;
 }
