@@ -4,8 +4,8 @@
 
 [gpu-systems-lab](../README.md) / `docs/CLOUDFLARE.md` · [← repo README](../README.md) · [Results](RESULTS.md) · [Code guide](CODE-GUIDE.md)
 
-What was added on November 4–5, 2026, why, what was tested, and how to run it. The work is on the
-`cloudflare-worker-gateway` branch, in [pull request #1](https://github.com/zakiscoding/gpu-systems-lab/pull/1).
+What was added on November 4–5, 2026, why, what was tested, and how to run it. The work was
+merged into `main` on November 5 in [pull request #1](https://github.com/zakiscoding/gpu-systems-lab/pull/1).
 Setup details live in [gateway/README.md](../gateway/README.md) and [cloudflare/README.md](../cloudflare/README.md).
 
 ## Status
@@ -24,7 +24,7 @@ Checked on November 5, 2026.
 | R2 storage | **Not set up**: R2 isn't enabled on the account | [scripts/sync_results_r2.sh](../scripts/sync_results_r2.sh) is ready |
 | Custom domain | **Not set up** | Everything uses `workers.dev` |
 | Ubuntu boot | **Not set up or tested** | Steps are in [cloudflare/README.md](../cloudflare/README.md#ubuntu-boot) |
-| Pull request #1 | Open, not merged | `main` has none of this yet |
+| Pull request #1 | Merged on November 5 | Merge commit `744eb6c` |
 
 ## Architecture
 
@@ -157,7 +157,7 @@ Measured against the deployed Workers, with vLLM and the tunnel in WSL2 on the R
 | Limiter fails closed | It's what protects the GPU from a runaway client |
 | Fallback for chat only, without `tools` | A clear 503 is better than a wrong answer from a model that ignored those fields |
 | `llama-3.2-3b-instruct` for the fallback | Cheap, no reasoning overhead, listed as zero data retention |
-| Results site drops the architecture map and runbooks | The repo is private. Those sections expose the network and would link to pages visitors can't open |
+| Results site drops the architecture map and runbooks | They map the home network, and its links are relative paths that only work inside the repo |
 | Site build fails on IPs and machine names | A later change to `RESULTS.md` can't publish them by accident |
 | Charts read from the doc's tables | They can't drift from the numbers beside them |
 | Grafana proxy fails closed | Grafana allows anonymous viewers, so a missing check would make it public |
@@ -236,7 +236,6 @@ docker compose -f compose.yml -f compose.wsl.yml down
 | Enable R2, then create the bucket and upload the 48 result files | You, then Claude | A dashboard step, which may ask for a payment method |
 | Enable Access on `grafana-proxy`, then set `ACCESS_TEAM_DOMAIN` and `ACCESS_AUD` and deploy | You, then Claude | A dashboard step |
 | Log in and confirm Grafana loads through the proxy | You | Access enabled |
-| Merge pull request #1 | You | Your review |
 | Test a reboot | You | Being at the GPU PC |
 | Set up the Ubuntu boot | You | Being at the GPU PC, and a fresh tunnel token from the dashboard |
 | Add a custom domain | You, then Claude | Buying or adding a domain |
