@@ -16,14 +16,19 @@ what does a token cost on each machine?
 | [bench_sweep.py](bench_sweep.py) | Runs `vllm bench serve` at concurrency 1, 4, 16, 64, 256. Writes raw JSON, a summary JSON and a Markdown table to `results/serving/` (gitignored). With `--launch` it also starts and stops the server and parses the KV-cache size from its log. |
 | [../modal/serve_vllm.py](../modal/serve_vllm.py) | Runs the same `bench_sweep.py --launch` inside one Modal H100 container, with server and client together, and copies the results back. |
 | [compose.yml](compose.yml) + [make-env.sh](make-env.sh) | The **always-on chat backend** for the homelab web UI: `vllm/vllm-openai:v0.32.0` in Docker on the tailnet, with an API key. |
-| [compose.wsl.yml](compose.wsl.yml) | Override for WSL2 on the Windows boot: publishes on `127.0.0.1` because WSL has no tailnet IP. The iMac API can't reach this copy, so it still falls back to Ollama. |
+| [compose.wsl.yml](compose.wsl.yml) | Override for WSL2 on the Windows boot: publishes on `127.0.0.1` because WSL has no tailnet IP. `zakar`'s Windows Tailscale forwards it to the tailnet at `100.88.71.33:8000` ([details](../docs/CLOUDFLARE.md#running-on-the-gpu-pc)). |
 
 ## Homelab chat backend (always on)
 
-The homelab web UI's `/chat` and RAG answers come from this server whenever the GPU PC runs Ubuntu.
+The homelab web UI's `/chat` and RAG answers come from this server on either boot of the GPU PC.
 The iMac API ([homelab-services](https://github.com/zakiscoding/homelab-services) `api/llm.py`,
-`LLM_BACKEND=auto`) uses vLLM when it answers, and falls back to Ollama when the PC is booted into
-Windows.
+`LLM_BACKEND=auto`) tries, in order, the first of these that answers, and rechecks every 30 s:
+
+1. `LLM_URL`: vLLM on the Ubuntu boot, `100.121.51.35:8000`
+2. `LLM_FALLBACK_URL`: vLLM in WSL2 on the Windows boot, `100.88.71.33:8000`. It has its own key, `LLM_FALLBACK_API_KEY`.
+3. Ollama on the Windows boot, `100.88.71.33:11434`
+
+While the Ubuntu boot is offline, the 30 s probe waits up to 2 s for it to time out before moving on.
 
 ```bash
 # on the node, once
