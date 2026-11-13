@@ -3,10 +3,12 @@
 #   pip install --index-url https://download.pytorch.org/whl/cu128 \
 #       --extra-index-url https://pypi.org/simple -r docker/requirements.lock.txt
 # Regenerate: .venv/bin/pip freeze --all | grep -vE "^(pip|wheel)=="
+# Security bumps after the freeze (Dependabot): filelock 3.32.3 -> 4.2.10, setuptools 78.1.0 -> 81.0.0.
+# setuptools stays below 82 because torch 2.11.0 requires setuptools<82.
 cuda-bindings==12.9.7
 cuda-pathfinder==1.6.0
 cuda-toolkit==12.8.1
-filelock==3.32.3
+filelock==4.2.10
 fsspec==2026.7.0
 Jinja2==3.1.6
 MarkupSafe==3.0.3
@@ -29,7 +31,7 @@ nvidia-nvjitlink-cu12==12.8.93
 nvidia-nvshmem-cu12==3.4.5
 nvidia-nvtx-cu12==12.8.90
 packaging==26.3
-setuptools==78.1.0
+setuptools==81.0.0
 sympy==1.14.0
 torch==2.11.0+cu128
 triton==3.6.0
