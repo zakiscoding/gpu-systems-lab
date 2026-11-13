@@ -55,7 +55,8 @@ flowchart TB
     BEN <-- "MPI over Tailscale" --> IR
 ```
 
-When the GPU PC is booted into Windows instead, `api/llm.py` falls back to Ollama there
+When the GPU PC is booted into Windows instead, `api/llm.py` uses the vLLM copy in WSL2, which `zakar`'s
+Tailscale serves at `100.88.71.33:8000` (`LLM_FALLBACK_URL`). If that doesn't answer either, it falls back to Ollama
 (`100.88.71.33:11434`, [homelab-gpu](https://github.com/zakiscoding/homelab-gpu)).
 
 ## Directory by directory
