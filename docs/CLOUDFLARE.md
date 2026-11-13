@@ -18,8 +18,8 @@ Checked on November 5, 2026.
 | Workers AI fallback | Live | Same address, used when the GPU is unreachable |
 | Results site | Live and public | https://gpu-systems-lab-results.vllm-gateway.workers.dev |
 | Tunnel `gpu-pc` | Healthy | `cloudflared` in WSL2 on the GPU PC |
-| vLLM | Running | WSL2 on the Windows boot, `127.0.0.1:8000` |
-| Monitoring stack | Running | WSL2, on localhost only |
+| vLLM | Running | WSL2 on the Windows boot, `127.0.0.1:8000`, forwarded to the tailnet at `100.88.71.33:8000` |
+| Monitoring stack | Running | WSL2; Prometheus and Grafana forwarded to the tailnet at `100.88.71.33:9090` and `:3000` |
 | Grafana proxy | **Deployed, refuses every request** | https://grafana-proxy.vllm-gateway.workers.dev |
 | R2 storage | **Not set up**: R2 isn't enabled on the account | [scripts/sync_results_r2.sh](../scripts/sync_results_r2.sh) is ready |
 | Custom domain | **Not set up** | Everything uses `workers.dev` |
@@ -99,13 +99,33 @@ everything runs in Ubuntu 26.04 on WSL2. That distro was empty and now has:
 - `serving/`, `observability/` and `cloudflare/` in `/root/gpu-systems-lab`, started with their `compose.wsl.yml` overrides
 - New `.env` files for each stack: mode 600, not in Git, and values that differ from the Ubuntu node's
 
-The overrides exist because WSL has no tailnet IP, so ports are published on `127.0.0.1`. This copy of vLLM can't be
-reached from the iMac, so the iMac API still falls back to Ollama.
+The overrides exist because WSL has no tailnet IP, so ports are published on `127.0.0.1`. Windows forwards its
+localhost into WSL, and `zakar`'s Windows Tailscale serves those ports to the tailnet only:
+
+```powershell
+# on zakar; settings persist across reboots
+tailscale serve --bg --tcp 8000 tcp://127.0.0.1:8000   # vLLM
+tailscale serve --bg --tcp 9090 tcp://127.0.0.1:9090   # Prometheus
+tailscale serve --bg --tcp 3000 tcp://127.0.0.1:3000   # Grafana
+tailscale serve status                                 # to undo: tailscale serve --tcp=<port> off
+```
+
+The iMac API reaches this vLLM through `LLM_FALLBACK_URL=http://100.88.71.33:8000/v1` (see
+[serving/README.md](../serving/README.md#homelab-chat-backend-always-on)). I tried running Tailscale inside WSL as its own
+node instead, but forwarding from `zakar` needs no extra machine or login.
 
 **Keep-alive task.** WSL stops seconds after its last session closes, even with containers running. The Windows
-scheduled task `WSL Keep Alive` holds a session open with `wsl.exe -d Ubuntu --exec sleep infinity`. It's set to run at
-startup as `zakar`, with S4U logon so no password is stored. To remove it, run this in an elevated PowerShell, then
-`wsl.exe --terminate Ubuntu`:
+scheduled task `WSL Keep Alive` holds a session open with `wsl.exe -d Ubuntu --exec sleep infinity`. It runs at
+startup as `zakar`, with S4U logon so no password is stored. `C:\Users\zakar\.wslconfig` also sets
+`vmIdleTimeout=-1`.
+
+Starting only at boot wasn't enough. On 2026-11-04 the task's session ended with exit code 1, probably from a WSL
+shutdown or update. The PC hadn't rebooted since 2026-10-27, so nothing started the task again, and vLLM, the tunnel and
+monitoring were down for 9 days. The task now has a second trigger that runs every 5 minutes with
+`MultipleInstances=IgnoreNew`, so it does nothing while the session is alive and restarts it within 5 minutes after one
+ends.
+
+To remove it, run this in an elevated PowerShell, then `wsl.exe --terminate Ubuntu`:
 
 ```powershell
 Unregister-ScheduledTask -TaskName 'WSL Keep Alive' -Confirm:$false
@@ -128,7 +148,9 @@ Measured against the deployed Workers, with vLLM and the tunnel in WSL2 on the R
 | Tunnel or vLLM stopped | Chat moved to Workers AI, and returned to the GPU by itself after restart (vLLM reload 55 s) |
 | Worker CPU time | 0–2 ms per request, on short requests |
 | Prompts in Worker logs | None found |
-| Keep-alive | WSL stayed up for about 12 hours with no other session |
+| Keep-alive | WSL stayed up for about 12 hours with no other session. Containers stayed up after the SSH session that started them closed |
+| Tailnet access to WSL | From the laptop and the iMac: vLLM `/health` 200, Prometheus 200 with all targets up, Grafana 200 |
+| iMac chat on the Windows boot | `auto` chose `100.88.71.33:8000`; a one-line reply from `qwen2.5-1.5b-instruct` took 0.4 s |
 | Monitoring in WSL | `dcgm-exporter` reports 22 GPU series, and all Prometheus targets are up |
 | Grafana proxy | With Access unconfigured, every request gets a 503, even with a fake token |
 | Results site | No IPs, machine names or GitHub links on the live page; source files return 404 |
@@ -136,6 +158,7 @@ Measured against the deployed Workers, with vLLM and the tunnel in WSL2 on the R
 **Not tested:**
 
 - WSL and the stacks starting by themselves after a Windows reboot
+- The 5-minute trigger restarting the keep-alive after its session ends
 - The Access login, and Grafana loaded through the proxy
 - Grafana's live updates over WebSocket through the proxy
 - Connecting with the old tunnel token (Cloudflare documents that it can't start new connections)
