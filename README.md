@@ -48,7 +48,7 @@ flowchart LR
             K["k3s :6443<br/>NVIDIA device plugin, GPU queue"]
             OBS["dcgm-exporter 127.0.0.1:9400<br/>Prometheus :9090, Grafana :3000"]
         end
-        OL["same PC, Windows boot 100.88.71.33<br/>Ollama :11434 (fallback)"]
+        OL["same PC, Windows boot 100.88.71.33<br/>vLLM in WSL2 :8000, Ollama :11434 (fallbacks)"]
     end
     subgraph CF["Cloudflare"]
         GW["Worker gateway<br/>api keys, rate limit"]
@@ -72,7 +72,7 @@ flowchart LR
 ```
 
 - The laptop never computes. It probes and dispatches: free local card when the job fits, else the cheapest Modal GPU that meets the VRAM, deadline and cost limits.
-- The GPU PC runs Windows **or** Ubuntu, never both. When it is on Ubuntu, homelab chat goes to vLLM. Otherwise the iMac API falls back to Ollama on Windows (rechecked every 30 s).
+- The GPU PC runs Windows **or** Ubuntu, never both. Homelab chat goes to vLLM on either boot: natively on Ubuntu, or in WSL2 on Windows, where `zakar`'s Tailscale serves it at `100.88.71.33:8000`. Ollama on Windows is the last fallback (rechecked every 30 s).
 - Node services are tailnet-only. ufw blocks 22/6443/10250 on the LAN ([scripts/harden_node.sh](scripts/harden_node.sh)). The [Cloudflare gateway](gateway/README.md) adds a keyed public path to vLLM through an outbound tunnel, with no ports opened. It currently runs from WSL2 on the Windows boot; the Ubuntu node and the Grafana route aren't set up.
 
 ## Quickstart

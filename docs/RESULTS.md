@@ -28,7 +28,7 @@ flowchart LR
             V["vLLM :8000/v1 (always on)<br/>qwen2.5-1.5b-instruct, API key"]
             O["dcgm-exporter 127.0.0.1:9400<br/>Prometheus :9090, Grafana :3000"]
         end
-        OL["same PC, Windows boot 100.88.71.33<br/>Ollama :11434 (fallback)"]
+        OL["same PC, Windows boot 100.88.71.33<br/>vLLM in WSL2 :8000, Ollama :11434 (fallbacks)"]
     end
     subgraph Modal["Modal (gVisor containers)"]
         H1["1x H100<br/>parity, vLLM serving"]
@@ -51,7 +51,8 @@ The laptop never computes. It probes and dispatches. `router/` sends a job to th
 when it fits, and otherwise to the cheapest Modal GPU that meets the VRAM, deadline and cost limits.
 The router worker takes routed jobs from the iMac's Postgres queue the same way. On the node, k3s
 queues GPU jobs, the Grafana stack watches the card (also a datasource in the iMac Grafana), and
-vLLM serves homelab chat. When the PC is booted into Windows, the iMac API falls back to Ollama.
+vLLM serves homelab chat. When the PC is booted into Windows, the iMac API uses the same vLLM setup in WSL2
+(`100.88.71.33:8000`), then Ollama.
 All node ports are tailnet-only.
 
 ## Headline numbers
