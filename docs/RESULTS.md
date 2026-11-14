@@ -79,6 +79,26 @@ $0.01 and starts in ~4 s.
 | Fused bias+GELU | 1.93x faster | memory-bound, and fusion halves DRAM traffic |
 | Atomic reduction | 3.3 GB/s | 190x slower than warp shuffle |
 
+### Roofline: RTX 5070 speed of light ([ROOFLINE.md](ROOFLINE.md), [tools/roofline.py](../tools/roofline.py))
+
+Each measured workload against the card's measured ceilings: 634 GB/s DRAM (cub reduce),
+23.7 TFLOPS FP32 and 67.7 TFLOPS BF16 (cuBLAS). Below the ridge point (37 FLOP/byte for FP32,
+107 for BF16) the memory roof binds.
+
+| Workload | FLOP/byte | Achieved | Roof at that AI | Bound | % of roof |
+|---|---:|---:|---:|---|---:|
+| vector_add (float4) | 0.0833 | 49 GFLOPS (590 GB/s) | 53 GFLOPS | memory | 93% |
+| reduction (warp shuffle) | 0.25 | 158 GFLOPS (630 GB/s) | 158 GFLOPS | memory | 99% |
+| fused bias+GELU, CUDA | 1.25 | 614 GFLOPS (491 GB/s) | 792 GFLOPS | memory | 77% |
+| fused bias+GELU, Triton | 1.25 | 699 GFLOPS (559 GB/s) | 792 GFLOPS | memory | 88% |
+| RMSNorm custom op v2 (bf16) | 1 | 562 GFLOPS (562 GB/s) | 634 GFLOPS | memory | 89% |
+| naive matmul FP32, N=4096 | 683 | 1.96 TFLOPS | 23.7 TFLOPS | compute | 8% |
+| cuBLAS SGEMM FP32, N=4096 | 683 | 21.02 TFLOPS | 23.7 TFLOPS | compute | 89% |
+| GPT-136M train step, JAX (bf16) | - | 48.75 TFLOPS | 67.7 TFLOPS | compute | 72% |
+| vLLM decode, Qwen2.5-1.5B, 1 request *(est.)* | 1 | 530 GFLOPS (530 GB/s) | 634 GFLOPS | memory | 84% |
+| vLLM decode, Qwen2.5-1.5B, 16 requests *(est.)* | 16 | 6.12 TFLOPS (382 GB/s) | 10.1 TFLOPS | memory | 60% |
+| vLLM decode, Qwen2.5-1.5B, 64 requests *(est.)* | 64 | 13.64 TFLOPS (213 GB/s) | 40.6 TFLOPS | memory | 34% |
+
 ### Multi-GPU: NCCL and DDP ([modal/ddp_nccl.py](../modal/ddp_nccl.py))
 
 | | 2x L4 (PCIe) | 2x H100 (NVLink) |

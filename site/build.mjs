@@ -104,8 +104,23 @@ function addCharts(markdown) {
         { name: "0.5B draft", values: spec.map((row) => number(row[3])) },
       ],
     });
+  // Roofline points come from the RESULTS.md table written by tools/roofline.py; the roofs are the
+  // same measured ceilings that script uses (cub reduce, cuBLAS FP32 and BF16 GEMM).
+  const roof = tableRows(markdown, "Workload").filter((row) => row[1] !== "-");
+  const withRoof = withChart(withSpec, "Roofline", "RTX 5070 roofline", "FLOP per byte vs achieved GFLOPS, log-log", {
+    type: "roofline",
+    series: [{ name: "memory-bound" }, { name: "compute-bound" }],
+    roofs: { memGBs: 634, memSpecGBs: 672, compute: [{ name: "FP32", gflops: 23700 }, { name: "BF16", gflops: 67700 }] },
+    points: roof.map((row) => ({
+      name: row[0].replace(" *(est.)*", " (est.)"),
+      ai: number(row[1]),
+      gflops: /TFLOPS/.test(row[2]) ? number(row[2]) * 1000 : number(row[2]),
+      bound: row[4],
+      pct: number(row[5]),
+    })),
+  });
   // Added last so it sits first under the heading.
-  return withChart(withSpec, "Inference optimization", "FP16 vs AWQ vs FP8 on the RTX 5070",
+  return withChart(withRoof, "Inference optimization", "FP16 vs AWQ vs FP8 on the RTX 5070",
     "Output tokens/s by concurrent requests", {
       type: "line",
       xName: "concurrent",
