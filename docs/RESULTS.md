@@ -154,9 +154,34 @@ swept concurrency and stopped it. Output tokens/s:
   scheduler declared the GPU worker dead mid-run (missed heartbeats, cause not found) and
   requeued the job. GopherGrid recorded only the third attempt's result, and those are the numbers
   here.
-- **Not measured yet: speculative decoding.** The runs with n-gram and draft-model (Qwen2.5-0.5B)
-  speculation didn't start, because the natural-language prompt set needs pandas, which the
-  vLLM image lacks. They are the next window on the GPU.
+### Speculative decoding on the RTX 5070 ([serving/prompts/](../serving/prompts/), [docs/data/spec-decoding-rtx5070-2026-11-14/](data/spec-decoding-rtx5070-2026-11-14/))
+
+Same model and server settings (FP16), but the prompts are 256 natural-language requests
+(explanations, code, rewrites, checklists; about 45 tokens each) with 256 output tokens, because
+speculation can't predict a continuation of random tokens. Each configuration again ran as a
+GopherGrid `benchmark` job. Output tokens/s, and the share of drafted tokens the model accepted:
+
+| Requests in flight | Off | N-gram (4 tokens) | Draft model: Qwen2.5-0.5B (4 tokens) |
+|---:|---:|---:|---:|
+| 1 | **165** | 145 (2% accepted) | 56 (30% accepted) |
+| 4 | **629** | 520 (2%) | 174 (27%) |
+| 16 | **2,392** | 1,653 (2%) | 731 (27%) |
+| 64 | **7,746** | 2,770 (2%) | 2,564 (27%) |
+
+- **Speculation made this model slower at every concurrency.** A 1.5B model on this card
+  already decodes a token in 6.0 ms with one request, so there is little idle time for a draft to
+  fill. Per-token latency at one request went to 7.0 ms with n-grams and 18.1 ms with the draft.
+- **N-gram lookup found almost nothing to copy.** Only 2% of its proposals were accepted: answers
+  to these prompts rarely repeat the prompt's own text. It suits workloads that do, such as
+  editing code or quoting a document, which this set has only a little of.
+- **The 0.5B draft is too big for a 1.5B target.** It is a third of the target's size, so four
+  draft steps cost more than they save at a 27–30% acceptance rate. It also took 0.9 GiB of
+  weights and half the KV cache (119k tokens vs 208k).
+- **Caveats.** `--ignore-eos` forces 256 output tokens even where the model would stop, and the
+  prompts go to `/v1/completions` without the chat template; both likely lower acceptance. The
+  speculation depth (4) wasn't tuned. Speculative decoding is meant for larger targets, such as a
+  7B model with a 0.5B draft, which doesn't fit this card in FP16. Throughput here is higher than in
+  the table above because these prompts are short, so don't compare the two tables directly.
 
 ### Sharded training and fault tolerance ([distributed/](../distributed/), [modal/fsdp_train.py](../modal/fsdp_train.py), [modal/elastic_train.py](../modal/elastic_train.py))
 
@@ -210,6 +235,8 @@ swept concurrency and stopped it. Output tokens/s:
    After that, latency explodes and throughput stops growing.
 8. **Quantization is a latency tool first.** On a small model, 4-bit AWQ halved per-token time
    for a single user but barely helped a full batch. FP8 helped everywhere on Blackwell.
+   Speculative decoding, the other textbook latency trick, made a small model slower: the
+   target was already fast, and neither n-grams nor a 0.5B draft predicted enough of it.
 9. **Measure what the platform hides.** The GPU limit in Kubernetes turned out to be accounting,
    not enforcement, until an admission policy made it real.
 
