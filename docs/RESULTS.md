@@ -117,12 +117,79 @@ Qwen2.5-1.5B with vLLM 0.32, 512 input / 256 output tokens, output tokens/s:
 - **Cost:** about $0.07 per 1M tokens on an H100 at concurrency 64, vs about $2.50 serving one
   request at a time (approximate list prices).
 
+### Inference optimization on the RTX 5070: FP16 vs AWQ vs FP8 ([serving/bench_sweep.py](../serving/bench_sweep.py), [docs/data/inference-rtx5070-2026-11-14/](data/inference-rtx5070-2026-11-14/))
+
+Qwen2.5-1.5B-Instruct, vLLM 0.32.0, 512 random input / 256 output tokens, `gpu_memory_utilization`
+0.80, prefix caching off. Each configuration ran as a GopherGrid `benchmark` job on the homelab:
+the scheduler placed it on the GPU PC, and the worker started the vLLM server in a container,
+swept concurrency and stopped it. Output tokens/s:
+
+| Concurrency | FP16 | AWQ (4-bit weights) | FP8 (online, per-tensor) | AWQ / FP16 | FP8 / FP16 |
+|---:|---:|---:|---:|---:|---:|
+| 1 | 160 | **314** | 231 | 1.96x | 1.45x |
+| 4 | 594 | **1,114** | 846 | 1.88x | 1.43x |
+| 16 | 1,926 | **2,965** | 2,789 | 1.54x | 1.45x |
+| 64 | 4,211 | 4,357 | **5,735** | 1.03x | 1.36x |
+
+| Precision | Weights | KV cache | Per-token latency (TPOT p50) at 1 | End-to-end p50 / p95 at 64 | TTFT p95 at 64 |
+|---|---:|---:|---:|---:|---:|
+| FP16 | 2.98 GiB | 207,632 tokens | 6.08 ms | 3.85 / 4.96 s | 1.45 s |
+| AWQ | 1.10 GiB | 279,312 tokens | **3.05 ms** | 3.74 / 4.83 s | 1.57 s |
+| FP8 | 1.73 GiB | 255,936 tokens | 4.23 ms | **2.76 / 3.82 s** | **0.86 s** |
+
+- **FP8 works on this Blackwell card** (compute capability 12.0). vLLM picked the CUTLASS FP8
+  scaled-matmul kernel and quantized the 112 linear layers online in 0.14 s. It is the only
+  option that is faster at every concurrency, and at 64 concurrent requests it gives the most
+  throughput and the lowest latency.
+- **AWQ wins when decoding is memory-bound.** With one request in flight, each token reads all
+  the weights, and 4-bit weights halve the per-token time (3.05 vs 6.08 ms). As the batch grows,
+  the work becomes compute-bound and AWQ's dequantization costs show: at 64 it is only 3%
+  ahead of FP16.
+- **KV cache was not the limit here.** Smaller weights left more room for KV cache, but 64
+  requests × 768 tokens need about 49k tokens of the 208k–279k available, so the differences come
+  from the kernels, not from capacity.
+- **Caveats.** One run per configuration, and only 16 prompts at concurrency 1 and 4, so small
+  differences there are noise. Output quality was not measured: AWQ is Qwen's own 4-bit checkpoint
+  and FP8 is quantized on load, and both change the outputs. AWQ needed three attempts: twice the
+  scheduler declared the GPU worker dead mid-run (missed heartbeats, cause not found) and
+  requeued the job. GopherGrid recorded only the third attempt's result, and those are the numbers
+  here.
+
+### Speculative decoding on the RTX 5070 ([serving/prompts/](../serving/prompts/), [docs/data/spec-decoding-rtx5070-2026-11-14/](data/spec-decoding-rtx5070-2026-11-14/))
+
+Same model and server settings (FP16), but the prompts are 256 natural-language requests
+(explanations, code, rewrites, checklists; about 45 tokens each) with 256 output tokens, because
+speculation can't predict a continuation of random tokens. Each configuration again ran as a
+GopherGrid `benchmark` job. Output tokens/s, and the share of drafted tokens the model accepted:
+
+| Requests in flight | Off | N-gram (4 tokens) | Draft model: Qwen2.5-0.5B (4 tokens) |
+|---:|---:|---:|---:|
+| 1 | **165** | 145 (2% accepted) | 56 (30% accepted) |
+| 4 | **629** | 520 (2%) | 174 (27%) |
+| 16 | **2,392** | 1,653 (2%) | 731 (27%) |
+| 64 | **7,746** | 2,770 (2%) | 2,564 (27%) |
+
+- **Speculation made this model slower at every concurrency.** A 1.5B model on this card
+  already decodes a token in 6.0 ms with one request, so there is little idle time for a draft to
+  fill. Per-token latency at one request went to 7.0 ms with n-grams and 18.1 ms with the draft.
+- **N-gram lookup found almost nothing to copy.** Only 2% of its proposals were accepted: answers
+  to these prompts rarely repeat the prompt's own text. It suits workloads that do, such as
+  editing code or quoting a document, which this set has only a little of.
+- **The 0.5B draft is too big for a 1.5B target.** It is a third of the target's size, so four
+  draft steps cost more than they save at a 27–30% acceptance rate. It also took 0.9 GiB of
+  weights and half the KV cache (119k tokens vs 208k).
+- **Caveats.** `--ignore-eos` forces 256 output tokens even where the model would stop, and the
+  prompts go to `/v1/completions` without the chat template; both likely lower acceptance. The
+  speculation depth (4) wasn't tuned. Speculative decoding is meant for larger targets, such as a
+  7B model with a 0.5B draft, which doesn't fit this card in FP16. Throughput here is higher than in
+  the table above because these prompts are short, so don't compare the two tables directly.
+
 ### NVIDIA serving stack: Triton + TensorRT-LLM vs vLLM ([serving/triton/](../serving/triton/README.md))
 
 Qwen2.5-1.5B (bf16) on the RTX 5070, same client, same prompts (512 in / 256 out) and the same 171,360-token KV
 cache. Triton Inference Server 26.07 with TensorRT-LLM 1.2.1 through its OpenAI frontend vs vLLM 0.32:
 
-| Concurrency | vLLM tok/s | Triton + TRT-LLM tok/s | vLLM TTFT p50 (ms) | Triton TTFT p50 (ms) | E2E p95 vLLM / Triton |
+| Concurrent (TRT-LLM vs vLLM) | vLLM tok/s | Triton + TRT-LLM tok/s | vLLM TTFT p50 (ms) | Triton TTFT p50 (ms) | E2E p95 vLLM / Triton |
 |---:|---:|---:|---:|---:|---:|
 | 1 | 161 | 144 | 34 | 33 | 1.61 / 1.80 s |
 | 4 | 580 | 505 | 101 | 99 | 1.78 / 2.06 s |
@@ -186,7 +253,11 @@ cache. Triton Inference Server 26.07 with TensorRT-LLM 1.2.1 through its OpenAI 
    run on the same two GPUs.
 7. **Serving is a batching problem.** Throughput comes from concurrency until the KV cache fills.
    After that, latency explodes and throughput stops growing.
-8. **Measure what the platform hides.** The GPU limit in Kubernetes turned out to be accounting,
+8. **Quantization is a latency tool first.** On a small model, 4-bit AWQ halved per-token time
+   for a single user but barely helped a full batch. FP8 helped everywhere on Blackwell.
+   Speculative decoding, the other textbook latency trick, made a small model slower: the
+   target was already fast, and neither n-grams nor a 0.5B draft predicted enough of it.
+9. **Measure what the platform hides.** The GPU limit in Kubernetes turned out to be accounting,
    not enforcement, until an admission policy made it real.
 
 ## Runbooks
