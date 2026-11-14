@@ -2,32 +2,42 @@
 
 [gpu-systems-lab](../../README.md) / `scheduling/slurm/` · [← scheduling (k3s)](../README.md) · [Results](../../docs/RESULTS.md)
 
-A two-machine Slurm 25.11 cluster over Tailscale. It runs this repo's existing FSDP and NCCL code
-(`modal/fsdp_gpt.py`, `modal/ddp_train.py`, unchanged) as batch jobs on the RTX 5070. It's the
-same queue-a-GPU problem as the [k3s setup](../README.md), solved the way HPC centres do it.
+A Slurm 25.11 cluster that runs this repo's existing FSDP and NCCL code
+(`modal/fsdp_gpt.py`, `modal/ddp_train.py`, unchanged) as batch jobs on the RTX 5070. It's the same
+queue-a-GPU problem as the [k3s setup](../README.md), solved the way HPC centres do it.
 
-Everything below was set up and measured on 2026-11-14 (UTC). Raw job logs, result JSON and the
-job-completion log are in [results/slurm/](../../results/slurm/).
+**Where it runs now:** both `slurmctld` and `slurmd` run natively (systemd, Ubuntu 26.04 packages) in
+WSL on the GPU PC (`zakar`, 100.88.71.33). The laptop is only used to submit (`ssh zak-ts ... sbatch`).
+
+**Where it ran for the measurements below:** `slurmctld` was in a container on the laptop, reaching
+`slurmd` across the tailnet. It moved because the laptop should only be a controller, not a host.
+Two other options were tried and didn't work:
+- **iMac's Colima:** a test container there couldn't even pull an image (`dial tcp ... i/o
+  timeout`), while the macOS host reached the GPU PC 10/10 times.
+- **Colima VM itself:** it ships Slurm 23.11, and a controller can't be older than its 25.11 nodes.
+
+The [compose.yml](compose.yml) and [Dockerfile.ctld](Dockerfile.ctld) container controller is kept for
+running the controller on another Linux host.
+
+Raw job logs, result JSON and the job-completion log: [results/slurm/](../../results/slurm/).
 
 ```mermaid
 flowchart LR
-    subgraph Laptop["hp-laptop (Windows, Docker Desktop)"]
-        C["slurmctld 25.11.2<br/>container, 127.0.0.1:6817<br/>munged"]
-    end
+    L["hp-laptop<br/>submits only: ssh + sbatch"]
     subgraph PC["GPU PC zakar (Windows boot, WSL2 Ubuntu 26.04)"]
+        C["slurmctld 25.11.2 (systemd)<br/>127.0.0.1:6817"]
         D["slurmd 25.11.2 (systemd)<br/>NodeName=zakpc, 28 CPUs<br/>Gres=gpu:rtx5070:1 (/dev/dxg)"]
         V["vllm-chat (left running)"]
+        C <--> D
     end
-    C -- "6818 via tailscale serve on zakar" --> D
-    D -- "6817 via tailscale serve on laptop" --> C
+    L -- "tailnet SSH" --> C
 ```
 
 | Piece | Where | Notes |
 |---|---|---|
-| `slurmctld` | container on the laptop ([compose.yml](compose.yml), [Dockerfile.ctld](Dockerfile.ctld)) | Ubuntu 26.04 + `slurmctld`, the same package version as the node. State in a named volume |
-| `slurmd` | WSL Ubuntu on the GPU PC, systemd unit from the distro package | Config from [slurm.conf](slurm.conf) and [gres.conf](gres.conf). Jobs use a torch 2.11.0+cu128 venv in `/opt/slurm-lab` |
-| Auth | MUNGE | One key, generated in the controller's volume and copied to the node over SSH. Never printed or committed |
-| Network | Tailscale | Only `tailscale serve --tcp 6817` (laptop) and `--tcp 6818` (zakar) open the ports, tailnet-only. `NodeAddr` and `SlurmctldHost` are tailnet IPs |
+| `slurmctld` | WSL on the GPU PC, systemd unit from the distro package | Config from [slurm.conf](slurm.conf) and [gres.conf](gres.conf); state in `/var/spool/slurmctld` |
+| `slurmd` | Same WSL instance | Jobs use a torch 2.11.0+cu128 venv in `/opt/slurm-lab` |
+| Auth | MUNGE | One key, generated once and copied to the node over SSH. Never printed or committed |
 
 Design choices:
 - **GPU as a gres in WSL.** WSL2 has no `/dev/nvidia0`; the GPU appears as `/dev/dxg`. With
@@ -66,7 +76,7 @@ Four jobs submitted back to back ([jobs/](jobs/)):
   The jobs were sized to fit beside it, which a real cluster would enforce with
   `--gres=gpu:...:shard` or MIG.
 
-### Resilience: daemons restarted under a running job
+### Resilience: daemons restarted under a running job (laptop-hosted controller)
 
 Job 6 (`fsdp-long`, 1,500 steps, ~53 s):
 1. 8 s after it started, `docker restart` on the controller. **slurmctld was back in 3 s** and
@@ -81,31 +91,23 @@ What is not covered: a node that disappears (WSL shut down or the PC rebooted). 
 
 ## Run it
 
-Controller, on the laptop (from this directory):
+On the GPU node (WSL Ubuntu 26.04):
 
 ```bash
-docker compose build
-docker volume create slurm-homelab_munge-key
-docker run --rm --entrypoint sh -v slurm-homelab_munge-key:/etc/munge homelab/slurmctld:25.11 \
-  -c 'mungekey -c -f -k /etc/munge/munge.key && chown munge:munge /etc/munge/munge.key && chmod 400 /etc/munge/munge.key'
-docker compose up -d
-tailscale serve --bg --tcp 6817 tcp://127.0.0.1:6817
+apt install slurmctld slurmd slurm-client munge
+mungekey -c -f -k /etc/munge/munge.key && chown munge:munge /etc/munge/munge.key && chmod 400 /etc/munge/munge.key
+cp slurm.conf gres.conf /etc/slurm/
+systemctl enable --now munge slurmctld slurmd
 ```
 
-Node, in WSL on the GPU PC:
-1. `apt install slurmd slurm-client munge`.
-2. Copy `slurm.conf` and `gres.conf` to `/etc/slurm/`, and the MUNGE key to `/etc/munge/munge.key`
-   (mode 400, owner munge).
-3. `systemctl restart munge slurmd`.
-4. On Windows: `tailscale serve --bg --tcp 6818 tcp://localhost:6818`.
-
-Submit from the controller:
+Submit from the laptop (or anywhere with SSH to the node):
 
 ```bash
-docker exec -i slurm-homelab-slurmctld-1 sbatch < jobs/fsdp_gpu.sbatch
-docker exec slurm-homelab-slurmctld-1 squeue
-docker exec slurm-homelab-slurmctld-1 sinfo -N -l
+ssh zak-ts "wsl -d Ubuntu -- sbatch /path/to/fsdp_gpu.sbatch"
+ssh zak-ts "wsl -d Ubuntu -- squeue"
 ```
 
-Tear down: `docker compose down -v`, `tailscale serve --tcp=6817 off` (laptop),
-`tailscale serve --tcp=6818 off` and `systemctl disable --now slurmd` (node).
+After the move, job 1 on the GPU-PC-hosted controller (`fsdp_gpu.sbatch`) completed with exit 0 at
+30.1 ms/step, matching the earlier runs.
+
+Tear down: `systemctl disable --now slurmctld slurmd` on the node.
