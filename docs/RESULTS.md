@@ -130,6 +130,13 @@ FP32 4096³ on the RTX 5070, 3 runs each: naive 0.50 TFLOPS → coalesced 2.00 �
 **18.4 (82% of cuBLAS's 22.5)**. Tensor cores: a plain WMMA kernel 43.4 TFLOPS against cuBLAS and
 CUTLASS at 66.5 (FP16 in, FP32 accumulate). Every kernel is checked against cuBLAS.
 
+### JAX/XLA vs PyTorch ([jax-xla/](../jax-xla/README.md))
+
+The GPT benchmark ported to JAX, with logits/loss/gradient parity checked against PyTorch. On the
+RTX 5070 (136M params, batch 4 × 1024, 3 runs each): PyTorch eager 84.5 ms/step, torch.compile 81.9,
+plus fused AdamW 73.5, **JAX + cuDNN flash attention 68.9 ms (59.7k tok/s, 72% of measured BF16
+peak, 17% less memory)**. JAX with XLA's own attention runs out of memory at batch 4.
+
 ### Multi-GPU: NCCL and DDP ([modal/ddp_nccl.py](../modal/ddp_nccl.py))
 
 | | 2x L4 (PCIe) | 2x H100 (NVLink) |

@@ -22,6 +22,7 @@ router worker that runs routed jobs from the iMac job queue.
 - **Single GPU vs cloud:** RTX 5070 BF16 67.7 TFLOPS vs H100 677.8 (10x).
 - **Collectives and data parallel:** NCCL all-reduce 329 GB/s on 2x H100 vs 6.65 GB/s on 2x L4. [nccl-tests](docs/NCCL-TESTS.md): 344 GB/s all-reduce, 367 sendrecv, 72–78% of the 478 GB/s NVLink limit. DDP 1.57x on 2x H100 at batch 4096.
 - **MPI:** one node, one rank per GPU on 2x H100 (Jacobi 1.38x), and across two machines (RTX 5070 + M1 iMac over Tailscale, bit-exact).
+- **JAX/XLA:** the GPT benchmark ported to JAX ([jax-xla/](jax-xla/README.md)) runs 6% faster than the best PyTorch setup on the 5070 (68.9 vs 73.5 ms/step), once both use fused attention and a fused optimizer.
 - **Sharded training:** FSDP2 trains a 5.6B model that OOMs under DDP. [DeepSpeed ZeRO 1/2/3](docs/DEEPSPEED.md) on the same model: within 5% of FSDP2 at 1.34B, 1.8–3.3x slower at 5.6B. Elastic restart recovers a killed rank in 11–14 s.
 - **Serving and operations:** vLLM Qwen2.5-1.5B 4.4k tok/s on the RTX 5070 vs 16.8k on an H100 (concurrency 64). k3s GPU pods run at native 67.7 TFLOPS. DCGM, Prometheus and Grafana watch the card.
 - **Kubernetes operator:** a Go `GpuJob` CRD and controller ([operator/](operator/README.md)) that turns GPU jobs into Jobs, shows why they queue, and survives re-runs, deleted Jobs and restarts. Tested with envtest and on a kind cluster with a fake GPU; the real-node run and the [NVIDIA GPU Operator time-slicing migration](scheduling/gpu-operator/README.md) are prepared, not yet run.
