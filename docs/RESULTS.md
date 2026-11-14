@@ -266,6 +266,11 @@ cache. Triton Inference Server 26.07 with TensorRT-LLM 1.2.1 through its OpenAI 
   that leave the GPU idle. A ValidatingAdmissionPolicy now blocks pods that would use the GPU
   without requesting it (a queue bypass found during testing).
 
+- **Slurm** ([scheduling/slurm/](../scheduling/slurm/README.md)): slurmctld and slurmd on the GPU PC (the
+  restart tests ran with the controller on the laptop, across Tailscale). The FSDP2 job ran at 29.5–32.3 ms/step on the RTX 5070 (1.36 GiB peak)
+  next to the live vLLM. A one-GPU gres serialized three GPU jobs, and a job survived restarts of both
+  slurmctld (back in 3 s) and slurmd, finishing with exit 0.
+
 ## What the numbers say
 
 1. **Develop locally, scale on rented H100s.** The 5070 is free and fast enough for kernels and

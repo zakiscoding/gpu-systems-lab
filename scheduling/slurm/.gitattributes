@@ -1,0 +1,2 @@
+# daemons and job scripts run on Linux: keep LF even on a Windows checkout
+* text eol=lf

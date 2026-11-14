@@ -1,0 +1,15 @@
+{
+  "world_size": 1,
+  "gpu": "NVIDIA GeForce RTX 5070",
+  "torch": "2.11.0+cu128",
+  "nccl": "2.28.9",
+  "train": {
+    "params_millions": 16.81,
+    "per_gpu_batch": 256,
+    "global_batch": 256,
+    "steps": 60,
+    "step_ms": 1.398,
+    "samples_per_s": 183170.5,
+    "final_loss": 2.3019
+  }
+}

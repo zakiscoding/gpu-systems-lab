@@ -1,0 +1,10 @@
+# slurmctld for the homelab cluster. Same distro + Slurm package as the WSL compute node
+# (Ubuntu 26.04, slurm-wlm 25.11.2): Slurm daemons must be within two major versions.
+FROM ubuntu:26.04
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+      slurmctld slurm-client munge ca-certificates && rm -rf /var/lib/apt/lists/* \
+ && mkdir -p /var/spool/slurmctld /var/log/slurm /run/munge \
+ && chown slurm:slurm /var/spool/slurmctld /var/log/slurm && chown munge:munge /run/munge
+COPY slurm.conf gres.conf /etc/slurm/
+COPY ctld-entrypoint.sh /usr/local/bin/ctld-entrypoint.sh
+ENTRYPOINT ["/usr/local/bin/ctld-entrypoint.sh"]

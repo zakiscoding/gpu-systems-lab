@@ -1,0 +1,18 @@
+# Laptop side: slurmctld only. 127.0.0.1:6817, published to the tailnet by
+# `tailscale serve --bg --tcp 6817 tcp://127.0.0.1:6817` on Windows.
+name: slurm-homelab
+services:
+  slurmctld:
+    build: {context: ., dockerfile: Dockerfile.ctld}
+    image: homelab/slurmctld:25.11
+    hostname: slurmctld
+    ports: ["127.0.0.1:6817:6817"]
+    volumes:
+      - munge-key:/etc/munge
+      - state:/var/spool/slurmctld
+      - logs:/var/log/slurm
+    restart: unless-stopped
+volumes:
+  munge-key:
+  state:
+  logs:
