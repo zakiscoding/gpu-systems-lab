@@ -1,0 +1,35 @@
+{
+ "direct": {
+  "n": 1200,
+  "p50_ms": 16.104,
+  "p99_ms": 18.545,
+  "mean_ms": 16.29
+ },
+ "haproxy": {
+  "n": 1200,
+  "p50_ms": 17.192,
+  "p99_ms": 19.644,
+  "mean_ms": 17.19
+ },
+ "added_p50_ms": 1.088,
+ "throughput_direct_r1_only": {
+  "requests": 128,
+  "ok": 0,
+  "req_per_s": 0.0,
+  "outcomes": {
+   "ReadTimeout": 100,
+   "PoolTimeout": 28
+  },
+  "p50_ms": null
+ },
+ "throughput_haproxy_2_replicas": {
+  "requests": 128,
+  "ok": 78,
+  "req_per_s": 2.59,
+  "outcomes": {
+   "ReadTimeout": 50,
+   "200": 78
+  },
+  "p50_ms": 2968.0
+ }
+}

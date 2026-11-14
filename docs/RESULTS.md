@@ -89,6 +89,47 @@ next to the live chat. A precision is flagged when it falls more than 5% below t
 runs; the flag goes to Prometheus (alert `GpuNightlyRegression`) and a Grafana dashboard. Baselines agree
 within 0.7%. A 90 s noisy-neighbour test halved every precision (0.47–0.49x) and all four were flagged.
 
+### Triton language vs CUDA vs torch.compile ([kernels/triton/](../kernels/triton/README.md))
+
+Fused bias+GELU, 16384 × 4096 fp32: a 15-line Triton kernel runs **559 GB/s (83% of DRAM peak)**,
+ties torch.compile's Inductor kernel (558) and beats the hand-written CUDA kernel from
+`cuda/fused.cu` (491, 4-byte loads in a grid-stride loop) by 14%. Eager (2 kernels): 279 GB/s.
+
+### Custom PyTorch operator vs TorchInductor ([kernels/custom_op/](../kernels/custom_op/README.md))
+
+`labops::rmsnorm`, a C++/CUDA op with a fake kernel and autograd registered so it runs under
+`torch.compile(fullgraph=True)` (16 tests incl. `torch.library.opcheck`). In bf16 on the 5070, v1
+(scalar loads) reached 290–370 GB/s. v2 (16-byte vector loads, row cached in registers, 2 vectors
+per thread) reaches **541–562 GB/s, level with Inductor's generated kernel** at all 4 shapes. Eager:
+57 GB/s, 9 launches per call.
+
+### Roofline: RTX 5070 speed of light ([ROOFLINE.md](ROOFLINE.md), [tools/roofline.py](../tools/roofline.py))
+
+Each measured workload against the card's measured ceilings: 634 GB/s DRAM (cub reduce),
+23.7 TFLOPS FP32 and 67.7 TFLOPS BF16 (cuBLAS). Below the ridge point (37 FLOP/byte for FP32,
+107 for BF16) the memory roof binds.
+
+| Workload | FLOP/byte | Achieved | Roof at that AI | Bound | % of roof |
+|---|---:|---:|---:|---|---:|
+| vector_add (float4) | 0.0833 | 49 GFLOPS (590 GB/s) | 53 GFLOPS | memory | 93% |
+| reduction (warp shuffle) | 0.25 | 158 GFLOPS (630 GB/s) | 158 GFLOPS | memory | 99% |
+| fused bias+GELU, CUDA | 1.25 | 614 GFLOPS (491 GB/s) | 792 GFLOPS | memory | 77% |
+| fused bias+GELU, Triton | 1.25 | 699 GFLOPS (559 GB/s) | 792 GFLOPS | memory | 88% |
+| RMSNorm custom op v2 (bf16) | 1 | 562 GFLOPS (562 GB/s) | 634 GFLOPS | memory | 89% |
+| naive matmul FP32, N=4096 | 683 | 1.96 TFLOPS | 23.7 TFLOPS | compute | 8% |
+| cuBLAS SGEMM FP32, N=4096 | 683 | 21.02 TFLOPS | 23.7 TFLOPS | compute | 89% |
+| GPT-136M train step, JAX (bf16) | - | 48.75 TFLOPS | 67.7 TFLOPS | compute | 72% |
+| vLLM decode, Qwen2.5-1.5B, 1 request *(est.)* | 1 | 530 GFLOPS (530 GB/s) | 634 GFLOPS | memory | 84% |
+| vLLM decode, Qwen2.5-1.5B, 16 requests *(est.)* | 16 | 6.12 TFLOPS (382 GB/s) | 10.1 TFLOPS | memory | 60% |
+| vLLM decode, Qwen2.5-1.5B, 64 requests *(est.)* | 64 | 13.64 TFLOPS (213 GB/s) | 40.6 TFLOPS | memory | 34% |
+
+### GEMM step by step ([kernels/gemm/](../kernels/gemm/README.md))
+
+FP32 4096³ on the RTX 5070, 3 runs each: naive 0.50 TFLOPS → coalesced 2.00 → shared tiling 2.31 →
+1-D register tiling 7.74 → 2-D register tiling 7.14 (bank conflicts) → vectorized + transposed A
+**18.4 (82% of cuBLAS's 22.5)**. Tensor cores: a plain WMMA kernel 43.4 TFLOPS against cuBLAS and
+CUTLASS at 66.5 (FP16 in, FP32 accumulate). Every kernel is checked against cuBLAS.
+
 ### Multi-GPU: NCCL and DDP ([modal/ddp_nccl.py](../modal/ddp_nccl.py))
 
 | | 2x L4 (PCIe) | 2x H100 (NVLink) |
@@ -99,6 +140,19 @@ within 0.7%. A 90 s noisy-neighbour test halved every precision (0.47–0.49x) a
 
 **The interconnect decides whether a second GPU helps.** On L4s the 537 MB gradient sync
 (~81 ms) swamps 18 ms of compute. On H100s it takes ~1.6 ms, which a large enough batch hides.
+
+**nccl-tests** ([NCCL-TESTS.md](NCCL-TESTS.md), [modal/nccl_tests.py](../modal/nccl_tests.py)): NVIDIA's
+benchmark on 2x H100 SXM, NCCL 2.25.1, 0 wrong results at every size.
+
+| 8 GiB, busbw | all_reduce | all_gather | reduce_scatter | broadcast | alltoall | sendrecv |
+|---|---:|---:|---:|---:|---:|---:|
+| GB/s | **344** | 312 | 293 | 373 | 364 | 367 |
+| % of 478 GB/s NVLink (18 x 26.56) | 72% | 65% | 61% | 78% | 76% | 77% |
+
+All-reduce reaches 96% of the 360 GB/s NCCL's own topology model planned for (12 rings over
+NVLink). It needs about 256 MiB messages to get within 15% of peak (69 GB/s at 1 MiB). With
+peer-to-peer disabled it falls to 26.6 GB/s (13x slower). These are single-node numbers:
+there is no InfiniBand/RDMA here (see the doc).
 
 ### MPI ([mpi/](../mpi/), [mpi/multinode/](../mpi/multinode/), [modal/mpi_multigpu.py](../modal/mpi_multigpu.py))
 
@@ -203,6 +257,13 @@ concurrency 1, and p99 inter-token latency 3–32 → 50–90 ms (tokens arrive 
 vs 1.7 ms local, object transfer ~10 MB/s (the iMac's Wi-Fi). Ray Train with 2 workers scales 1.40x
 on one node. Cross-node DDP to the macOS worker failed at gloo rendezvous (documented).
 
+### Load balancing vLLM replicas ([serving/lb/](../serving/lb/README.md))
+
+HAProxy (health checks every 1 s, L7 retries) in front of 2 vLLM replicas on the 5070. Killing one
+under load failed **8 of 3,432 requests (0.23%)** with retries, against 218 (5.8%, mostly 503s in the
+~1 s before the check marked it down) without. The LB adds **+1.1 ms p50**. Found: on a fresh start a
+replica answers `/health` before it can serve a large batch (first 128-request burst timed out).
+
 ### vLLM vs SGLang vs TensorRT-LLM, FlashAttention vs FlashInfer ([serving/engines/](../serving/engines/README.md))
 
 Five configurations in one window, same client, Qwen2.5-1.5B, 0 failed requests. Peak throughput: SGLang 5,243
@@ -243,6 +304,10 @@ cache. Triton Inference Server 26.07 with TensorRT-LLM 1.2.1 through its OpenAI 
 - **Elastic restart:** `torchrun --max-restarts`, one rank killed at step 48 of 60. Training resumed
   from the last checkpoint and ended with a bit-identical final loss. Time lost was 11.0 s
   (checkpoint every 10 steps) or 14.4 s (every 25).
+- **DeepSpeed ZeRO** ([DEEPSPEED.md](DEEPSPEED.md)), same model, same container: at 1.34B, ZeRO-1/2 run
+  114 ms/step (18.4 GiB) vs FSDP2 108.5 ms (15.6 GiB), and ZeRO-3 runs 180 ms. At 5.64B every ZeRO
+  stage fits where DDP OOMs, but ZeRO-1/2 take 876–960 ms, about 940 ms of it in the optimizer step
+  (client torch AdamW on a flat 2.8B-element partition). ZeRO-3 takes 508 ms vs FSDP2's 288 ms.
 
 ### Operations: observability and scheduling ([observability/](../observability/), [scheduling/](../scheduling/))
 
@@ -261,6 +326,11 @@ cache. Triton Inference Server 26.07 with TensorRT-LLM 1.2.1 through its OpenAI 
   Time-slicing a saturated GPU adds ~5% overhead and makes jobs finish later. It only helps jobs
   that leave the GPU idle. A ValidatingAdmissionPolicy now blocks pods that would use the GPU
   without requesting it (a queue bypass found during testing).
+
+- **Slurm** ([scheduling/slurm/](../scheduling/slurm/README.md)): slurmctld and slurmd on the GPU PC (the
+  restart tests ran with the controller on the laptop, across Tailscale). The FSDP2 job ran at 29.5–32.3 ms/step on the RTX 5070 (1.36 GiB peak)
+  next to the live vLLM. A one-GPU gres serialized three GPU jobs, and a job survived restarts of both
+  slurmctld (back in 3 s) and slurmd, finishing with exit 0.
 
 ## What the numbers say
 

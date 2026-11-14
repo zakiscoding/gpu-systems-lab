@@ -9,6 +9,7 @@
 | `smoke.py` | Step 4: runs `benchmarks/smoke_test.py` unchanged on one Modal GPU, saves `results/modal_<gpu>_<ts>.json` | Modal |
 | `ddp_nccl.py` | Step 5: on one N-GPU container, runs `ddp_train.py` via `torchrun` (1 GPU baseline, then N GPUs) | Modal |
 | `ddp_train.py` | NCCL `all_reduce` sweep 1 MiB to 1 GiB (algbw/busbw) + synthetic-data MLP DDP loop | inside the container |
+| `nccl_tests.py` | NVIDIA nccl-tests (6 collectives, 8 B to 8 GiB) on 2x H100 vs the NVLink limit, see [docs/NCCL-TESTS.md](../docs/NCCL-TESTS.md). `nccl_parse.py` parses the logs | Modal |
 | `compare.py` | Prints local vs Modal table (TFLOPS, H2D, cold start, approx $/run). No Modal calls | laptop |
 
 The image pins `torch==2.11.0` from the cu128 wheel index to match the local RTX 5070 baseline

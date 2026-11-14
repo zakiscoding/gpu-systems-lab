@@ -1,0 +1,13 @@
+{"device":"NVIDIA GeForce RTX 5070","sm":"12.0","N":4096,"reps":15,"results":[
+{"kernel":"1 naive","precision":"fp32","ms":273.5152,"tflops":0.502,"rel_err_vs_cublas":0.000e+00}
+,{"kernel":"2 coalesced","precision":"fp32","ms":68.6633,"tflops":2.002,"rel_err_vs_cublas":0.000e+00}
+,{"kernel":"3 smem tiling","precision":"fp32","ms":59.3614,"tflops":2.315,"rel_err_vs_cublas":0.000e+00}
+,{"kernel":"4 1D register tiling","precision":"fp32","ms":17.7695,"tflops":7.735,"rel_err_vs_cublas":0.000e+00}
+,{"kernel":"5 2D register tiling","precision":"fp32","ms":19.2368,"tflops":7.145,"rel_err_vs_cublas":0.000e+00}
+,{"kernel":"6 vectorized","precision":"fp32","ms":7.4281,"tflops":18.503,"rel_err_vs_cublas":0.000e+00}
+,{"kernel":"cuBLAS SGEMM","precision":"fp32","ms":6.1108,"tflops":22.491,"rel_err_vs_cublas":0.000e+00}
+,{"kernel":"7 wmma tensor cores","precision":"fp16->fp32","ms":3.1489,"tflops":43.647,"rel_err_vs_cublas":0.000e+00}
+,{"kernel":"cuBLAS GEMM fp16","precision":"fp16->fp32","ms":2.0662,"tflops":66.516,"rel_err_vs_cublas":0.000e+00}
+,{"kernel":"CUTLASS SIMT fp32","precision":"fp32","ms":6.1009,"tflops":22.528,"rel_err_vs_cublas":0.000e+00}
+,{"kernel":"CUTLASS TensorOp fp16","precision":"fp16->fp32","ms":2.0597,"tflops":66.728,"rel_err_vs_cublas":0.000e+00}
+]}

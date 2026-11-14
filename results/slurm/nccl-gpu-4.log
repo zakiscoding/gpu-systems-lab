@@ -1,0 +1,3 @@
+job 4 on zakpc CUDA_VISIBLE_DEVICES=0
+
+  DDP x1: 16.81M params, batch 256/GPU, 1.398 ms/step, 183170.5 samples/s
