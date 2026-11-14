@@ -1,0 +1,502 @@
+{
+ "cmd": [
+  "cuda/build/reduction"
+ ],
+ "warmup": 2,
+ "repeats": 10,
+ "all_rc_zero": true,
+ "summary": {
+  "atomic (1 per element)": {
+   "ms": {
+    "n": 10,
+    "mean": 40.3848,
+    "sd": 0.1798,
+    "cv_pct": 0.45,
+    "ci95_half": 0.1286,
+    "ci95": [
+     40.2562,
+     40.5133
+    ],
+    "min": 40.3165,
+    "max": 40.8916
+   },
+   "metric": {
+    "n": 10,
+    "mean": 3.3,
+    "sd": 0.0,
+    "cv_pct": 0.0,
+    "ci95_half": 0.0,
+    "ci95": [
+     3.3,
+     3.3
+    ],
+    "min": 3.3,
+    "max": 3.3
+   }
+  },
+  "smem tree (1 atomic/block)": {
+   "ms": {
+    "n": 10,
+    "mean": 0.268,
+    "sd": 0.0007,
+    "cv_pct": 0.27,
+    "ci95_half": 0.0005,
+    "ci95": [
+     0.2675,
+     0.2686
+    ],
+    "min": 0.267,
+    "max": 0.2695
+   },
+   "metric": {
+    "n": 10,
+    "mean": 500.72,
+    "sd": 1.3307,
+    "cv_pct": 0.27,
+    "ci95_half": 0.9518,
+    "ci95": [
+     499.7682,
+     501.6718
+    ],
+    "min": 498.0,
+    "max": 502.6
+   }
+  },
+  "warp shuffle + float4": {
+   "ms": {
+    "n": 10,
+    "mean": 0.2149,
+    "sd": 0.0004,
+    "cv_pct": 0.18,
+    "ci95_half": 0.0003,
+    "ci95": [
+     0.2146,
+     0.2152
+    ],
+    "min": 0.2144,
+    "max": 0.2156
+   },
+   "metric": {
+    "n": 10,
+    "mean": 624.67,
+    "sd": 1.17,
+    "cv_pct": 0.19,
+    "ci95_half": 0.8369,
+    "ci95": [
+     623.8331,
+     625.5069
+    ],
+    "min": 622.5,
+    "max": 626.1
+   }
+  },
+  "cub::DeviceReduce::Sum": {
+   "ms": {
+    "n": 10,
+    "mean": 0.2188,
+    "sd": 0.001,
+    "cv_pct": 0.47,
+    "ci95_half": 0.0007,
+    "ci95": [
+     0.218,
+     0.2195
+    ],
+    "min": 0.2172,
+    "max": 0.2211
+   },
+   "metric": {
+    "n": 10,
+    "mean": 613.46,
+    "sd": 2.9289,
+    "cv_pct": 0.48,
+    "ci95_half": 2.095,
+    "ci95": [
+     611.365,
+     615.555
+    ],
+    "min": 606.9,
+    "max": 617.9
+   }
+  }
+ },
+ "sm_clock_mhz_range": [
+  2880,
+  2880
+ ],
+ "temp_c_range": [
+  38,
+  40
+ ],
+ "runs": [
+  {
+   "i": 0,
+   "rc": 0,
+   "wall_s": 0.56,
+   "gpu_before": {
+    "sm_mhz": 2880,
+    "mem_mhz": 13801,
+    "temp_c": 38,
+    "power_w": 50.53,
+    "util_pct": 75
+   },
+   "gpu_after": {
+    "sm_mhz": 2880,
+    "mem_mhz": 13801,
+    "temp_c": 38,
+    "power_w": 51.11,
+    "util_pct": 70
+   },
+   "rows": {
+    "atomic (1 per element)": [
+     40.3192,
+     3.3
+    ],
+    "smem tree (1 atomic/block)": [
+     0.2684,
+     500.0
+    ],
+    "warp shuffle + float4": [
+     0.2151,
+     623.8
+    ],
+    "cub::DeviceReduce::Sum": [
+     0.2181,
+     615.4
+    ]
+   }
+  },
+  {
+   "i": 1,
+   "rc": 0,
+   "wall_s": 0.57,
+   "gpu_before": {
+    "sm_mhz": 2880,
+    "mem_mhz": 13801,
+    "temp_c": 38,
+    "power_w": 51.11,
+    "util_pct": 70
+   },
+   "gpu_after": {
+    "sm_mhz": 2880,
+    "mem_mhz": 13801,
+    "temp_c": 38,
+    "power_w": 51.08,
+    "util_pct": 95
+   },
+   "rows": {
+    "atomic (1 per element)": [
+     40.3203,
+     3.3
+    ],
+    "smem tree (1 atomic/block)": [
+     0.2674,
+     502.0
+    ],
+    "warp shuffle + float4": [
+     0.2146,
+     625.6
+    ],
+    "cub::DeviceReduce::Sum": [
+     0.2179,
+     616.0
+    ]
+   }
+  },
+  {
+   "i": 2,
+   "rc": 0,
+   "wall_s": 0.56,
+   "gpu_before": {
+    "sm_mhz": 2880,
+    "mem_mhz": 13801,
+    "temp_c": 38,
+    "power_w": 51.08,
+    "util_pct": 95
+   },
+   "gpu_after": {
+    "sm_mhz": 2880,
+    "mem_mhz": 13801,
+    "temp_c": 39,
+    "power_w": 49.71,
+    "util_pct": 100
+   },
+   "rows": {
+    "atomic (1 per element)": [
+     40.3193,
+     3.3
+    ],
+    "smem tree (1 atomic/block)": [
+     0.2688,
+     499.4
+    ],
+    "warp shuffle + float4": [
+     0.2153,
+     623.5
+    ],
+    "cub::DeviceReduce::Sum": [
+     0.2187,
+     613.8
+    ]
+   }
+  },
+  {
+   "i": 3,
+   "rc": 0,
+   "wall_s": 0.58,
+   "gpu_before": {
+    "sm_mhz": 2880,
+    "mem_mhz": 13801,
+    "temp_c": 39,
+    "power_w": 51.24,
+    "util_pct": 100
+   },
+   "gpu_after": {
+    "sm_mhz": 2880,
+    "mem_mhz": 13801,
+    "temp_c": 38,
+    "power_w": 50.26,
+    "util_pct": 81
+   },
+   "rows": {
+    "atomic (1 per element)": [
+     40.3165,
+     3.3
+    ],
+    "smem tree (1 atomic/block)": [
+     0.267,
+     502.6
+    ],
+    "warp shuffle + float4": [
+     0.2156,
+     622.5
+    ],
+    "cub::DeviceReduce::Sum": [
+     0.219,
+     612.8
+    ]
+   }
+  },
+  {
+   "i": 4,
+   "rc": 0,
+   "wall_s": 0.63,
+   "gpu_before": {
+    "sm_mhz": 2880,
+    "mem_mhz": 13801,
+    "temp_c": 38,
+    "power_w": 50.26,
+    "util_pct": 81
+   },
+   "gpu_after": {
+    "sm_mhz": 2880,
+    "mem_mhz": 13801,
+    "temp_c": 38,
+    "power_w": 51.09,
+    "util_pct": 85
+   },
+   "rows": {
+    "atomic (1 per element)": [
+     40.3167,
+     3.3
+    ],
+    "smem tree (1 atomic/block)": [
+     0.2681,
+     500.6
+    ],
+    "warp shuffle + float4": [
+     0.2149,
+     624.7
+    ],
+    "cub::DeviceReduce::Sum": [
+     0.2172,
+     617.9
+    ]
+   }
+  },
+  {
+   "i": 5,
+   "rc": 0,
+   "wall_s": 0.56,
+   "gpu_before": {
+    "sm_mhz": 2880,
+    "mem_mhz": 13801,
+    "temp_c": 38,
+    "power_w": 51.09,
+    "util_pct": 85
+   },
+   "gpu_after": {
+    "sm_mhz": 2880,
+    "mem_mhz": 13801,
+    "temp_c": 39,
+    "power_w": 49.78,
+    "util_pct": 99
+   },
+   "rows": {
+    "atomic (1 per element)": [
+     40.3305,
+     3.3
+    ],
+    "smem tree (1 atomic/block)": [
+     0.2695,
+     498.0
+    ],
+    "warp shuffle + float4": [
+     0.2144,
+     626.1
+    ],
+    "cub::DeviceReduce::Sum": [
+     0.2192,
+     612.3
+    ]
+   }
+  },
+  {
+   "i": 6,
+   "rc": 0,
+   "wall_s": 0.58,
+   "gpu_before": {
+    "sm_mhz": 2880,
+    "mem_mhz": 13801,
+    "temp_c": 39,
+    "power_w": 49.78,
+    "util_pct": 99
+   },
+   "gpu_after": {
+    "sm_mhz": 2880,
+    "mem_mhz": 13801,
+    "temp_c": 38,
+    "power_w": 49.36,
+    "util_pct": 90
+   },
+   "rows": {
+    "atomic (1 per element)": [
+     40.3171,
+     3.3
+    ],
+    "smem tree (1 atomic/block)": [
+     0.2678,
+     501.1
+    ],
+    "warp shuffle + float4": [
+     0.2145,
+     625.8
+    ],
+    "cub::DeviceReduce::Sum": [
+     0.2211,
+     606.9
+    ]
+   }
+  },
+  {
+   "i": 7,
+   "rc": 0,
+   "wall_s": 0.64,
+   "gpu_before": {
+    "sm_mhz": 2880,
+    "mem_mhz": 13801,
+    "temp_c": 38,
+    "power_w": 51.33,
+    "util_pct": 90
+   },
+   "gpu_after": {
+    "sm_mhz": 2880,
+    "mem_mhz": 13801,
+    "temp_c": 38,
+    "power_w": 49.44,
+    "util_pct": 43
+   },
+   "rows": {
+    "atomic (1 per element)": [
+     40.3197,
+     3.3
+    ],
+    "smem tree (1 atomic/block)": [
+     0.268,
+     500.7
+    ],
+    "warp shuffle + float4": [
+     0.2145,
+     625.6
+    ],
+    "cub::DeviceReduce::Sum": [
+     0.2187,
+     613.6
+    ]
+   }
+  },
+  {
+   "i": 8,
+   "rc": 0,
+   "wall_s": 0.6,
+   "gpu_before": {
+    "sm_mhz": 2880,
+    "mem_mhz": 13801,
+    "temp_c": 38,
+    "power_w": 51.35,
+    "util_pct": 70
+   },
+   "gpu_after": {
+    "sm_mhz": 2880,
+    "mem_mhz": 13801,
+    "temp_c": 40,
+    "power_w": 50.49,
+    "util_pct": 100
+   },
+   "rows": {
+    "atomic (1 per element)": [
+     40.8916,
+     3.3
+    ],
+    "smem tree (1 atomic/block)": [
+     0.2678,
+     501.3
+    ],
+    "warp shuffle + float4": [
+     0.2151,
+     624.1
+    ],
+    "cub::DeviceReduce::Sum": [
+     0.2193,
+     612.0
+    ]
+   }
+  },
+  {
+   "i": 9,
+   "rc": 0,
+   "wall_s": 0.59,
+   "gpu_before": {
+    "sm_mhz": 2880,
+    "mem_mhz": 13801,
+    "temp_c": 40,
+    "power_w": 50.49,
+    "util_pct": 100
+   },
+   "gpu_after": {
+    "sm_mhz": 2880,
+    "mem_mhz": 13801,
+    "temp_c": 39,
+    "power_w": 50.46,
+    "util_pct": 85
+   },
+   "rows": {
+    "atomic (1 per element)": [
+     40.3967,
+     3.3
+    ],
+    "smem tree (1 atomic/block)": [
+     0.2676,
+     501.5
+    ],
+    "warp shuffle + float4": [
+     0.2148,
+     625.0
+    ],
+    "cub::DeviceReduce::Sum": [
+     0.2186,
+     613.9
+    ]
+   }
+  }
+ ]
+}

@@ -72,12 +72,15 @@ $0.01 and starts in ~4 s.
 
 ### Hand-written CUDA kernels on the RTX 5070 ([cuda/](../cuda/), [docs/profiling/](profiling/))
 
-| Kernel | Result | Note |
+| Kernel | Result (mean ± 95% CI, n = 10) | Note |
 |---|---:|---|
-| Matmul, tiled 16 | 2,869 GFLOPS | 8x off cuBLAS (22,834): one output per thread vs 128 per thread with register tiling |
-| Warp-shuffle reduction | 641 GB/s | 95% of the 672 GB/s DRAM peak, ties CUB |
-| Fused bias+GELU | 1.93x faster | memory-bound, and fusion halves DRAM traffic |
-| Atomic reduction | 3.3 GB/s | 190x slower than warp shuffle |
+| Matmul, tiled 16 | 2,860 ± 1 GFLOPS | 8x off cuBLAS (22,736 ± 25): one output per thread vs 128 per thread with register tiling |
+| Warp-shuffle reduction | 624.7 ± 0.8 GB/s | 93% of the 672 GB/s DRAM peak, 1.8% faster than CUB (613.5 ± 2.1) |
+| Fused bias+GELU | 1.98x faster | memory-bound, and fusion halves DRAM traffic |
+| Atomic reduction | 3.30 ± 0.00 GB/s | 190x slower than warp shuffle |
+
+Each result is 10 separate runs after 2 warm-ups, with the GPU clocks recorded
+([measurement method](MEASUREMENT.md)). Every CV was ≤ 0.5%.
 
 ### Multi-GPU: NCCL and DDP ([modal/ddp_nccl.py](../modal/ddp_nccl.py))
 

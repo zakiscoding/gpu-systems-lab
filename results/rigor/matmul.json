@@ -1,0 +1,502 @@
+{
+ "cmd": [
+  "cuda/build/matmul"
+ ],
+ "warmup": 2,
+ "repeats": 10,
+ "all_rc_zero": true,
+ "summary": {
+  "cuBLAS sgemm (reference)": {
+   "ms": {
+    "n": 10,
+    "mean": 6.0451,
+    "sd": 0.0091,
+    "cv_pct": 0.15,
+    "ci95_half": 0.0065,
+    "ci95": [
+     6.0386,
+     6.0516
+    ],
+    "min": 6.0271,
+    "max": 6.0557
+   },
+   "metric": {
+    "n": 10,
+    "mean": 22735.62,
+    "sd": 34.3925,
+    "cv_pct": 0.15,
+    "ci95_half": 24.6012,
+    "ci95": [
+     22711.0188,
+     22760.2212
+    ],
+    "min": 22695.9,
+    "max": 22803.5
+   }
+  },
+  "naive (16x16 block)": {
+   "ms": {
+    "n": 10,
+    "mean": 66.6103,
+    "sd": 0.1891,
+    "cv_pct": 0.28,
+    "ci95_half": 0.1352,
+    "ci95": [
+     66.4751,
+     66.7456
+    ],
+    "min": 66.3336,
+    "max": 66.9468
+   },
+   "metric": {
+    "n": 10,
+    "mean": 2063.34,
+    "sd": 5.8388,
+    "cv_pct": 0.28,
+    "ci95_half": 4.1765,
+    "ci95": [
+     2059.1635,
+     2067.5165
+    ],
+    "min": 2053.0,
+    "max": 2071.9
+   }
+  },
+  "tiled TILE=16": {
+   "ms": {
+    "n": 10,
+    "mean": 48.061,
+    "sd": 0.0149,
+    "cv_pct": 0.03,
+    "ci95_half": 0.0107,
+    "ci95": [
+     48.0503,
+     48.0717
+    ],
+    "min": 48.043,
+    "max": 48.097
+   },
+   "metric": {
+    "n": 10,
+    "mean": 2859.66,
+    "sd": 0.8897,
+    "cv_pct": 0.03,
+    "ci95_half": 0.6364,
+    "ci95": [
+     2859.0236,
+     2860.2964
+    ],
+    "min": 2857.5,
+    "max": 2860.7
+   }
+  },
+  "tiled TILE=32": {
+   "ms": {
+    "n": 10,
+    "mean": 57.8138,
+    "sd": 0.0062,
+    "cv_pct": 0.01,
+    "ci95_half": 0.0044,
+    "ci95": [
+     57.8094,
+     57.8182
+    ],
+    "min": 57.8016,
+    "max": 57.8249
+   },
+   "metric": {
+    "n": 10,
+    "mean": 2377.26,
+    "sd": 0.2547,
+    "cv_pct": 0.01,
+    "ci95_half": 0.1822,
+    "ci95": [
+     2377.0778,
+     2377.4422
+    ],
+    "min": 2376.8,
+    "max": 2377.8
+   }
+  }
+ },
+ "sm_clock_mhz_range": [
+  2850,
+  2857
+ ],
+ "temp_c_range": [
+  50,
+  57
+ ],
+ "runs": [
+  {
+   "i": 0,
+   "rc": 0,
+   "wall_s": 2.55,
+   "gpu_before": {
+    "sm_mhz": 2857,
+    "mem_mhz": 13801,
+    "temp_c": 53,
+    "power_w": 154.59,
+    "util_pct": 100
+   },
+   "gpu_after": {
+    "sm_mhz": 2857,
+    "mem_mhz": 13801,
+    "temp_c": 54,
+    "power_w": 157.58,
+    "util_pct": 100
+   },
+   "rows": {
+    "cuBLAS sgemm (reference)": [
+     6.0271,
+     22803.5
+    ],
+    "naive (16x16 block)": [
+     66.6682,
+     2061.5
+    ],
+    "tiled TILE=16": [
+     48.0582,
+     2859.8
+    ],
+    "tiled TILE=32": [
+     57.8016,
+     2377.8
+    ]
+   }
+  },
+  {
+   "i": 1,
+   "rc": 0,
+   "wall_s": 2.43,
+   "gpu_before": {
+    "sm_mhz": 2850,
+    "mem_mhz": 13801,
+    "temp_c": 54,
+    "power_w": 157.58,
+    "util_pct": 100
+   },
+   "gpu_after": {
+    "sm_mhz": 2850,
+    "mem_mhz": 13801,
+    "temp_c": 55,
+    "power_w": 152.26,
+    "util_pct": 68
+   },
+   "rows": {
+    "cuBLAS sgemm (reference)": [
+     6.0351,
+     22773.3
+    ],
+    "naive (16x16 block)": [
+     66.4047,
+     2069.7
+    ],
+    "tiled TILE=16": [
+     48.0667,
+     2859.3
+    ],
+    "tiled TILE=32": [
+     57.8097,
+     2377.4
+    ]
+   }
+  },
+  {
+   "i": 2,
+   "rc": 0,
+   "wall_s": 2.44,
+   "gpu_before": {
+    "sm_mhz": 2850,
+    "mem_mhz": 13801,
+    "temp_c": 55,
+    "power_w": 134.99,
+    "util_pct": 68
+   },
+   "gpu_after": {
+    "sm_mhz": 2850,
+    "mem_mhz": 13801,
+    "temp_c": 50,
+    "power_w": 162.49,
+    "util_pct": 100
+   },
+   "rows": {
+    "cuBLAS sgemm (reference)": [
+     6.0392,
+     22757.8
+    ],
+    "naive (16x16 block)": [
+     66.5268,
+     2065.9
+    ],
+    "tiled TILE=16": [
+     48.0517,
+     2860.2
+    ],
+    "tiled TILE=32": [
+     57.8122,
+     2377.3
+    ]
+   }
+  },
+  {
+   "i": 3,
+   "rc": 0,
+   "wall_s": 2.46,
+   "gpu_before": {
+    "sm_mhz": 2850,
+    "mem_mhz": 13801,
+    "temp_c": 50,
+    "power_w": 139.68,
+    "util_pct": 31
+   },
+   "gpu_after": {
+    "sm_mhz": 2850,
+    "mem_mhz": 13801,
+    "temp_c": 55,
+    "power_w": 142.83,
+    "util_pct": 94
+   },
+   "rows": {
+    "cuBLAS sgemm (reference)": [
+     6.0435,
+     22741.7
+    ],
+    "naive (16x16 block)": [
+     66.9468,
+     2053.0
+    ],
+    "tiled TILE=16": [
+     48.0645,
+     2859.5
+    ],
+    "tiled TILE=32": [
+     57.8121,
+     2377.3
+    ]
+   }
+  },
+  {
+   "i": 4,
+   "rc": 0,
+   "wall_s": 2.46,
+   "gpu_before": {
+    "sm_mhz": 2850,
+    "mem_mhz": 13801,
+    "temp_c": 55,
+    "power_w": 142.83,
+    "util_pct": 94
+   },
+   "gpu_after": {
+    "sm_mhz": 2850,
+    "mem_mhz": 13801,
+    "temp_c": 56,
+    "power_w": 149.71,
+    "util_pct": 58
+   },
+   "rows": {
+    "cuBLAS sgemm (reference)": [
+     6.0449,
+     22736.2
+    ],
+    "naive (16x16 block)": [
+     66.8216,
+     2056.8
+    ],
+    "tiled TILE=16": [
+     48.0622,
+     2859.6
+    ],
+    "tiled TILE=32": [
+     57.8249,
+     2376.8
+    ]
+   }
+  },
+  {
+   "i": 5,
+   "rc": 0,
+   "wall_s": 2.46,
+   "gpu_before": {
+    "sm_mhz": 2850,
+    "mem_mhz": 13801,
+    "temp_c": 56,
+    "power_w": 149.71,
+    "util_pct": 58
+   },
+   "gpu_after": {
+    "sm_mhz": 2850,
+    "mem_mhz": 13801,
+    "temp_c": 56,
+    "power_w": 153.52,
+    "util_pct": 100
+   },
+   "rows": {
+    "cuBLAS sgemm (reference)": [
+     6.0499,
+     22717.5
+    ],
+    "naive (16x16 block)": [
+     66.3336,
+     2071.9
+    ],
+    "tiled TILE=16": [
+     48.043,
+     2860.7
+    ],
+    "tiled TILE=32": [
+     57.8178,
+     2377.1
+    ]
+   }
+  },
+  {
+   "i": 6,
+   "rc": 0,
+   "wall_s": 2.5,
+   "gpu_before": {
+    "sm_mhz": 2850,
+    "mem_mhz": 13801,
+    "temp_c": 56,
+    "power_w": 153.52,
+    "util_pct": 100
+   },
+   "gpu_after": {
+    "sm_mhz": 2850,
+    "mem_mhz": 13801,
+    "temp_c": 56,
+    "power_w": 154.04,
+    "util_pct": 99
+   },
+   "rows": {
+    "cuBLAS sgemm (reference)": [
+     6.0507,
+     22714.5
+    ],
+    "naive (16x16 block)": [
+     66.7159,
+     2060.1
+    ],
+    "tiled TILE=16": [
+     48.0493,
+     2860.4
+    ],
+    "tiled TILE=32": [
+     57.8132,
+     2377.3
+    ]
+   }
+  },
+  {
+   "i": 7,
+   "rc": 0,
+   "wall_s": 2.46,
+   "gpu_before": {
+    "sm_mhz": 2850,
+    "mem_mhz": 13801,
+    "temp_c": 56,
+    "power_w": 154.04,
+    "util_pct": 99
+   },
+   "gpu_after": {
+    "sm_mhz": 2850,
+    "mem_mhz": 13801,
+    "temp_c": 56,
+    "power_w": 155.17,
+    "util_pct": 60
+   },
+   "rows": {
+    "cuBLAS sgemm (reference)": [
+     6.0551,
+     22697.9
+    ],
+    "naive (16x16 block)": [
+     66.6648,
+     2061.6
+    ],
+    "tiled TILE=16": [
+     48.0655,
+     2859.4
+    ],
+    "tiled TILE=32": [
+     57.8159,
+     2377.2
+    ]
+   }
+  },
+  {
+   "i": 8,
+   "rc": 0,
+   "wall_s": 2.48,
+   "gpu_before": {
+    "sm_mhz": 2850,
+    "mem_mhz": 13801,
+    "temp_c": 56,
+    "power_w": 155.17,
+    "util_pct": 60
+   },
+   "gpu_after": {
+    "sm_mhz": 2850,
+    "mem_mhz": 13801,
+    "temp_c": 57,
+    "power_w": 164.7,
+    "util_pct": 100
+   },
+   "rows": {
+    "cuBLAS sgemm (reference)": [
+     6.0498,
+     22717.9
+    ],
+    "naive (16x16 block)": [
+     66.4931,
+     2067.0
+    ],
+    "tiled TILE=16": [
+     48.0518,
+     2860.2
+    ],
+    "tiled TILE=32": [
+     57.8187,
+     2377.1
+    ]
+   }
+  },
+  {
+   "i": 9,
+   "rc": 0,
+   "wall_s": 2.46,
+   "gpu_before": {
+    "sm_mhz": 2850,
+    "mem_mhz": 13801,
+    "temp_c": 57,
+    "power_w": 148.87,
+    "util_pct": 34
+   },
+   "gpu_after": {
+    "sm_mhz": 2850,
+    "mem_mhz": 13801,
+    "temp_c": 57,
+    "power_w": 147.24,
+    "util_pct": 99
+   },
+   "rows": {
+    "cuBLAS sgemm (reference)": [
+     6.0557,
+     22695.9
+    ],
+    "naive (16x16 block)": [
+     66.5276,
+     2065.9
+    ],
+    "tiled TILE=16": [
+     48.097,
+     2857.5
+    ],
+    "tiled TILE=32": [
+     57.8119,
+     2377.3
+    ]
+   }
+  }
+ ]
+}
