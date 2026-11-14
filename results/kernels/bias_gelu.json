@@ -1,0 +1,51 @@
+{
+  "problem": {
+    "rows": 16384,
+    "cols": 4096,
+    "dtype": "float32",
+    "ideal_bytes": 536870912
+  },
+  "device": "NVIDIA GeForce RTX 5070",
+  "torch": "2.11.0+cu128",
+  "triton": "3.6.0",
+  "cuda": "12.8",
+  "host": "dc022d9f89d8",
+  "gpu_state_after": "2850 MHz, 13801 MHz, 51, 157.58 W, 3790 MiB",
+  "cuda_ext_build_s": 38.4,
+  "triton_best_config": "BLOCK: 1024, num_warps: 8, num_ctas: 1, num_stages: 3, maxnreg: None",
+  "method": "triton.testing.do_bench x7 (warmup 50 ms, rep 300 ms, L2 flush), median/min/max",
+  "results": {
+    "eager (add + gelu, 2 kernels)": {
+      "ms_median": 1.9241,
+      "ms_min": 1.9115,
+      "ms_max": 1.9407,
+      "effective_gbs": 279.0,
+      "actual_traffic_gbs": 558.0,
+      "max_err": 2.382491640730267e-07
+    },
+    "torch.compile (Inductor Triton)": {
+      "ms_median": 0.9618,
+      "ms_min": 0.9592,
+      "ms_max": 0.9647,
+      "effective_gbs": 558.2,
+      "actual_traffic_gbs": 558.2,
+      "max_err": 2.382491640730267e-07
+    },
+    "Triton-lang (this file)": {
+      "ms_median": 0.9603,
+      "ms_min": 0.9585,
+      "ms_max": 0.9631,
+      "effective_gbs": 559.0,
+      "actual_traffic_gbs": 559.0,
+      "max_err": 2.382491640730267e-07
+    },
+    "CUDA (cuda/fused.cu kernel)": {
+      "ms_median": 1.0937,
+      "ms_min": 1.0886,
+      "ms_max": 1.1027,
+      "effective_gbs": 490.9,
+      "actual_traffic_gbs": 490.9,
+      "max_err": 2.382491640730267e-07
+    }
+  }
+}

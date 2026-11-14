@@ -89,6 +89,12 @@ next to the live chat. A precision is flagged when it falls more than 5% below t
 runs; the flag goes to Prometheus (alert `GpuNightlyRegression`) and a Grafana dashboard. Baselines agree
 within 0.7%. A 90 s noisy-neighbour test halved every precision (0.47–0.49x) and all four were flagged.
 
+### Triton language vs CUDA vs torch.compile ([kernels/triton/](../kernels/triton/README.md))
+
+Fused bias+GELU, 16384 × 4096 fp32: a 15-line Triton kernel runs **559 GB/s (83% of DRAM peak)**,
+ties torch.compile's Inductor kernel (558) and beats the hand-written CUDA kernel from
+`cuda/fused.cu` (491, 4-byte loads in a grid-stride loop) by 14%. Eager (2 kernels): 279 GB/s.
+
 ### Multi-GPU: NCCL and DDP ([modal/ddp_nccl.py](../modal/ddp_nccl.py))
 
 | | 2x L4 (PCIe) | 2x H100 (NVLink) |
