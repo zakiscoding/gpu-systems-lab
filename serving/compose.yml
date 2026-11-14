@@ -23,6 +23,7 @@ services:
     environment:
       HF_HUB_OFFLINE: "1"  # weights already in the cache; no network at start
       VLLM_USE_FLASHINFER_SAMPLER: "0"  # it JIT-compiles a kernel on first use (see README)
+      OTEL_SERVICE_NAME: vllm
     volumes:
       - ${HOME}/.cache/huggingface:/root/.cache/huggingface
     command:
@@ -33,6 +34,11 @@ services:
       - "0.45"
       - --max-model-len
       - "4096"
+      # Traces to the iMac's OpenTelemetry Collector over the tailnet (homelab-services
+      # observability/). vLLM continues the traceparent sent by the gateway or the iMac API.
+      # Export is batched and asynchronous; with the collector down, vLLM logs and carries on.
+      - --otlp-traces-endpoint
+      - ${VLLM_OTLP_TRACES_ENDPOINT:-grpc://100.91.113.98:4317}
     deploy:
       resources:
         reservations:

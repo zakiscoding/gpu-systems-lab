@@ -1,0 +1,18 @@
+# Replaces the binding in ../manifests/50-require-gpu-limit-policy.yaml during the migration.
+# The operator's operands (device plugin, GFD, validator) run with runtimeClassName nvidia
+# and, except for the validator's test pod, no nvidia.com/gpu limit, exactly like the plain
+# device plugin in kube-system. They live in the gpu-operator namespace, so that namespace
+# has to be exempt as well or the policy denies them.
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: require-gpu-limit-with-nvidia-runtime
+spec:
+  policyName: require-gpu-limit-with-nvidia-runtime
+  validationActions: [Deny]
+  matchResources:
+    namespaceSelector:
+      matchExpressions:
+        - key: kubernetes.io/metadata.name
+          operator: NotIn
+          values: [kube-system, gpu-operator]

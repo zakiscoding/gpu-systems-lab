@@ -29,6 +29,10 @@ from datetime import datetime
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
+# Natural-language prompts for --dataset custom (serving/make_prompts.py writes them).
+# Random-token prompts suit throughput sweeps but make speculative decoding look
+# useless: neither n-grams nor a draft model can predict a continuation of noise.
+CUSTOM_PROMPTS = REPO / "serving" / "prompts" / "chat_prompts.jsonl"
 
 # Server flags used for every benchmark run (with --launch). Start an external
 # server the same way: bash serving/launch_server.sh --no-enable-prefix-caching --generation-config vllm
@@ -111,6 +115,46 @@ def parse_kv(log_text):
     return kv
 
 
+def ensure_pandas():
+    """vLLM's custom-dataset loader reads JSONL with pandas, which the vllm/vllm-openai
+    image doesn't ship ("Please install vllm[bench]"). Install it into this container
+    before the first --dataset custom run."""
+    try:
+        import pandas  # noqa: F401
+    except ImportError:
+        print("[bench] installing pandas for the custom dataset", flush=True)
+        subprocess.run([sys.executable, "-m", "pip", "install", "--quiet", "pandas"], check=True)
+
+
+def dataset_args(args, output_len):
+    """`vllm bench serve` flags for the prompt source: fixed-length random tokens,
+    or the repo's natural-language prompts with a fixed output length."""
+    if args.dataset == "custom":
+        return ["--dataset-name", "custom", "--dataset-path", str(CUSTOM_PROMPTS),
+                "--custom-output-len", str(output_len)]
+    return ["--dataset-name", "random", "--random-input-len", str(args.input_len),
+            "--random-output-len", str(output_len)]
+
+
+def spec_counters(base_url):
+    """Speculative-decoding counters from the server's Prometheus /metrics:
+    {"draft": tokens proposed, "accepted": tokens accepted}, summed over labels.
+    Empty when speculation is off (the metrics don't exist)."""
+    try:
+        with urllib.request.urlopen(f"{base_url}/metrics", timeout=10) as r:
+            text = r.read().decode()
+    except Exception:
+        return {}
+    out = {}
+    for key, metric in (("draft", "vllm:spec_decode_num_draft_tokens_total"),
+                        ("accepted", "vllm:spec_decode_num_accepted_tokens_total")):
+        vals = [float(ln.rsplit(" ", 1)[1]) for ln in text.splitlines()
+                if ln.startswith(metric) and not ln.startswith("#")]
+        if vals:
+            out[key] = sum(vals)
+    return out
+
+
 def run_one(args, conc, out_dir, stamp):
     """Run one `vllm bench serve` at `conc` requests in flight and return its summary row.
 
@@ -128,26 +172,26 @@ def run_one(args, conc, out_dir, stamp):
         "--base-url", args.base_url,
         "--endpoint", "/v1/completions",
         "--model", args.model,
-        "--dataset-name", "random",
-        "--random-input-len", str(args.input_len),
-        "--random-output-len", str(args.output_len),
+        *dataset_args(args, args.output_len),
         "--ignore-eos",
         "--num-prompts", str(n),
         "--max-concurrency", str(conc),
         "--request-rate", "inf",
         "--percentile-metrics", "ttft,tpot,itl,e2el",
-        "--metric-percentiles", "50,99",
+        "--metric-percentiles", "50,95,99",
         "--seed", str(conc),  # different prompts per level
         "--save-result", "--result-dir", str(out_dir), "--result-filename", fname,
     ]
     print(f"[bench] concurrency={conc} prompts={n}", flush=True)
     t0 = time.time()
+    spec_before = spec_counters(args.base_url)
     proc = subprocess.run(cmd, capture_output=True, text=True)
     if proc.returncode != 0:
         print(proc.stdout[-3000:], proc.stderr[-3000:], sep="\n")
         raise RuntimeError(f"vllm bench serve failed at concurrency {conc}")
     raw = json.loads((out_dir / fname).read_text())
     g = gpu_info()
+    spec_after = spec_counters(args.base_url)
 
     def p(name, pct):
         """Percentile `pct` of a latency metric from the raw result (ms), or None."""
@@ -162,17 +206,27 @@ def run_one(args, conc, out_dir, stamp):
         "output_tok_s": round(raw["output_throughput"], 1),
         "total_tok_s": round(raw.get("total_token_throughput", 0), 1),
         "ttft_p50_ms": round(p("ttft", 50), 1),
+        "ttft_p95_ms": round(p("ttft", 95), 1),
         "ttft_p99_ms": round(p("ttft", 99), 1),
         "tpot_p50_ms": round(p("tpot", 50), 2),
+        "tpot_p95_ms": round(p("tpot", 95), 2),
         "tpot_p99_ms": round(p("tpot", 99), 2),
         "itl_p50_ms": round(p("itl", 50), 2),
+        "itl_p95_ms": round(p("itl", 95), 2),
         "itl_p99_ms": round(p("itl", 99), 2),
         "e2el_p50_ms": round(p("e2el", 50), 1),
+        "e2el_p95_ms": round(p("e2el", 95), 1),
         "e2el_p99_ms": round(p("e2el", 99), 1),
         "gpu_mem_used_mib": g.get("mem_used_mib"),
         "wall_s": round(time.time() - t0, 1),
         "raw_file": fname,
     }
+    if spec_after.get("draft"):
+        drafted = spec_after["draft"] - spec_before.get("draft", 0)
+        accepted = spec_after.get("accepted", 0) - spec_before.get("accepted", 0)
+        row["spec_draft_tokens"] = int(drafted)
+        row["spec_accepted_tokens"] = int(accepted)
+        row["spec_acceptance_rate"] = round(accepted / drafted, 3) if drafted else None
     print(f"[bench]   {row['output_tok_s']} out tok/s, {row['request_throughput']} req/s, "
           f"TTFT p50/p99 {row['ttft_p50_ms']}/{row['ttft_p99_ms']} ms, "
           f"TPOT p50/p99 {row['tpot_p50_ms']}/{row['tpot_p99_ms']} ms", flush=True)
@@ -189,14 +243,14 @@ def markdown(summary):
         f"{summary['output_len']} tokens, KV cache {summary['kv_cache'].get('kv_cache_tokens')} tokens "
         f"({summary['kv_cache'].get('kv_cache_memory_gib')} GiB)",
         "",
-        "| conc | req/s | out tok/s | TTFT p50 | TTFT p99 | TPOT p50 | TPOT p99 | ITL p50 | ITL p99 |",
-        "|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
+        "| conc | req/s | out tok/s | TTFT p50 | TTFT p95 | TPOT p50 | TPOT p95 | E2E p50 | E2E p95 | spec accept |",
+        "|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
     ]
     for r in summary["rows"]:
         lines.append(
             f"| {r['concurrency']} | {r['request_throughput']} | {r['output_tok_s']} | "
-            f"{r['ttft_p50_ms']} | {r['ttft_p99_ms']} | {r['tpot_p50_ms']} | {r['tpot_p99_ms']} | "
-            f"{r['itl_p50_ms']} | {r['itl_p99_ms']} |")
+            f"{r['ttft_p50_ms']} | {r.get('ttft_p95_ms')} | {r['tpot_p50_ms']} | {r.get('tpot_p95_ms')} | "
+            f"{r['e2el_p50_ms']} | {r.get('e2el_p95_ms')} | {r.get('spec_acceptance_rate', '-')} |")
     return "\n".join(lines) + "\n"
 
 
@@ -225,10 +279,14 @@ def main():
     ap.add_argument("--gpu-mem-util", type=float, default=0.80)
     ap.add_argument("--max-model-len", type=int, default=4096)
     ap.add_argument("--extra-serve-args", default="", help="extra args for vllm serve (space separated)")
+    ap.add_argument("--dataset", choices=["random", "custom"], default="random",
+                    help="random: fixed --input-len random tokens; custom: serving/prompts/chat_prompts.jsonl")
     args = ap.parse_args()
 
     out_dir = Path(args.out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
+    if args.dataset == "custom":
+        ensure_pandas()
     stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     gpu_before = gpu_info()
 
@@ -272,9 +330,8 @@ def main():
         # growth) land here instead of in the measured runs.
         top = max(int(c) for c in args.concurrency.split(","))
         subprocess.run([vllm_cli(), "bench", "serve", "--backend", "openai", "--base-url", args.base_url,
-                        "--endpoint", "/v1/completions", "--model", args.model, "--dataset-name", "random",
-                        "--random-input-len", str(args.input_len), "--random-output-len", "32",
-                        "--ignore-eos", "--num-prompts", str(top), "--max-concurrency", str(top),
+                        "--endpoint", "/v1/completions", "--model", args.model,
+                        *dataset_args(args, 32), "--ignore-eos", "--num-prompts", str(top), "--max-concurrency", str(top),
                         "--seed", "9999"],
                        capture_output=True, text=True)
         rows = [run_one(args, int(c), out_dir, stamp) for c in args.concurrency.split(",")]
@@ -304,6 +361,8 @@ def main():
         "gpu_mem_used_mib_before": gpu_before.get("mem_used_mib"),
         "gpu_mem_used_mib_loaded": gpu_loaded.get("mem_used_mib"),
         "serve_args": BENCH_SERVE_ARGS if args.launch else None,
+        "extra_serve_args": args.extra_serve_args.split() if args.launch else None,
+        "dataset": args.dataset,
         "kv_cache": kv,
         "rows": rows,
         "timestamp": stamp,
