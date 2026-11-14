@@ -20,7 +20,8 @@ Checked on November 5, 2026.
 | Tunnel `gpu-pc` | Healthy | `cloudflared` in WSL2 on the GPU PC |
 | vLLM | Running | WSL2 on the Windows boot, `127.0.0.1:8000`, forwarded to the tailnet at `100.88.71.33:8000` |
 | Monitoring stack | Running | WSL2; Prometheus and Grafana forwarded to the tailnet at `100.88.71.33:9090` and `:3000` |
-| Grafana proxy | **Deployed, refuses every request** | https://grafana-proxy.vllm-gateway.workers.dev |
+| Public dashboards | Live and public, read-only | https://grafana-proxy.vllm-gateway.workers.dev: four dashboards from the homelab's central Grafana on the iMac |
+| Tunnel `mos-imac` | Healthy | `cloudflared` in `homelab-services` on the iMac, for Grafana only |
 | R2 storage | **Not set up**: R2 isn't enabled on the account | [scripts/sync_results_r2.sh](../scripts/sync_results_r2.sh) is ready |
 | Custom domain | **Not set up** | Everything uses `workers.dev` |
 | Ubuntu boot | **Not set up or tested** | Steps are in [cloudflare/README.md](../cloudflare/README.md#ubuntu-boot) |
@@ -32,7 +33,7 @@ Checked on November 5, 2026.
 flowchart LR
     C["API client"] -- "gateway key" --> GW
     B["Browser"] --> S["Results site<br/>static assets"]
-    B -- "Access login (not enabled yet)" --> GP
+    B -- "public dashboards, read-only" --> GP
     subgraph CF["Cloudflare"]
         GW["vllm-gateway Worker"]
         DO["ClientRateLimiter<br/>Durable Object"]
@@ -40,19 +41,24 @@ flowchart LR
         GP["grafana-proxy Worker"]
         S
     end
+    subgraph IM["iMac (homelab-services)"]
+        CI["cloudflared"]
+        G["Grafana :3000"]
+        PI["central Prometheus"]
+    end
     subgraph PC["GPU PC, Windows boot, WSL2 Ubuntu"]
         CD["cloudflared"]
         V["vLLM :8000"]
-        G["Grafana :3000"]
         P["Prometheus, dcgm-exporter,<br/>node-exporter"]
     end
     GW --> DO
     GW -. "chat, GPU unreachable" .-> AI
     GW -- "VPC Service vllm" --> CD
-    GP -- "VPC Service grafana" --> CD
+    GP -- "VPC Service grafana-imac" --> CI
+    CI --> G
+    G --> PI
+    PI -. "tailnet: /federate" .-> P
     CD --> V
-    CD --> G
-    G --> P
 ```
 
 `cloudflared` only makes outbound connections, so no router ports are open. vLLM and Grafana have no public
@@ -64,15 +70,16 @@ each limited to one host and port. The tailnet paths described in the rest of th
 | Component | Name | Purpose | Defined in |
 |---|---|---|---|
 | Workers | `vllm-gateway` | Public OpenAI-compatible API | [gateway/src/index.js](../gateway/src/index.js) |
-| Workers | `grafana-proxy` | Grafana behind Access | [grafana-proxy/src/index.js](../grafana-proxy/src/index.js) |
+| Workers | `grafana-proxy` | Public read-only dashboards from the iMac's Grafana | [grafana-proxy/src/index.js](../grafana-proxy/src/index.js) |
 | Workers static assets | `gpu-systems-lab-results` | Public results page | [site/](../site/build.mjs) |
 | Tunnel | `gpu-pc` | Outbound link from the GPU PC | [cloudflare/compose.yml](../cloudflare/compose.yml) |
+| Tunnel | `mos-imac` | Outbound link from the iMac, to its Grafana | `cloudflare/compose.yml` in homelab-services |
 | Workers VPC (beta) | `vllm`, `grafana` | Private routes from Workers to the tunnel | `wrangler.jsonc` in each Worker |
 | Durable Objects | `ClientRateLimiter` | Strict per-client rate limit | [gateway/src/index.js](../gateway/src/index.js) |
 | Workers AI | `@cf/meta/llama-3.2-3b-instruct` | Chat fallback | [gateway/wrangler.jsonc](../gateway/wrangler.jsonc) |
 | Secrets | `VLLM_API_KEY`, `GATEWAY_KEYS` | vLLM's key and the hashes of client keys | `wrangler secret put` |
 
-Planned but not active: **R2** for raw results, **Access** in front of Grafana, and a **custom domain**.
+Planned but not active: **R2** for raw results and a **custom domain**.
 
 ## What the gateway does
 
@@ -152,14 +159,14 @@ Measured against the deployed Workers, with vLLM and the tunnel in WSL2 on the R
 | Tailnet access to WSL | From the laptop and the iMac: vLLM `/health` 200, Prometheus 200 with all targets up, Grafana 200 |
 | iMac chat on the Windows boot | `auto` chose `100.88.71.33:8000`; a one-line reply from `qwen2.5-1.5b-instruct` took 0.4 s |
 | Monitoring in WSL | `dcgm-exporter` reports 22 GPU series, and all Prometheus targets are up |
-| Grafana proxy | With Access unconfigured, every request gets a 503, even with a fake token |
+| Public dashboards (2026-11-13) | All four load with live data in a browser through the Worker. `/login`, `/d/<uid>`, `/explore`, `/api/health`, `/api/datasources`, `/api/ds/query` and unlisted dashboard tokens all get 404; no `Set-Cookie` comes back |
+| Grafana restarting | The link answers 503 with a plain message, then recovers by itself |
 | Results site | No IPs, machine names or GitHub links on the live page; source files return 404 |
 
 **Not tested:**
 
 - WSL and the stacks starting by themselves after a Windows reboot
 - The 5-minute trigger restarting the keep-alive after its session ends
-- The Access login, and Grafana loaded through the proxy
 - Grafana's live updates over WebSocket through the proxy
 - Connecting with the old tunnel token (Cloudflare documents that it can't start new connections)
 - Workers AI running out of quota, which is covered by unit tests only
@@ -183,7 +190,8 @@ Measured against the deployed Workers, with vLLM and the tunnel in WSL2 on the R
 | Results site drops the architecture map and runbooks | They map the home network, and its links are relative paths that only work inside the repo |
 | Site build fails on IPs and machine names | A later change to `RESULTS.md` can't publish them by accident |
 | Charts read from the doc's tables | They can't drift from the numbers beside them |
-| Grafana proxy fails closed | Grafana allows anonymous viewers, so a missing check would make it public |
+| Public dashboards instead of an Access login for Grafana | The dashboards are meant to be linked from anywhere. Grafana's public-dashboard links run only each dashboard's saved queries, and the Worker forwards nothing else, so the admin UI, API and Explore stay unreachable |
+| Grafana from the iMac, not the GPU PC | The iMac is always on and its Prometheus scrapes every node, including both boots of the GPU PC |
 
 ## What went wrong
 
@@ -257,8 +265,6 @@ docker compose -f compose.yml -f compose.wsl.yml down
 | Task | Who | Needs |
 |---|---|---|
 | Enable R2, then create the bucket and upload the 48 result files | You, then Claude | A dashboard step, which may ask for a payment method |
-| Enable Access on `grafana-proxy`, then set `ACCESS_TEAM_DOMAIN` and `ACCESS_AUD` and deploy | You, then Claude | A dashboard step |
-| Log in and confirm Grafana loads through the proxy | You | Access enabled |
 | Test a reboot | You | Being at the GPU PC |
 | Set up the Ubuntu boot | You | Being at the GPU PC, and a fresh tunnel token from the dashboard |
 | Add a custom domain | You, then Claude | Buying or adding a domain |
