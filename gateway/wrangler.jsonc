@@ -6,7 +6,10 @@
   "compatibility_date": "2026-11-01",
   "workers_dev": true,
   "vpc_services": [
-    { "binding": "VLLM", "service_id": "01a1a9b4-e111-76e1-b5cb-253423426be8", "remote": true }
+    { "binding": "VLLM", "service_id": "01a1a9b4-e111-76e1-b5cb-253423426be8", "remote": true },
+    // Traces: OTLP/HTTP to the OpenTelemetry Collector on the iMac (tunnel mos-imac). Optional;
+    // without it the Worker does not trace (src/tracing.js).
+    { "binding": "OTEL", "service_id": "01a1d7f2-8e19-7390-b93b-370c6a51865f", "remote": true }
   ],
   "durable_objects": {
     "bindings": [{ "name": "CLIENT_LIMITER", "class_name": "ClientRateLimiter" }]
