@@ -43,10 +43,17 @@ for u in munge slurmctld slurmd; do
 done
 echo "  gg-nightly.timer: \$(systemctl is-active gg-nightly.timer)"
 
-up() { (cd "\$1" && shift && docker compose "\$@" up -d --no-recreate 2>&1 | grep -v -i 'running\|up-to-date' | sed 's/^/  /'); }
+# up DIR <compose -f args> [-- service...]
+up() {
+  local d=\$1; shift; local f=()
+  while [ \$# -gt 0 ] && [ "\$1" != -- ]; do f+=("\$1"); shift; done
+  [ "\${1:-}" = -- ] && shift
+  (cd "\$d" && docker compose "\${f[@]}" up -d --no-recreate "\$@" 2>&1 | grep -v -i 'running\|up-to-date' | sed 's/^/  /')
+}
 up /root/gpu-systems-lab/serving       -f compose.yml -f compose.wsl.yml
 up /root/gpu-systems-lab/cloudflare    -f compose.yml -f compose.wsl.yml
-up /root/gpu-systems-lab/observability -f docker-compose.yml -f compose.wsl.yml
+# Grafana is left out on purpose: the iMac's Grafana shows these metrics.
+up /root/gpu-systems-lab/observability -f docker-compose.yml -f compose.wsl.yml -- node-exporter dcgm-exporter prometheus
 up /root/gophergrid                    -f gpu-pc.yml
 
 echo "  waiting for vllm-chat to be healthy (model load takes a few minutes after a cold start)"
@@ -61,7 +68,7 @@ fi
 echo "== Containers"
 # The PC's SSH shell is cmd.exe, so anything with | or quotes goes through bash on stdin.
 containers=$(quiet_ssh "wsl -d Ubuntu -u root -- bash -s" <<'EOF'
-for c in vllm-chat cloudflared obs-prometheus obs-grafana obs-dcgm-exporter obs-node-exporter \
+for c in vllm-chat cloudflared obs-prometheus obs-dcgm-exporter obs-node-exporter \
          gophergrid-scheduler-2-1 gophergrid-gpu-worker-1 gophergrid-cpu-worker-1; do
   printf '%s|%s\n' "$c" "$(docker ps --filter "name=^$c\$" --format '{{.Status}}')"
 done
@@ -82,7 +89,6 @@ code() { curl -s -o /dev/null -m 8 -w '%{http_code}' "$@"; }
 c=$(code "http://$TS_IP:8000/health");     [[ $c == 200 ]] && ok "vLLM /health 200" || bad "vLLM /health $c"
 c=$(code "http://$TS_IP:8000/v1/models");  [[ $c == 401 ]] && ok "vLLM /v1/models 401 without a key (auth on)" || bad "vLLM /v1/models $c, expected 401"
 c=$(code "http://$TS_IP:9090/-/ready");    [[ $c == 200 ]] && ok "Prometheus ready" || bad "Prometheus $c"
-c=$(code "http://$TS_IP:3000/api/health"); [[ $c == 200 ]] && ok "Grafana healthy" || bad "Grafana $c"
 for p in 8091 9102 9103; do
   c=$(code "http://$TS_IP:$p/metrics"); [[ $c == 200 ]] && ok "GopherGrid :$p metrics" || bad "GopherGrid :$p $c"
 done
