@@ -40,7 +40,8 @@ for g in json.load(sys.stdin)["data"]:
     if g["labels"].get("job") == "gg_nightly" and "run" not in g["labels"]:
         ok = g["gg_nightly_job_ok"]["metrics"][0]["value"]
         ts = float(g["gg_nightly_last_run_timestamp_seconds"]["metrics"][0]["value"])
-        print(f"{\"ok\" if ok == \"1\" else \"FAILED\"} {(time.time() - ts) / 3600:.1f} h ago")
+        state = "ok" if ok == "1" else "FAILED"
+        print(f"{state} {(time.time() - ts) / 3600:.1f} h ago")
 ' 2>/dev/null)
   case "$last" in
     ok*) ok "last nightly benchmark: $last (iMac Pushgateway)" ;;
