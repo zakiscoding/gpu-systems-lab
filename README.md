@@ -20,7 +20,7 @@ router worker that runs routed jobs from the iMac job queue.
 
 - **CUDA kernels:** tiled matmul, reductions, fused bias+GELU. Warp-shuffle reduction hits 641 GB/s (95% of DRAM peak).
 - **Single GPU vs cloud:** RTX 5070 BF16 67.7 TFLOPS vs H100 677.8 (10x).
-- **Collectives and data parallel:** NCCL all-reduce 329 GB/s on 2x H100 vs 6.65 GB/s on 2x L4. DDP 1.57x on 2x H100 at batch 4096.
+- **Collectives and data parallel:** NCCL all-reduce 329 GB/s on 2x H100 vs 6.65 GB/s on 2x L4. [nccl-tests](docs/NCCL-TESTS.md): 344 GB/s all-reduce, 367 sendrecv, 72–78% of the 478 GB/s NVLink limit. DDP 1.57x on 2x H100 at batch 4096.
 - **MPI:** one node, one rank per GPU on 2x H100 (Jacobi 1.38x), and across two machines (RTX 5070 + M1 iMac over Tailscale, bit-exact).
 - **Sharded training:** FSDP2 trains a 5.6B model that OOMs under DDP. Elastic restart recovers a killed rank in 11–14 s.
 - **Serving and operations:** vLLM Qwen2.5-1.5B 4.4k tok/s on the RTX 5070 vs 16.8k on an H100 (concurrency 64). k3s GPU pods run at native 67.7 TFLOPS. DCGM, Prometheus and Grafana watch the card.

@@ -1,0 +1,3 @@
+name, pci.bus_id, driver_version, clocks.max.sm [MHz], power.limit [W]
+NVIDIA H100 80GB HBM3, [Unknown Error], 610.57.04, 1980 MHz, 700.00 W
+NVIDIA H100 80GB HBM3, [Unknown Error], 610.57.04, 1980 MHz, 700.00 W
