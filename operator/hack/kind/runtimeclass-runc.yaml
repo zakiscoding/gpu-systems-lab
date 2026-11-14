@@ -1,0 +1,7 @@
+# Stand-in for k3s's RuntimeClass nvidia on a GPU-less kind node: same name, plain runc.
+# Pods get no GPU, but scheduling and the admission policy behave as on the real node.
+apiVersion: node.k8s.io/v1
+kind: RuntimeClass
+metadata:
+  name: nvidia
+handler: runc

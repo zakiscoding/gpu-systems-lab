@@ -1,0 +1,13 @@
+# Must be DENIED by the repo's admission policy: nvidia runtime class without a GPU limit.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: sneaky
+  namespace: gpu-jobs
+spec:
+  runtimeClassName: nvidia
+  restartPolicy: Never
+  containers:
+    - name: c
+      image: busybox:1.37
+      command: ["true"]
