@@ -1,0 +1,13 @@
+[06:03:09] up: r1, r2, haproxy, client
+[06:03:09] overhead: start (first requests right after startup)
+[06:04:54] failover-retries: load start
+[06:05:14] failover-retries: KILL r1
+[06:05:34] failover-retries: START r1
+[06:06:05] failover-retries: r1 healthy again
+[06:06:34] failover-retries: load done
+[06:06:38] failover-noretries: load start
+[06:06:58] failover-noretries: KILL r1
+[06:07:19] failover-noretries: START r1
+[06:07:45] failover-noretries: r1 healthy again
+[06:08:18] failover-noretries: load done
+[06:08:29] down
