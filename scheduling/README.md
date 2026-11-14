@@ -45,6 +45,8 @@ Images (pinned, already pulled into k3s containerd, so later pods start in about
 | `demo/run_queue_demo.sh` | Submits a job file, records a timestamped pod watch, events and a per-pod timeline |
 | `demo/timeline.py` | Per-pod created, scheduled, start and end times, plus TFLOPS from the logs |
 | `demo/results/out-*/` | Raw output of the four demo runs (`summary.txt`, `watch.txt`, `events.txt`) |
+| `gpu-operator/` | NVIDIA GPU Operator values, time-slicing ConfigMap, migration runbook. Prepared, not applied |
+| [`../operator/`](../operator/README.md) | `GpuJob` CRD + controller: the declarative version of `submit.py` |
 | `submit.py` | Job spec to Kubernetes Job (GPU limit, NVIDIA runtime), then waits and prints state changes, logs and timings. Stdlib plus `kubectl` |
 
 ## Commands (on the node, as zak)
@@ -201,6 +203,27 @@ Trade-offs:
 **Restored:** `10-device-plugin-config-exclusive.yaml` was applied and the plugin restarted.
 Allocatable is back to `nvidia.com/gpu: 1`, and the exclusive fixed-work run above was taken after
 the restore.
+
+## GpuJob operator and the GPU Operator plan (new, not yet on this node)
+
+Two follow-ups build on this directory. Neither has run on `zak-gpu-node` yet; the node is
+booted into Windows.
+
+- **[`operator/`](../operator/README.md): a `GpuJob` custom resource and a Go controller**
+  (controller-runtime) that turns each GpuJob into the same kind of Job `submit.py` builds:
+  `runtimeClassName: nvidia`, an `nvidia.com/gpu` limit (so it passes the admission policy
+  above), owner references, and a status that says *why* a job is pending
+  (`queued: 0/1 nodes are available: 1 Insufficient nvidia.com/gpu`). Tested with envtest
+  (16 test functions, 31 cases with subtests, all passing) and run on a local kind cluster with
+  a **fake** `nvidia.com/gpu: 1` and a stub `nvidia` RuntimeClass (handler `runc`): two jobs, one
+  queued behind the other, with this directory's admission policy applied. Real-GPU run pending.
+- **[`gpu-operator/`](gpu-operator/README.md): replacing the static device plugin with the
+  NVIDIA GPU Operator** (chart v26.7.2, host driver and toolkit, time-slicing to 4 replicas),
+  with a migration and rollback runbook. **Prepared, not yet applied.** Validated offline only:
+  the values render against the real chart, every key exists in it, kubeconform passes. One
+  finding from preparing it: the GPU Operator's pods use the `nvidia` runtime class without a
+  GPU limit, so the admission policy's binding must exempt the `gpu-operator` namespace as
+  well, or the migration is blocked by the policy.
 
 ## How `router/` could add a `k3s` target (not implemented)
 
