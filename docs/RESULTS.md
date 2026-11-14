@@ -117,6 +117,25 @@ Qwen2.5-1.5B with vLLM 0.32, 512 input / 256 output tokens, output tokens/s:
 - **Cost:** about $0.07 per 1M tokens on an H100 at concurrency 64, vs about $2.50 serving one
   request at a time (approximate list prices).
 
+### NVIDIA serving stack: Triton + TensorRT-LLM vs vLLM ([serving/triton/](../serving/triton/README.md))
+
+Qwen2.5-1.5B (bf16) on the RTX 5070, same client, same prompts (512 in / 256 out) and the same 171,360-token KV
+cache. Triton Inference Server 26.07 with TensorRT-LLM 1.2.1 through its OpenAI frontend vs vLLM 0.32:
+
+| Concurrency | vLLM tok/s | Triton + TRT-LLM tok/s | vLLM TTFT p50 (ms) | Triton TTFT p50 (ms) | E2E p95 vLLM / Triton |
+|---:|---:|---:|---:|---:|---:|
+| 1 | 161 | 144 | 34 | 33 | 1.61 / 1.80 s |
+| 4 | 580 | 505 | 101 | 99 | 1.78 / 2.06 s |
+| 16 | 1,888 | 1,566 | 261 | 346 | 2.27 / 2.58 s |
+| 64 | 4,160 | 3,637 | 315 | 860 | 4.96 / 4.69 s |
+| 256 | 4,135 | **4,556** | 1,551 | 1,138 | 19.5 / 20.1 s |
+
+- **TensorRT-LLM wins under full load:** +10% throughput and 16% lower time per output token at 256 in flight.
+- **vLLM wins at chat-sized load:** 12–21% more throughput at 1–64 requests. Triton's Python frontend and
+  tokenizer ensemble add time to first token (2.7x at 64).
+- **Memory:** the engine needs about 2 GB more for the same cache (11.5 vs 9.5 GB on the card). With that memory
+  as extra KV cache, vLLM's default setup ties Triton at 256 (4,585 tok/s).
+
 ### Sharded training and fault tolerance ([distributed/](../distributed/), [modal/fsdp_train.py](../modal/fsdp_train.py), [modal/elastic_train.py](../modal/elastic_train.py))
 
 | 2x H100, per GPU | DDP | FSDP2 |
@@ -183,6 +202,7 @@ Qwen2.5-1.5B with vLLM 0.32, 512 input / 256 output tokens, output tokens/s:
 | MPI across two machines | [mpi/multinode/README.md](../mpi/multinode/README.md) |
 | Job router | [router/README.md](../router/README.md) |
 | vLLM serving (node + H100) | [serving/README.md](../serving/README.md) |
+| Triton + TensorRT-LLM vs vLLM | [serving/triton/README.md](../serving/triton/README.md) |
 | FSDP, checkpoints, elastic restart | [distributed/README.md](../distributed/README.md) |
 | GPU monitoring stack | [observability/README.md](../observability/README.md) |
 | k3s GPU scheduling | [scheduling/README.md](../scheduling/README.md) |
