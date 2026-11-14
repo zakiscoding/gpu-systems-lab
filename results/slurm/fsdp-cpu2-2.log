@@ -1,0 +1,25 @@
+/opt/slurm-lab/venv/lib/python3.14/site-packages/torch/distributed/tensor/_dispatch.py:298: UserWarning: DTensor random operators may not have complete support on cpu device mesh
+  if not random._rng_tracker and is_rng_supported_mesh(mesh):
+/opt/slurm-lab/venv/lib/python3.14/site-packages/torch/distributed/tensor/_dispatch.py:298: UserWarning: DTensor random operators may not have complete support on cpu device mesh
+  if not random._rng_tracker and is_rng_supported_mesh(mesh):
+  [fsdp r0] step    1  loss 7.6465     189.3 ms
+  [fsdp r0] step    2  loss 7.6528      91.9 ms
+  [fsdp r0] step    3  loss 7.5992      78.1 ms
+  [fsdp r0] step    4  loss 7.5707      70.7 ms
+  [fsdp r0] step    5  loss 7.5916      81.3 ms
+  [fsdp r0] step    6  loss 7.5295      76.2 ms
+  [fsdp r0] step    7  loss 7.5168      77.7 ms
+  [fsdp r0] step    8  loss 7.4925      70.6 ms
+  [fsdp r0] step    9  loss 7.4966      74.5 ms
+  [fsdp r0] step   10  loss 7.4221      73.4 ms
+  [fsdp r0] step   11  loss 7.3964      71.8 ms
+  [fsdp r0] step   12  loss 7.3623      69.8 ms
+  [fsdp r0] step   13  loss 7.3584     114.1 ms
+  [fsdp r0] step   14  loss 7.3169      72.2 ms
+  [fsdp r0] step   15  loss 7.3043      72.8 ms
+  [fsdp r0] step   16  loss 7.2530      77.9 ms
+  [fsdp r0] step   17  loss 7.2283     211.1 ms
+  [fsdp r0] step   18  loss 7.2080      70.6 ms
+  [fsdp r0] step   19  loss 7.1485     102.1 ms
+  [fsdp r0] step   20  loss 7.1267      70.5 ms
+  [fsdp] 0.0013B params x2: state/rank 0.01 GiB, peak alloc None GiB, step 73.39 ms, 13952 tok/s, MFU None
