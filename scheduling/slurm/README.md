@@ -1,4 +1,4 @@
-# Slurm across the homelab: laptop controller, GPU PC compute node
+# Slurm on the GPU PC: FSDP and NCCL jobs as batch jobs
 
 [gpu-systems-lab](../../README.md) / `scheduling/slurm/` · [← scheduling (k3s)](../README.md) · [Results](../../docs/RESULTS.md)
 

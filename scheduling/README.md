@@ -4,7 +4,7 @@
 
 [gpu-systems-lab](../README.md) / `scheduling/` · [← repo README](../README.md) · [Results](../docs/RESULTS.md) · [Code guide](../docs/CODE-GUIDE.md)
 
-> Also here: a [Slurm cluster](slurm/README.md) (laptop controller + GPU PC node over Tailscale) running the FSDP/NCCL jobs as batch jobs.
+> Also here: a [Slurm cluster](slurm/README.md) (controller and node on the GPU PC) running the FSDP/NCCL jobs as batch jobs.
 
 A single-node Kubernetes cluster (k3s) on `zak-gpu-node` that schedules GPU work as Jobs. The NVIDIA
 device plugin advertises the card as the resource `nvidia.com/gpu`, and the scheduler queues any pod

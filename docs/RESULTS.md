@@ -149,8 +149,8 @@ Qwen2.5-1.5B with vLLM 0.32, 512 input / 256 output tokens, output tokens/s:
   that leave the GPU idle. A ValidatingAdmissionPolicy now blocks pods that would use the GPU
   without requesting it (a queue bypass found during testing).
 
-- **Slurm** ([scheduling/slurm/](../scheduling/slurm/README.md)): slurmctld on the laptop, slurmd in WSL on
-  the GPU PC, over Tailscale. The FSDP2 job ran at 29.5–32.3 ms/step on the RTX 5070 (1.36 GiB peak)
+- **Slurm** ([scheduling/slurm/](../scheduling/slurm/README.md)): slurmctld and slurmd on the GPU PC (the
+  restart tests ran with the controller on the laptop, across Tailscale). The FSDP2 job ran at 29.5–32.3 ms/step on the RTX 5070 (1.36 GiB peak)
   next to the live vLLM. A one-GPU gres serialized three GPU jobs, and a job survived restarts of both
   slurmctld (back in 3 s) and slurmd, finishing with exit 0.
 
