@@ -79,6 +79,12 @@ $0.01 and starts in ~4 s.
 | Fused bias+GELU | 1.93x faster | memory-bound, and fusion halves DRAM traffic |
 | Atomic reduction | 3.3 GB/s | 190x slower than warp shuffle |
 
+### Triton language vs CUDA vs torch.compile ([kernels/triton/](../kernels/triton/README.md))
+
+Fused bias+GELU, 16384 × 4096 fp32: a 15-line Triton kernel runs **559 GB/s (83% of DRAM peak)**,
+ties torch.compile's Inductor kernel (558) and beats the hand-written CUDA kernel from
+`cuda/fused.cu` (491, 4-byte loads in a grid-stride loop) by 14%. Eager (2 kernels): 279 GB/s.
+
 ### Multi-GPU: NCCL and DDP ([modal/ddp_nccl.py](../modal/ddp_nccl.py))
 
 | | 2x L4 (PCIe) | 2x H100 (NVLink) |
