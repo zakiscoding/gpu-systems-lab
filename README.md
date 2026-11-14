@@ -4,7 +4,7 @@
 
 **GPU systems from one RTX 5070 to multi-GPU H100s: CUDA kernels, MPI/NCCL, FSDP, vLLM serving, k3s scheduling, DCGM monitoring, and a local-vs-cloud job router.**
 
-![local](https://img.shields.io/badge/local-RTX%205070%2012%20GB-76b900?style=flat-square&logo=nvidia&logoColor=white) ![cloud](https://img.shields.io/badge/cloud-Modal%20H100%20%C2%B7%202%C3%97H100-7c3aed?style=flat-square) ![node](https://img.shields.io/badge/node-Ubuntu%2024.04-e95420?style=flat-square&logo=ubuntu&logoColor=white) ![CUDA](https://img.shields.io/badge/CUDA-13.2-76b900?style=flat-square&logo=nvidia&logoColor=white) ![k3s](https://img.shields.io/badge/k3s-GPU%20queue-ffc61c?style=flat-square&logo=k3s&logoColor=white) ![serving](https://img.shields.io/badge/serving-vLLM-30a2ff?style=flat-square)
+[![CI](https://github.com/zakiscoding/gpu-systems-lab/actions/workflows/ci.yml/badge.svg)](https://github.com/zakiscoding/gpu-systems-lab/actions/workflows/ci.yml) ![local](https://img.shields.io/badge/local-RTX%205070%2012%20GB-76b900?style=flat-square&logo=nvidia&logoColor=white) ![cloud](https://img.shields.io/badge/cloud-Modal%20H100%20%C2%B7%202%C3%97H100-7c3aed?style=flat-square) ![node](https://img.shields.io/badge/node-Ubuntu%2024.04-e95420?style=flat-square&logo=ubuntu&logoColor=white) ![CUDA](https://img.shields.io/badge/CUDA-13.2-76b900?style=flat-square&logo=nvidia&logoColor=white) ![k3s](https://img.shields.io/badge/k3s-GPU%20queue-ffc61c?style=flat-square&logo=k3s&logoColor=white) ![serving](https://img.shields.io/badge/serving-vLLM-30a2ff?style=flat-square)
 
 [homelab](https://github.com/zakiscoding/homelab) (docs hub) · [homelab-services](https://github.com/zakiscoding/homelab-services) · [homelab-web](https://github.com/zakiscoding/homelab-web) · [homelab-gpu](https://github.com/zakiscoding/homelab-gpu) · **gpu-systems-lab**
 
@@ -25,6 +25,7 @@ router worker that runs routed jobs from the iMac job queue.
 - **JAX/XLA:** the GPT benchmark ported to JAX ([jax-xla/](jax-xla/README.md)) runs 6% faster than the best PyTorch setup on the 5070 (68.9 vs 73.5 ms/step), once both use fused attention and a fused optimizer.
 - **Sharded training:** FSDP2 trains a 5.6B model that OOMs under DDP. Elastic restart recovers a killed rank in 11–14 s.
 - **Serving and operations:** vLLM Qwen2.5-1.5B 4.4k tok/s on the RTX 5070 vs 16.8k on an H100 (concurrency 64). k3s GPU pods run at native 67.7 TFLOPS. DCGM, Prometheus and Grafana watch the card.
+- **Kubernetes operator:** a Go `GpuJob` CRD and controller ([operator/](operator/README.md)) that turns GPU jobs into Jobs, shows why they queue, and survives re-runs, deleted Jobs and restarts. Tested with envtest and on a kind cluster with a fake GPU; the real-node run and the [NVIDIA GPU Operator time-slicing migration](scheduling/gpu-operator/README.md) are prepared, not yet run.
 
 All results, with the code that produced them: **[docs/RESULTS.md](docs/RESULTS.md)**.
 
@@ -111,10 +112,12 @@ Modal setup and spend limits: [modal/README.md](modal/README.md).
 | `modal/ddp_nccl.py` | NCCL collectives and DDP scaling | 329 GB/s busbw; DDP 1.57x at batch 4096 | [modal/README.md](modal/README.md) |
 | `distributed/` | FSDP2, sharded checkpoints, elastic restart | 5.6B OOM under DDP, trains under FSDP; restart in 11–14 s | [distributed/README.md](distributed/README.md) |
 | `serving/` | vLLM concurrency sweep; always-on homelab chat backend | 4.4k tok/s RTX 5070 vs 16.8k H100 | [serving/README.md](serving/README.md) |
+| `serving/triton/` | Triton Inference Server + TensorRT-LLM vs vLLM, same client and KV cache | TRT-LLM +10% at 256 in flight; vLLM 12–21% faster at 1–64 | [serving/triton/README.md](serving/triton/README.md) |
 | `gateway/` + `cloudflare/` | Public vLLM API on a Cloudflare Worker, reached through a Tunnel | adds 0.2 s to 200 tokens; streaming not buffered | [gateway/README.md](gateway/README.md) |
 | `site/` | Public results page with charts, built from `docs/RESULTS.md` | build refuses to publish network details | [CODE-GUIDE](docs/CODE-GUIDE.md#site--public-results-page-cloudflare-static-assets) |
 | `observability/` | dcgm-exporter + Prometheus + Grafana on a GeForce card | full profiling fields on the 5070 | [observability/README.md](observability/README.md) |
 | `scheduling/` | k3s GPU queue, time-slicing, admission policy | pods at native 67.7 TFLOPS | [scheduling/README.md](scheduling/README.md) |
+| `operator/` | A Go operator (controller-runtime): `GpuJob` CRD reconciled into GPU Jobs | 31 envtest/unit cases pass; queueing shown on kind with a fake GPU | [operator/README.md](operator/README.md) |
 | `router/` | Local-vs-cloud placement, homelab queue worker | picks local, L40S or 2x H100 by VRAM, deadline, cost | [router/README.md](router/README.md) |
 | `docs/profiling/` | Nsight Systems profiles of the kernels | 8x gap to cuBLAS explained | [docs/profiling/README.md](docs/profiling/README.md) |
 
@@ -200,6 +203,8 @@ All on the GPU node unless noted.
 | [x] | Observability (`observability/`) | dcgm-exporter + Prometheus + Grafana on the node, tailnet-only |
 | [x] | Scheduling (`scheduling/`) | k3s + NVIDIA device plugin; GPU jobs queue one at a time at native 67.5 TFLOPS; time-slicing gives no gain on a saturated GPU |
 | [x] | Node hardening (`scripts/harden_node.sh`) | ufw blocks 22/6443/10250 on the LAN; GPU admission policy closes the queue bypass |
+| [~] | GpuJob operator (`operator/`) | Go/controller-runtime CRD + controller; envtest suite green; kind run with a fake `nvidia.com/gpu`. Real k3s run pending the Ubuntu boot |
+| [ ] | GPU Operator + time-slicing (`scheduling/gpu-operator/`) | values, ConfigMap and runbook prepared and validated offline; not applied |
 | [ ] | Nsight Compute counters | needs `NVreg_RestrictProfilingToAdminUsers=0` on the node |
 
 ## Docs

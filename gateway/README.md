@@ -23,6 +23,8 @@ Service limited to one host and port. `homelab-services` keeps using the tailnet
 |---|---|
 | [src/index.js](src/index.js) | The Worker |
 | [test/gateway.test.js](test/gateway.test.js) | Unit tests with a stubbed binding and rate limiter (`npm test`) |
+| [src/tracing.js](src/tracing.js) | OpenTelemetry tracing: W3C `traceparent` in and out, spans exported as OTLP/JSON |
+| [test/tracing.test.js](test/tracing.test.js) | Tracing tests: span shape, propagation, no secrets, failure isolation |
 | [wrangler.jsonc](wrangler.jsonc) | Domain, bindings and limits |
 | [make-key.sh](make-key.sh) | Creates a client key and its `GATEWAY_KEYS` entry |
 
@@ -40,6 +42,35 @@ Service limited to one host and port. `homelab-services` keeps using the tailnet
 | GPU unreachable, anything else | 503 `upstream_unavailable` with `Retry-After`: `/v1/models`, `/v1/completions`, chat using `tools`, `functions` or `response_format`, or when Workers AI fails or its quota runs out |
 | Gateway's `VLLM_API_KEY` is wrong | 502 `gateway_misconfigured` |
 | Logs | Client name, route, status and latency. Never prompts, completions or keys |
+
+## Tracing
+
+With the `OTEL` binding, every request except `/health` produces a server span and, when it reaches a
+backend, a client span (`POST vllm` or `workers-ai run`). The client span's `traceparent` goes to vLLM,
+which continues the trace with its own `llm_request` span (TTFT, queue, prefill and decode times).
+An incoming `traceparent` is continued, and every response carries `x-trace-id`.
+
+Spans are sent after the response (`ctx.waitUntil`) as OTLP/JSON. They go through a second Workers
+VPC Service, `otel-imac`, to the OpenTelemetry Collector on the iMac (tunnel `mos-imac`). Collector,
+Tempo, SLOs and alerts live in homelab-services
+([docs/OBSERVABILITY-SLO.md](https://github.com/zakiscoding/homelab-services/blob/main/docs/OBSERVABILITY-SLO.md)).
+There's no SDK: the runtime has none, and two span kinds don't need one. Spans carry the route,
+status, backend and the client's key *name*, never bodies or keys (tested). A failing collector never
+affects the response (tested). Without the binding nothing is traced.
+
+```bash
+npx wrangler vpc service create otel-imac --type http --hostname otel-collector   --tunnel-id <mos-imac tunnel UUID> --http-port 4318      # then set its id in wrangler.jsonc
+```
+
+| Check (2026-11-14) | Result |
+|---|---|
+| Tests | 44 passing, 13 of them for tracing |
+| One trace, client → gateway → vLLM (`wrangler dev` on the real remote bindings) | gateway 789 ms → `POST vllm` 622 ms → vLLM `llm_request` 60 ms |
+| Deployed Worker → collector | a production span reached Tempo through `otel-imac` |
+| Latency with tracing on, 40 requests each | p50 113.7 → 110.0 ms, p95 139.5 → 134.8 ms (no measurable cost) |
+
+The Workers clock only advances across I/O, so span durations measure time spent waiting on
+upstreams, not CPU time.
 
 ## Setup
 
