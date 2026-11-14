@@ -4,6 +4,9 @@
 //                                       \--offline, chat only--> Workers AI
 //
 // Clients never see VLLM_API_KEY, and only the routes below reach vLLM.
+// With an OTEL binding, every request except /health is traced (src/tracing.js).
+
+import { Tracer } from "./tracing.js";
 
 const DEFAULT_MAX_BODY_BYTES = 262144;
 const DEFAULT_MAX_TOKENS = 1024;
@@ -119,6 +122,19 @@ async function buildUpstreamInit(request, path, env) {
   return { method: "POST", headers, body: JSON.stringify(payload) };
 }
 
+// Runs `call` inside a CLIENT span when tracing is on. `call` gets the span (or null).
+async function traced(context, name, attributes, call) {
+  const span = context.server ? context.tracer.client(context.server, name, attributes) : null;
+  try {
+    const result = await call(span);
+    span?.set({ "http.response.status_code": result?.status }).finish(result?.status >= 500);
+    return result;
+  } catch (error) {
+    span?.set({ "error.type": error?.name ?? "error" }).finish(true);
+    throw error;
+  }
+}
+
 function upstreamUnavailable() {
   return errorResponse(
     503,
@@ -163,7 +179,8 @@ async function fallback(path, init, env, context) {
   }
   let result;
   try {
-    result = await env.AI.run(env.FALLBACK_MODEL, input);
+    result = await traced(context, "workers-ai run", { "gen_ai.system": "workers-ai", "gen_ai.request.model": env.FALLBACK_MODEL },
+      () => env.AI.run(env.FALLBACK_MODEL, input));
   } catch (error) {
     // The message can quote the input, so log only its numeric code (3036 is the daily quota).
     context.fallbackError = /^\d+/.exec(error?.message ?? "")?.[0] ?? "unknown";
@@ -183,7 +200,9 @@ async function forward(path, init, env, context) {
   let upstream;
   try {
     // The binding routes the request; this host only sets the Host header.
-    upstream = await env.VLLM.fetch(`http://vllm${path}`, init);
+    upstream = await traced(context, `${init.method} vllm`, { "http.request.method": init.method, "url.path": path, "server.address": "vllm" },
+      (span) => env.VLLM.fetch(`http://vllm${path}`,
+        span ? { ...init, headers: { ...init.headers, traceparent: span.traceparent() } } : init));
   } catch {
     return fallback(path, init, env, context);
   }
@@ -264,11 +283,33 @@ export class ClientRateLimiter {
   }
 }
 
-export async function handle(request, env, log = console.log) {
+export async function handle(request, env, log = console.log, ctx = null) {
   const start = Date.now();
   const url = new URL(request.url);
-  const context = { client: null, backend: null, fallbackError: null };
-  const response = await route(request, env, url, context);
+  const context = { client: null, backend: null, fallbackError: null, tracer: null, server: null };
+  // /health is probed every 15 s by monitoring; tracing it would drown the real traffic.
+  if (env.OTEL && url.pathname !== "/health") {
+    context.tracer = new Tracer(request.headers.get("traceparent"));
+    const known = UPSTREAM_ROUTES.has(`${request.method} ${url.pathname}`);
+    context.server = context.tracer.server(`${request.method} ${known ? url.pathname : "unknown"}`, {
+      "http.request.method": request.method,
+      "http.route": known ? url.pathname : "unknown",  // bounded label set for span metrics
+    });
+  }
+  let response = await route(request, env, url, context);
+  if (context.server) {
+    context.server.set({
+      "http.response.status_code": response.status,
+      "gateway.backend": context.backend ?? "none",
+      "gateway.client": context.client,
+      "gateway.fallback_error": context.fallbackError,
+    }).finish(response.status >= 500);
+    // Lets a client quote the trace when reporting a problem. Headers may be immutable.
+    response = new Response(response.body, response);
+    response.headers.set("x-trace-id", context.tracer.traceId);
+    const exported = context.tracer.export(env.OTEL);
+    if (ctx?.waitUntil) ctx.waitUntil(exported);
+  }
   // Metadata only: prompts, completions and keys must never reach the logs.
   log(JSON.stringify({
     client: context.client,
@@ -276,6 +317,7 @@ export async function handle(request, env, log = console.log) {
     fallbackError: context.fallbackError,
     method: request.method,
     path: url.pathname,
+    traceId: context.tracer?.traceId ?? null,
     status: response.status,
     ms: Date.now() - start,
   }));
@@ -283,7 +325,7 @@ export async function handle(request, env, log = console.log) {
 }
 
 export default {
-  fetch(request, env) {
-    return handle(request, env);
+  fetch(request, env, ctx) {
+    return handle(request, env, console.log, ctx);
   },
 };
