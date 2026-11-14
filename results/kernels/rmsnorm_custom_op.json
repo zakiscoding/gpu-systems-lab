@@ -1,0 +1,299 @@
+{
+  "dtype": "bfloat16",
+  "torch": "2.11.0+cu128",
+  "triton": "3.6.0",
+  "gpu": "NVIDIA GeForce RTX 5070, 2850 MHz, 13801 MHz, 55, 2574 MiB",
+  "method": "triton.testing.do_bench x7, median/min/max ms",
+  "results": [
+    {
+      "shape": [
+        4096,
+        4096
+      ],
+      "impl": "eager PyTorch",
+      "ms_median": 1.1559,
+      "ms_min": 1.1523,
+      "ms_max": 1.1588,
+      "gbs": 58.1,
+      "max_abs_err": 0.03123760223388672
+    },
+    {
+      "shape": [
+        4096,
+        4096
+      ],
+      "impl": "torch.compile (Inductor kernel)",
+      "ms_median": 0.124,
+      "ms_min": 0.1228,
+      "ms_max": 0.1262,
+      "gbs": 541.0,
+      "max_abs_err": 0.03123760223388672
+    },
+    {
+      "shape": [
+        4096,
+        4096
+      ],
+      "impl": "custom op v1 (scalar loads)",
+      "ms_median": 0.2314,
+      "ms_min": 0.2301,
+      "ms_max": 0.2346,
+      "gbs": 290.0,
+      "max_abs_err": 0.03123760223388672
+    },
+    {
+      "shape": [
+        4096,
+        4096
+      ],
+      "impl": "custom op v2 (16-B vector loads)",
+      "ms_median": 0.124,
+      "ms_min": 0.1228,
+      "ms_max": 0.1272,
+      "gbs": 541.3,
+      "max_abs_err": 0.03123760223388672
+    },
+    {
+      "shape": [
+        4096,
+        4096
+      ],
+      "impl": "custom op inside torch.compile",
+      "ms_median": 0.1255,
+      "ms_min": 0.1232,
+      "ms_max": 0.1276,
+      "gbs": 534.6,
+      "max_abs_err": 0.03123760223388672
+    },
+    {
+      "shape": [
+        16384,
+        4096
+      ],
+      "impl": "eager PyTorch",
+      "ms_median": 4.7883,
+      "ms_min": 4.7796,
+      "ms_max": 4.8059,
+      "gbs": 56.1,
+      "max_abs_err": 0.03124237060546875
+    },
+    {
+      "shape": [
+        16384,
+        4096
+      ],
+      "impl": "torch.compile (Inductor kernel)",
+      "ms_median": 0.4815,
+      "ms_min": 0.4796,
+      "ms_max": 0.4876,
+      "gbs": 557.5,
+      "max_abs_err": 0.03124237060546875
+    },
+    {
+      "shape": [
+        16384,
+        4096
+      ],
+      "impl": "custom op v1 (scalar loads)",
+      "ms_median": 0.8655,
+      "ms_min": 0.8627,
+      "ms_max": 0.8841,
+      "gbs": 310.2,
+      "max_abs_err": 0.03124237060546875
+    },
+    {
+      "shape": [
+        16384,
+        4096
+      ],
+      "impl": "custom op v2 (16-B vector loads)",
+      "ms_median": 0.4779,
+      "ms_min": 0.4747,
+      "ms_max": 0.4811,
+      "gbs": 561.7,
+      "max_abs_err": 0.03124237060546875
+    },
+    {
+      "shape": [
+        16384,
+        4096
+      ],
+      "impl": "custom op inside torch.compile",
+      "ms_median": 0.4793,
+      "ms_min": 0.478,
+      "ms_max": 0.4806,
+      "gbs": 560.1,
+      "max_abs_err": 0.03124237060546875
+    },
+    {
+      "shape": [
+        8192,
+        8192
+      ],
+      "impl": "eager PyTorch",
+      "ms_median": 4.7224,
+      "ms_min": 4.7141,
+      "ms_max": 4.7348,
+      "gbs": 56.8,
+      "max_abs_err": 0.03125
+    },
+    {
+      "shape": [
+        8192,
+        8192
+      ],
+      "impl": "torch.compile (Inductor kernel)",
+      "ms_median": 0.4822,
+      "ms_min": 0.4787,
+      "ms_max": 0.485,
+      "gbs": 556.7,
+      "max_abs_err": 0.03125
+    },
+    {
+      "shape": [
+        8192,
+        8192
+      ],
+      "impl": "custom op v1 (scalar loads)",
+      "ms_median": 0.776,
+      "ms_min": 0.7742,
+      "ms_max": 0.7771,
+      "gbs": 345.9,
+      "max_abs_err": 0.03125
+    },
+    {
+      "shape": [
+        8192,
+        8192
+      ],
+      "impl": "custom op v2 (16-B vector loads)",
+      "ms_median": 0.4832,
+      "ms_min": 0.4818,
+      "ms_max": 0.4895,
+      "gbs": 555.6,
+      "max_abs_err": 0.03125
+    },
+    {
+      "shape": [
+        8192,
+        8192
+      ],
+      "impl": "custom op inside torch.compile",
+      "ms_median": 0.4825,
+      "ms_min": 0.48,
+      "ms_max": 0.4852,
+      "gbs": 556.3,
+      "max_abs_err": 0.03125
+    },
+    {
+      "shape": [
+        32768,
+        1024
+      ],
+      "impl": "eager PyTorch",
+      "ms_median": 2.3496,
+      "ms_min": 2.3238,
+      "ms_max": 2.3575,
+      "gbs": 57.1,
+      "max_abs_err": 0.031238555908203125
+    },
+    {
+      "shape": [
+        32768,
+        1024
+      ],
+      "impl": "torch.compile (Inductor kernel)",
+      "ms_median": 0.2421,
+      "ms_min": 0.2404,
+      "ms_max": 0.2426,
+      "gbs": 554.3,
+      "max_abs_err": 0.031238555908203125
+    },
+    {
+      "shape": [
+        32768,
+        1024
+      ],
+      "impl": "custom op v1 (scalar loads)",
+      "ms_median": 0.3624,
+      "ms_min": 0.3602,
+      "ms_max": 0.3649,
+      "gbs": 370.4,
+      "max_abs_err": 0.031238555908203125
+    },
+    {
+      "shape": [
+        32768,
+        1024
+      ],
+      "impl": "custom op v2 (16-B vector loads)",
+      "ms_median": 0.2407,
+      "ms_min": 0.2397,
+      "ms_max": 0.2412,
+      "gbs": 557.7,
+      "max_abs_err": 0.031238555908203125
+    },
+    {
+      "shape": [
+        32768,
+        1024
+      ],
+      "impl": "custom op inside torch.compile",
+      "ms_median": 0.2421,
+      "ms_min": 0.2387,
+      "ms_max": 0.2444,
+      "gbs": 554.3,
+      "max_abs_err": 0.031238555908203125
+    }
+  ],
+  "profiler_kernels_16384x4096": {
+    "eager PyTorch": {
+      "void at::native::unrolled_elementwise_kernel<at::native::direct_copy_kernel_cuda(at::Tenso": [
+        10,
+        3624.2
+      ],
+      "void at::native::vectorized_elementwise_kernel<4, at::native::(anonymous namespace)::pow_t": [
+        5,
+        5057.4
+      ],
+      "void at::native::reduce_kernel<512, 1, at::native::ReduceOp<float, at::native::MeanOps<flo": [
+        5,
+        2128.3
+      ],
+      "void at::native::vectorized_elementwise_kernel<4, at::native::CUDAFunctorOnSelf_add<float>": [
+        5,
+        4.3
+      ],
+      "void at::native::vectorized_elementwise_kernel<4, at::native::rsqrt_kernel_cuda(at::Tensor": [
+        5,
+        4.2
+      ],
+      "void at::native::elementwise_kernel<128, 2, at::native::gpu_kernel_impl_nocast<at::native:": [
+        10,
+        9541.3
+      ],
+      "void at::native::vectorized_elementwise_kernel<4, at::native::bfloat16_copy_kernel_cuda(at": [
+        5,
+        3421.7
+      ]
+    },
+    "torch.compile (Inductor kernel)": {
+      "triton_red_fused__to_copy_add_mean_mul_pow_rsqrt_0": [
+        5,
+        2282.3
+      ]
+    },
+    "custom op v1 (scalar loads)": {
+      "void (anonymous namespace)::rmsnorm_kernel<__nv_bfloat16>(__nv_bfloat16 const*, __nv_bfloa": [
+        5,
+        4361.0
+      ]
+    },
+    "custom op v2 (16-B vector loads)": {
+      "void (anonymous namespace)::rmsnorm_vec_kernel<__nv_bfloat16>(__nv_bfloat16 const*, __nv_b": [
+        5,
+        2275.1
+      ]
+    }
+  }
+}

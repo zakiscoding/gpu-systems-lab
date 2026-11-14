@@ -95,6 +95,14 @@ Fused bias+GELU, 16384 × 4096 fp32: a 15-line Triton kernel runs **559 GB/s (83
 ties torch.compile's Inductor kernel (558) and beats the hand-written CUDA kernel from
 `cuda/fused.cu` (491, 4-byte loads in a grid-stride loop) by 14%. Eager (2 kernels): 279 GB/s.
 
+### Custom PyTorch operator vs TorchInductor ([kernels/custom_op/](../kernels/custom_op/README.md))
+
+`labops::rmsnorm`, a C++/CUDA op with a fake kernel and autograd registered so it runs under
+`torch.compile(fullgraph=True)` (16 tests incl. `torch.library.opcheck`). In bf16 on the 5070, v1
+(scalar loads) reached 290–370 GB/s. v2 (16-byte vector loads, row cached in registers, 2 vectors
+per thread) reaches **541–562 GB/s, level with Inductor's generated kernel** at all 4 shapes. Eager:
+57 GB/s, 9 launches per call.
+
 ### Multi-GPU: NCCL and DDP ([modal/ddp_nccl.py](../modal/ddp_nccl.py))
 
 | | 2x L4 (PCIe) | 2x H100 (NVLink) |
