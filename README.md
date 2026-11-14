@@ -22,7 +22,7 @@ router worker that runs routed jobs from the iMac job queue.
 - **Single GPU vs cloud:** RTX 5070 BF16 67.7 TFLOPS vs H100 677.8 (10x).
 - **Collectives and data parallel:** NCCL all-reduce 329 GB/s on 2x H100 vs 6.65 GB/s on 2x L4. DDP 1.57x on 2x H100 at batch 4096.
 - **MPI:** one node, one rank per GPU on 2x H100 (Jacobi 1.38x), and across two machines (RTX 5070 + M1 iMac over Tailscale, bit-exact).
-- **Sharded training:** FSDP2 trains a 5.6B model that OOMs under DDP. Elastic restart recovers a killed rank in 11–14 s.
+- **Sharded training:** FSDP2 trains a 5.6B model that OOMs under DDP. [DeepSpeed ZeRO 1/2/3](docs/DEEPSPEED.md) on the same model: within 5% of FSDP2 at 1.34B, 1.8–3.3x slower at 5.6B. Elastic restart recovers a killed rank in 11–14 s.
 - **Serving and operations:** vLLM Qwen2.5-1.5B 4.4k tok/s on the RTX 5070 vs 16.8k on an H100 (concurrency 64). k3s GPU pods run at native 67.7 TFLOPS. DCGM, Prometheus and Grafana watch the card.
 
 All results, with the code that produced them: **[docs/RESULTS.md](docs/RESULTS.md)**.
