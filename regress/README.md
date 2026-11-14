@@ -69,21 +69,38 @@ cd observability && docker compose up -d node-exporter && curl -X POST localhost
 systemctl start gg-nightly.service     # run once now
 ```
 
-## On-demand GPU stack
+## WSL off between runs (since 2026-11-14)
 
-Since 2026-11-14 the GopherGrid containers on the GPU PC (`scheduler-2`, `gpu-worker`, `cpu-worker`) and the DCGM
-exporter are stopped between runs. The [`on-demand.conf`](gg-nightly.on-demand.conf) drop-in has the nightly job start
-them with [`gpu-stack.sh up`](gpu-stack.sh), run the benchmark, then stop them with `gpu-stack.sh down`, even if the
-benchmark fails. If they were already running when the job started (you're working on the PC), they're left running.
-Prometheus and node-exporter stay on all the time, because the result reaches the iMac through them and the regression
-alerts are evaluated there. To bring everything up for a work session, run `scripts/gpu-pc-up.sh` from the laptop.
+WSL on the GPU PC doesn't run all the time any more. It runs only for work sessions and for this benchmark:
+
+1. **03:30, Windows task "GPU Nightly Benchmark"** ([`windows/gpu-nightly.ps1`](windows/gpu-nightly.ps1)) starts WSL
+   and runs `gg-nightly.service`. The task is S4U, so it runs with nobody logged in, and it catches up if the PC was
+   off. The `gg-nightly.timer` inside WSL is disabled, so the Windows task is the only scheduler.
+2. **The service's drop-in** ([`gg-nightly.on-demand.conf`](gg-nightly.on-demand.conf)) starts GopherGrid's
+   `scheduler-2`, `gpu-worker` and `cpu-worker`, plus the DCGM exporter, with [`gpu-stack.sh up`](gpu-stack.sh). It
+   stops them afterwards, even if the benchmark failed.
+3. **`nightly.py`** pushes its gauges to the iMac's Pushgateway (`GG_PUSHGATEWAY`), which keeps them after WSL is
+   gone. The iMac's `GpuNightlyRegression` and `GpuNightlyJobMissing` alerts read them there (homelab-services).
+4. **The task runs `wsl --shutdown`**, unless WSL was already running before it started (a work session), in which
+   case it leaves WSL and the containers up. The log is `%LOCALAPPDATA%\gpu-nightly.log` on the GPU PC.
+
+Work sessions: `scripts/gpu-pc-up.sh` turns on the "WSL Keep Alive" task and starts everything, including vLLM.
+`scripts/gpu-pc-down.sh` turns it off and shuts WSL down. `scripts/gpu-pc-up.sh --check` doesn't start WSL when it's
+off; it reports the gateway and the last nightly result from the Pushgateway instead.
 
 ```bash
+# in WSL
 install -m 755 regress/gpu-stack.sh /opt/gg-nightly/gpu-stack.sh
 install -D -m 644 regress/gg-nightly.on-demand.conf /etc/systemd/system/gg-nightly.service.d/on-demand.conf
-systemctl daemon-reload
+cp regress/nightly.py /opt/gg-nightly/ && systemctl daemon-reload && systemctl disable --now gg-nightly.timer
 ```
 
-Tested 2026-11-14 starting with all four stopped: they started, the benchmark ran (66.2 TFLOPS FP16, no regressions),
-they stopped again, and the result showed up in both the GPU PC's and the iMac's Prometheus. Remove the drop-in to keep
-them up all the time.
+```powershell
+# on Windows, as the WSL user
+powershell -ExecutionPolicy Bypass -File regress\windows\install-gpu-nightly.ps1
+```
+
+Tested 2026-11-14, twice from WSL fully off. Each time WSL started, the containers started, the benchmark ran, the
+result reached the iMac's Pushgateway, and WSL shut down again, in about 40 s. The first run flagged float32 at
+22.15 TFLOPS (0.945 of baseline). The second, a minute later, was 23.51 (1.003), so a one-off right after boot is
+possible. If it shows up on real nights, add a short GPU warm-up before the benchmark.

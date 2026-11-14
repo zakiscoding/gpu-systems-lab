@@ -10,9 +10,9 @@ runner: a self-hosted runner on a public repo would let any pull request run cod
    job's GPU state, attempt, wall time).
 3. For each precision, compare with the median of the previous 7 successful runs. More than 5%
    below that baseline counts as a regression.
-4. Write Prometheus gauges for node-exporter's textfile collector: TFLOPS, baseline, the regression
-   flag, last-success time. Grafana ("GPU nightly regression") charts them, and the
-   `GpuNightlyRegression` alert fires on the flag.
+4. Write Prometheus gauges: TFLOPS, baseline, the regression flag, last-run time. They go to
+   node-exporter's textfile collector and are pushed to the iMac's Pushgateway, which keeps them
+   after WSL shuts down. The iMac's `GpuNightlyRegression` alert fires on the flag.
 
     python3 regress/nightly.py                         # what the timer runs
     python3 regress/nightly.py --label contention-test # tag a run (kept in the history)
@@ -29,6 +29,9 @@ from pathlib import Path
 SCHEDULERS = os.environ.get("GG_SCHEDULERS", "http://127.0.0.1:8091,http://100.91.113.98:8090").split(",")
 HISTORY = Path(os.environ.get("GG_NIGHTLY_HISTORY", "/var/lib/gg-nightly/history.jsonl"))
 PROM_FILE = Path(os.environ.get("GG_NIGHTLY_PROM", "/var/lib/node_exporter/textfile/gg_nightly.prom"))
+# The iMac's Pushgateway keeps the last result after WSL shuts down; its Prometheus alerts on it.
+# Set to "" to skip.
+PUSHGATEWAY = os.environ.get("GG_PUSHGATEWAY", "http://100.91.113.98:9091")
 WINDOW = 7          # baseline = median of this many previous successful runs
 THRESHOLD = 0.05    # flag a drop of more than 5%
 MIN_BASELINE = 3    # don't judge until there are at least this many previous runs
@@ -119,6 +122,20 @@ def write_atomic(path, text):
     os.replace(tmp, path)       # node-exporter must never read a half-written file
 
 
+def push(text, label=""):
+    """PUT the run's gauges to the Pushgateway (replaces the previous push for this group).
+    A failed push is logged, not fatal: the textfile copy and the history are still written."""
+    if not PUSHGATEWAY:
+        return
+    url = f"{PUSHGATEWAY.rstrip('/')}/metrics/job/gg_nightly" + (f"/run/{label}" if label else "")
+    req = urllib.request.Request(url, method="PUT", data=text.encode(), headers={"Content-Type": "text/plain"})
+    try:
+        with urllib.request.urlopen(req, timeout=15):
+            pass
+    except OSError as e:
+        print(f"pushgateway push failed: {e}", flush=True)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--label", default="", help="tag a test run; tagged runs never become baseline")
@@ -138,7 +155,9 @@ def main():
     HISTORY.parent.mkdir(parents=True, exist_ok=True)
     with HISTORY.open("a") as f:
         f.write(json.dumps(rec) + "\n")
-    write_atomic(PROM_FILE, prometheus_text(verdict, ok, ts, args.label))
+    text = prometheus_text(verdict, ok, ts, args.label)
+    write_atomic(PROM_FILE, text)
+    push(text, args.label)
     flagged = [p for p, v in verdict.items() if v["regression"]]
     print(json.dumps({"ok": ok, "tflops": tflops, "regressions": flagged,
                       "ratios": {p: v["ratio"] for p, v in verdict.items()}}))

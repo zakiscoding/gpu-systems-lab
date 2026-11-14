@@ -8,10 +8,11 @@
 # Safe to run any time: it never recreates or restarts a running container
 # (compose up --no-recreate), it only starts what is stopped or missing.
 #
-# Most of this happens on its own after `wsl --shutdown` or a reboot: systemd starts
-# Docker and Slurm, every container has restart=unless-stopped, Windows Tailscale keeps
-# the `tailscale serve` ports, and the "WSL Keep Alive" task restarts WSL within 5 min.
-# This script just does it now and tells you whether it worked.
+# WSL is off between work sessions: the "GPU Nightly Benchmark" task starts it for the 03:30
+# run and shuts it down again (regress/windows/). This script starts a work session: it turns
+# on the "WSL Keep Alive" task, and from there systemd starts Docker and Slurm, containers
+# with restart=unless-stopped come back, and Windows Tailscale keeps the `tailscale serve`
+# ports. End the session with scripts/gpu-pc-down.sh.
 set -uo pipefail
 
 SSH_HOST="${GPU_PC_SSH:-zak-ts}"
@@ -27,10 +28,32 @@ bad()  { printf '  \033[31mFAIL\033[0m  %s\n' "$*"; fail=1; }
 quiet_ssh() { ssh -o ConnectTimeout=10 "$SSH_HOST" "$@" 2>&1 | tr -d '\r\0' \
   | grep -v -i 'post-quantum\|store now\|openssh.com/pq\|may need to be upgraded'; }
 
+if (( CHECK_ONLY )) && ! quiet_ssh "wsl -l --running -q" | grep -qx Ubuntu; then
+  # Don't boot WSL just to check it. WSL_UTF8 isn't set over SSH, hence the tr -d '\0' above.
+  echo "== GPU PC: WSL is off (idle between work sessions; the nightly run starts it at 03:30)"
+  c=$(curl -s -o /dev/null -m 15 -w '%{http_code}' "$GATEWAY/health")
+  [[ $c == 200 ]] && ok "LLM gateway /health 200 (Workers AI fallback)" || bad "LLM gateway /health $c"
+  PY=$(command -v python3 || command -v python)
+  last=$(curl -s -m 8 "http://100.91.113.98:9091/api/v1/metrics" | "$PY" -c '
+import sys, json, time
+for g in json.load(sys.stdin)["data"]:
+    if g["labels"].get("job") == "gg_nightly" and "run" not in g["labels"]:
+        ok = g["gg_nightly_job_ok"]["metrics"][0]["value"]
+        ts = float(g["gg_nightly_last_run_timestamp_seconds"]["metrics"][0]["value"])
+        print(f"{\"ok\" if ok == \"1\" else \"FAILED\"} {(time.time() - ts) / 3600:.1f} h ago")
+' 2>/dev/null)
+  case "$last" in
+    ok*) ok "last nightly benchmark: $last (iMac Pushgateway)" ;;
+    *)   bad "last nightly benchmark: ${last:-no result in the iMac Pushgateway}" ;;
+  esac
+  echo; (( fail )) && exit 1; echo "GPU PC is idle; run scripts/gpu-pc-up.sh to start a work session."; exit 0
+fi
+
 if (( ! CHECK_ONLY )); then
   echo "== Starting WSL on the GPU PC"
-  # Kick the keep-alive task so WSL stays up after this SSH session ends.
-  quiet_ssh 'schtasks /run /tn "WSL Keep Alive"' >/dev/null
+  # WSL is off between work sessions (see scripts/gpu-pc-down.sh). Turn the keep-alive task
+  # back on and run it, so WSL stays up after this SSH session ends.
+  quiet_ssh 'schtasks /change /tn "WSL Keep Alive" /enable && schtasks /run /tn "WSL Keep Alive"' >/dev/null
 
   quiet_ssh "wsl -d Ubuntu -u root -- bash -s" <<EOF
 set -u
