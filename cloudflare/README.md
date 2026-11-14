@@ -10,13 +10,13 @@ ports are opened and nothing is published on the node. It serves two paths:
 | Path | Origin | Who gets in |
 |---|---|---|
 | Private, through the [Worker gateway](../gateway/README.md) | `vllm:8000` (no public hostname) | clients with a gateway key |
-| Private, through the [Grafana proxy](../grafana-proxy/src/index.js) on workers.dev | `grafana:3000` (no public hostname) | emails on an Access allow policy |
+| Public, read-only, through the [Grafana proxy](../grafana-proxy/src/index.js) on workers.dev | the iMac's `grafana:3000`, over tunnel `mos-imac` (no public hostname) | anyone, for the dashboards listed in the Worker |
 
 The tailnet addresses in [serving/](../serving/README.md) and [observability/](../observability/README.md)
 don't change, and `homelab-services` keeps calling vLLM over Tailscale.
 
-**Status: running in [WSL2](#wsl2-on-the-windows-boot).** The gateway path is tested. The Grafana proxy is deployed but
-refuses all requests until [Access is enabled](#grafana-access). The Ubuntu node isn't set up. Both Docker network names
+**Status: running in [WSL2](#wsl2-on-the-windows-boot).** The gateway path is tested. The Grafana proxy serves [public dashboards](#public-dashboards)
+from the iMac. The Ubuntu node isn't set up. Both Docker network names
 are confirmed in WSL2; confirm them with `docker network ls` on the node.
 
 ## Setup
@@ -32,18 +32,22 @@ are confirmed in WSL2; confirm them with `docker network ls` on the node.
    docker compose up -d && docker compose logs --tail 20 cloudflared
    ```
 
-3. **Grafana:** add no public hostname. Follow [Grafana Access](#grafana-access).
+3. **Grafana:** nothing on this tunnel. Grafana comes from the iMac; see [Public dashboards](#public-dashboards).
 4. **vLLM:** add no public hostname. Follow the [gateway setup](../gateway/README.md#setup).
 
-## Grafana Access
+## Public dashboards
 
-[`grafana-proxy/`](../grafana-proxy/src/index.js) is a Worker that reaches Grafana through a VPC Service. It checks the
-Access token on every request. Grafana allows anonymous viewers, so with `ACCESS_TEAM_DOMAIN` or `ACCESS_AUD` unset it
-refuses everything.
+[`grafana-proxy/`](../grafana-proxy/src/index.js) serves read-only dashboards from the homelab's central Grafana on the
+iMac (`homelab-services`), through the VPC Service `grafana-imac` on tunnel `mos-imac`. Each one is a Grafana *public
+dashboard* link, which runs only that dashboard's saved queries. The Worker forwards only the dashboards listed in
+`PUBLIC_DASHBOARDS` in `wrangler.jsonc`, plus Grafana's static files: login, the admin UI, the API, Explore and datasource
+proxies get a 404, and no cookies or credentials pass in either direction.
 
-1. In the dashboard, open **Workers & Pages**, select `grafana-proxy`, and enable Cloudflare Access for its workers.dev URL.
-2. Under **Manage Cloudflare Access**, limit the policy to your email, then copy the team domain and the application audience (AUD).
-3. Set `ACCESS_TEAM_DOMAIN` (`https://<team>.cloudflareaccess.com`) and `ACCESS_AUD` in `grafana-proxy/wrangler.jsonc`, then `npm run deploy`.
+To share another dashboard:
+
+1. In Grafana (tailnet only, `http://100.91.113.98:3000`), open it, then **Share → Share externally**. Public dashboards
+   don't support template variables, so remove them first.
+2. Add its access token and a title to `PUBLIC_DASHBOARDS`, then `npm run deploy`.
 
 ## WSL2 on the Windows boot
 

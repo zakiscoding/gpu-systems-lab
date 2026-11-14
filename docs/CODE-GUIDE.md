@@ -140,13 +140,14 @@ Spend is capped by Modal's $10 usage limit. Windows needs `PYTHONUTF8=1`.
 ### `cloudflare/` — tunnel connector (Docker Compose)
 
 `compose.yml` runs `cloudflared` on the `serving` and `observability` Docker networks, with no published ports.
-It carries the gateway's private path to vLLM and `grafana.<domain>` behind Cloudflare Access. `compose.wsl.yml`
+It carries the gateway's private path to vLLM. `compose.wsl.yml`
 limits it to `serving` for WSL2 on the Windows boot, which is where it runs today.
 
-### `grafana-proxy/` — Grafana behind Cloudflare Access (Worker)
+### `grafana-proxy/` — public, read-only dashboards (Worker)
 
-`src/index.js` forwards requests to Grafana through a VPC Service, after validating the Access token. It refuses everything
-if Access isn't configured. `test/proxy.test.js` covers forged, expired and wrong-audience tokens.
+`src/index.js` serves a landing page and forwards only the Grafana public dashboards listed in `PUBLIC_DASHBOARDS`, plus
+Grafana's static files, through a VPC Service to the iMac's Grafana. Everything else is a 404, and cookies and credentials
+are dropped both ways. `test/proxy.test.js` covers the allowlist, unlisted tokens, methods, body limits and headers.
 
 ### `site/` — public results page (Cloudflare static assets)
 
