@@ -123,6 +123,13 @@ Each measured workload against the card's measured ceilings: 634 GB/s DRAM (cub 
 | vLLM decode, Qwen2.5-1.5B, 16 requests *(est.)* | 16 | 6.12 TFLOPS (382 GB/s) | 10.1 TFLOPS | memory | 60% |
 | vLLM decode, Qwen2.5-1.5B, 64 requests *(est.)* | 64 | 13.64 TFLOPS (213 GB/s) | 40.6 TFLOPS | memory | 34% |
 
+### GEMM step by step ([kernels/gemm/](../kernels/gemm/README.md))
+
+FP32 4096³ on the RTX 5070, 3 runs each: naive 0.50 TFLOPS → coalesced 2.00 → shared tiling 2.31 →
+1-D register tiling 7.74 → 2-D register tiling 7.14 (bank conflicts) → vectorized + transposed A
+**18.4 (82% of cuBLAS's 22.5)**. Tensor cores: a plain WMMA kernel 43.4 TFLOPS against cuBLAS and
+CUTLASS at 66.5 (FP16 in, FP32 accumulate). Every kernel is checked against cuBLAS.
+
 ### Multi-GPU: NCCL and DDP ([modal/ddp_nccl.py](../modal/ddp_nccl.py))
 
 | | 2x L4 (PCIe) | 2x H100 (NVLink) |
