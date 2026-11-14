@@ -1,0 +1,256 @@
+{"prompt": "Explain TCP congestion control to a new backend engineer in three short paragraphs."}
+{"prompt": "Explain garbage collection in Go to a new backend engineer in three short paragraphs."}
+{"prompt": "Explain Postgres MVCC to a new backend engineer in three short paragraphs."}
+{"prompt": "Explain the CAP theorem to a new backend engineer in three short paragraphs."}
+{"prompt": "Explain CUDA warps and occupancy to a new backend engineer in three short paragraphs."}
+{"prompt": "Explain KV caching in transformer inference to a new backend engineer in three short paragraphs."}
+{"prompt": "Explain Raft leader election to a new backend engineer in three short paragraphs."}
+{"prompt": "Explain B-trees versus LSM trees to a new backend engineer in three short paragraphs."}
+{"prompt": "Explain HTTP/2 multiplexing to a new backend engineer in three short paragraphs."}
+{"prompt": "Explain Linux cgroups to a new backend engineer in three short paragraphs."}
+{"prompt": "Explain consistent hashing to a new backend engineer in three short paragraphs."}
+{"prompt": "Explain gradient checkpointing to a new backend engineer in three short paragraphs."}
+{"prompt": "Explain the Rust borrow checker to a new backend engineer in three short paragraphs."}
+{"prompt": "Explain DNS resolution to a new backend engineer in three short paragraphs."}
+{"prompt": "Explain vector databases to a new backend engineer in three short paragraphs."}
+{"prompt": "Explain speculative decoding to a new backend engineer in three short paragraphs."}
+{"prompt": "List five common mistakes people make with TCP congestion control, with one sentence on each."}
+{"prompt": "List five common mistakes people make with garbage collection in Go, with one sentence on each."}
+{"prompt": "List five common mistakes people make with Postgres MVCC, with one sentence on each."}
+{"prompt": "List five common mistakes people make with the CAP theorem, with one sentence on each."}
+{"prompt": "List five common mistakes people make with CUDA warps and occupancy, with one sentence on each."}
+{"prompt": "List five common mistakes people make with KV caching in transformer inference, with one sentence on each."}
+{"prompt": "List five common mistakes people make with Raft leader election, with one sentence on each."}
+{"prompt": "List five common mistakes people make with B-trees versus LSM trees, with one sentence on each."}
+{"prompt": "List five common mistakes people make with HTTP/2 multiplexing, with one sentence on each."}
+{"prompt": "List five common mistakes people make with Linux cgroups, with one sentence on each."}
+{"prompt": "List five common mistakes people make with consistent hashing, with one sentence on each."}
+{"prompt": "List five common mistakes people make with gradient checkpointing, with one sentence on each."}
+{"prompt": "List five common mistakes people make with the Rust borrow checker, with one sentence on each."}
+{"prompt": "List five common mistakes people make with DNS resolution, with one sentence on each."}
+{"prompt": "List five common mistakes people make with vector databases, with one sentence on each."}
+{"prompt": "List five common mistakes people make with speculative decoding, with one sentence on each."}
+{"prompt": "Write a Python function that demonstrates TCP congestion control, with comments."}
+{"prompt": "Write a Python function that demonstrates garbage collection in Go, with comments."}
+{"prompt": "Write a Python function that demonstrates Postgres MVCC, with comments."}
+{"prompt": "Write a Python function that demonstrates the CAP theorem, with comments."}
+{"prompt": "Write a Python function that demonstrates CUDA warps and occupancy, with comments."}
+{"prompt": "Write a Python function that demonstrates KV caching in transformer inference, with comments."}
+{"prompt": "Write a Python function that demonstrates Raft leader election, with comments."}
+{"prompt": "Write a Python function that demonstrates B-trees versus LSM trees, with comments."}
+{"prompt": "Write a Python function that demonstrates HTTP/2 multiplexing, with comments."}
+{"prompt": "Write a Python function that demonstrates Linux cgroups, with comments."}
+{"prompt": "Write a Python function that demonstrates consistent hashing, with comments."}
+{"prompt": "Write a Python function that demonstrates gradient checkpointing, with comments."}
+{"prompt": "Write a Python function that demonstrates the Rust borrow checker, with comments."}
+{"prompt": "Write a Python function that demonstrates DNS resolution, with comments."}
+{"prompt": "Write a Python function that demonstrates vector databases, with comments."}
+{"prompt": "Write a Python function that demonstrates speculative decoding, with comments."}
+{"prompt": "Compare TCP congestion control with the most common alternative. Give a short table, then a recommendation."}
+{"prompt": "Compare garbage collection in Go with the most common alternative. Give a short table, then a recommendation."}
+{"prompt": "Compare Postgres MVCC with the most common alternative. Give a short table, then a recommendation."}
+{"prompt": "Compare the CAP theorem with the most common alternative. Give a short table, then a recommendation."}
+{"prompt": "Compare CUDA warps and occupancy with the most common alternative. Give a short table, then a recommendation."}
+{"prompt": "Compare KV caching in transformer inference with the most common alternative. Give a short table, then a recommendation."}
+{"prompt": "Compare Raft leader election with the most common alternative. Give a short table, then a recommendation."}
+{"prompt": "Compare B-trees versus LSM trees with the most common alternative. Give a short table, then a recommendation."}
+{"prompt": "Compare HTTP/2 multiplexing with the most common alternative. Give a short table, then a recommendation."}
+{"prompt": "Compare Linux cgroups with the most common alternative. Give a short table, then a recommendation."}
+{"prompt": "Compare consistent hashing with the most common alternative. Give a short table, then a recommendation."}
+{"prompt": "Compare gradient checkpointing with the most common alternative. Give a short table, then a recommendation."}
+{"prompt": "Compare the Rust borrow checker with the most common alternative. Give a short table, then a recommendation."}
+{"prompt": "Compare DNS resolution with the most common alternative. Give a short table, then a recommendation."}
+{"prompt": "Compare vector databases with the most common alternative. Give a short table, then a recommendation."}
+{"prompt": "Compare speculative decoding with the most common alternative. Give a short table, then a recommendation."}
+{"prompt": "Summarize TCP congestion control in exactly five bullet points."}
+{"prompt": "Summarize garbage collection in Go in exactly five bullet points."}
+{"prompt": "Summarize Postgres MVCC in exactly five bullet points."}
+{"prompt": "Summarize the CAP theorem in exactly five bullet points."}
+{"prompt": "Summarize CUDA warps and occupancy in exactly five bullet points."}
+{"prompt": "Summarize KV caching in transformer inference in exactly five bullet points."}
+{"prompt": "Summarize Raft leader election in exactly five bullet points."}
+{"prompt": "Summarize B-trees versus LSM trees in exactly five bullet points."}
+{"prompt": "Summarize HTTP/2 multiplexing in exactly five bullet points."}
+{"prompt": "Summarize Linux cgroups in exactly five bullet points."}
+{"prompt": "Summarize consistent hashing in exactly five bullet points."}
+{"prompt": "Summarize gradient checkpointing in exactly five bullet points."}
+{"prompt": "Summarize the Rust borrow checker in exactly five bullet points."}
+{"prompt": "Summarize DNS resolution in exactly five bullet points."}
+{"prompt": "Summarize vector databases in exactly five bullet points."}
+{"prompt": "Summarize speculative decoding in exactly five bullet points."}
+{"prompt": "Write an interview question about TCP congestion control and a model answer."}
+{"prompt": "Write an interview question about garbage collection in Go and a model answer."}
+{"prompt": "Write an interview question about Postgres MVCC and a model answer."}
+{"prompt": "Write an interview question about the CAP theorem and a model answer."}
+{"prompt": "Write an interview question about CUDA warps and occupancy and a model answer."}
+{"prompt": "Write an interview question about KV caching in transformer inference and a model answer."}
+{"prompt": "Write an interview question about Raft leader election and a model answer."}
+{"prompt": "Write an interview question about B-trees versus LSM trees and a model answer."}
+{"prompt": "Write an interview question about HTTP/2 multiplexing and a model answer."}
+{"prompt": "Write an interview question about Linux cgroups and a model answer."}
+{"prompt": "Write an interview question about consistent hashing and a model answer."}
+{"prompt": "Write an interview question about gradient checkpointing and a model answer."}
+{"prompt": "Write an interview question about the Rust borrow checker and a model answer."}
+{"prompt": "Write an interview question about DNS resolution and a model answer."}
+{"prompt": "Write an interview question about vector databases and a model answer."}
+{"prompt": "Write an interview question about speculative decoding and a model answer."}
+{"prompt": "Rewrite this sentence to be clearer, then explain each change: \"TCP congestion control is a thing that is used for making systems work in a way that is better when there are many requests.\""}
+{"prompt": "Rewrite this sentence to be clearer, then explain each change: \"garbage collection in Go is a thing that is used for making systems work in a way that is better when there are many requests.\""}
+{"prompt": "Rewrite this sentence to be clearer, then explain each change: \"Postgres MVCC is a thing that is used for making systems work in a way that is better when there are many requests.\""}
+{"prompt": "Rewrite this sentence to be clearer, then explain each change: \"the CAP theorem is a thing that is used for making systems work in a way that is better when there are many requests.\""}
+{"prompt": "Rewrite this sentence to be clearer, then explain each change: \"CUDA warps and occupancy is a thing that is used for making systems work in a way that is better when there are many requests.\""}
+{"prompt": "Rewrite this sentence to be clearer, then explain each change: \"KV caching in transformer inference is a thing that is used for making systems work in a way that is better when there are many requests.\""}
+{"prompt": "Rewrite this sentence to be clearer, then explain each change: \"Raft leader election is a thing that is used for making systems work in a way that is better when there are many requests.\""}
+{"prompt": "Rewrite this sentence to be clearer, then explain each change: \"B-trees versus LSM trees is a thing that is used for making systems work in a way that is better when there are many requests.\""}
+{"prompt": "Rewrite this sentence to be clearer, then explain each change: \"HTTP/2 multiplexing is a thing that is used for making systems work in a way that is better when there are many requests.\""}
+{"prompt": "Rewrite this sentence to be clearer, then explain each change: \"Linux cgroups is a thing that is used for making systems work in a way that is better when there are many requests.\""}
+{"prompt": "Rewrite this sentence to be clearer, then explain each change: \"consistent hashing is a thing that is used for making systems work in a way that is better when there are many requests.\""}
+{"prompt": "Rewrite this sentence to be clearer, then explain each change: \"gradient checkpointing is a thing that is used for making systems work in a way that is better when there are many requests.\""}
+{"prompt": "Rewrite this sentence to be clearer, then explain each change: \"the Rust borrow checker is a thing that is used for making systems work in a way that is better when there are many requests.\""}
+{"prompt": "Rewrite this sentence to be clearer, then explain each change: \"DNS resolution is a thing that is used for making systems work in a way that is better when there are many requests.\""}
+{"prompt": "Rewrite this sentence to be clearer, then explain each change: \"vector databases is a thing that is used for making systems work in a way that is better when there are many requests.\""}
+{"prompt": "Rewrite this sentence to be clearer, then explain each change: \"speculative decoding is a thing that is used for making systems work in a way that is better when there are many requests.\""}
+{"prompt": "Fix the grammar and keep the meaning: \"TCP congestion control are very importent because it make the system more faster and also it reduce the cost alot.\""}
+{"prompt": "Fix the grammar and keep the meaning: \"garbage collection in Go are very importent because it make the system more faster and also it reduce the cost alot.\""}
+{"prompt": "Fix the grammar and keep the meaning: \"Postgres MVCC are very importent because it make the system more faster and also it reduce the cost alot.\""}
+{"prompt": "Fix the grammar and keep the meaning: \"the CAP theorem are very importent because it make the system more faster and also it reduce the cost alot.\""}
+{"prompt": "Fix the grammar and keep the meaning: \"CUDA warps and occupancy are very importent because it make the system more faster and also it reduce the cost alot.\""}
+{"prompt": "Fix the grammar and keep the meaning: \"KV caching in transformer inference are very importent because it make the system more faster and also it reduce the cost alot.\""}
+{"prompt": "Fix the grammar and keep the meaning: \"Raft leader election are very importent because it make the system more faster and also it reduce the cost alot.\""}
+{"prompt": "Fix the grammar and keep the meaning: \"B-trees versus LSM trees are very importent because it make the system more faster and also it reduce the cost alot.\""}
+{"prompt": "Fix the grammar and keep the meaning: \"HTTP/2 multiplexing are very importent because it make the system more faster and also it reduce the cost alot.\""}
+{"prompt": "Fix the grammar and keep the meaning: \"Linux cgroups are very importent because it make the system more faster and also it reduce the cost alot.\""}
+{"prompt": "Fix the grammar and keep the meaning: \"consistent hashing are very importent because it make the system more faster and also it reduce the cost alot.\""}
+{"prompt": "Fix the grammar and keep the meaning: \"gradient checkpointing are very importent because it make the system more faster and also it reduce the cost alot.\""}
+{"prompt": "Fix the grammar and keep the meaning: \"the Rust borrow checker are very importent because it make the system more faster and also it reduce the cost alot.\""}
+{"prompt": "Fix the grammar and keep the meaning: \"DNS resolution are very importent because it make the system more faster and also it reduce the cost alot.\""}
+{"prompt": "Fix the grammar and keep the meaning: \"vector databases are very importent because it make the system more faster and also it reduce the cost alot.\""}
+{"prompt": "Fix the grammar and keep the meaning: \"speculative decoding are very importent because it make the system more faster and also it reduce the cost alot.\""}
+{"prompt": "Convert this note into a numbered checklist: we should read about TCP congestion control, then try it in a small project, then measure it, then write down what we found, then share it with the team."}
+{"prompt": "Convert this note into a numbered checklist: we should read about garbage collection in Go, then try it in a small project, then measure it, then write down what we found, then share it with the team."}
+{"prompt": "Convert this note into a numbered checklist: we should read about Postgres MVCC, then try it in a small project, then measure it, then write down what we found, then share it with the team."}
+{"prompt": "Convert this note into a numbered checklist: we should read about the CAP theorem, then try it in a small project, then measure it, then write down what we found, then share it with the team."}
+{"prompt": "Convert this note into a numbered checklist: we should read about CUDA warps and occupancy, then try it in a small project, then measure it, then write down what we found, then share it with the team."}
+{"prompt": "Convert this note into a numbered checklist: we should read about KV caching in transformer inference, then try it in a small project, then measure it, then write down what we found, then share it with the team."}
+{"prompt": "Convert this note into a numbered checklist: we should read about Raft leader election, then try it in a small project, then measure it, then write down what we found, then share it with the team."}
+{"prompt": "Convert this note into a numbered checklist: we should read about B-trees versus LSM trees, then try it in a small project, then measure it, then write down what we found, then share it with the team."}
+{"prompt": "Convert this note into a numbered checklist: we should read about HTTP/2 multiplexing, then try it in a small project, then measure it, then write down what we found, then share it with the team."}
+{"prompt": "Convert this note into a numbered checklist: we should read about Linux cgroups, then try it in a small project, then measure it, then write down what we found, then share it with the team."}
+{"prompt": "Convert this note into a numbered checklist: we should read about consistent hashing, then try it in a small project, then measure it, then write down what we found, then share it with the team."}
+{"prompt": "Convert this note into a numbered checklist: we should read about gradient checkpointing, then try it in a small project, then measure it, then write down what we found, then share it with the team."}
+{"prompt": "Convert this note into a numbered checklist: we should read about the Rust borrow checker, then try it in a small project, then measure it, then write down what we found, then share it with the team."}
+{"prompt": "Convert this note into a numbered checklist: we should read about DNS resolution, then try it in a small project, then measure it, then write down what we found, then share it with the team."}
+{"prompt": "Convert this note into a numbered checklist: we should read about vector databases, then try it in a small project, then measure it, then write down what we found, then share it with the team."}
+{"prompt": "Convert this note into a numbered checklist: we should read about speculative decoding, then try it in a small project, then measure it, then write down what we found, then share it with the team."}
+{"prompt": "Write a short dialogue between a junior and a senior engineer about TCP congestion control."}
+{"prompt": "Write a short dialogue between a junior and a senior engineer about garbage collection in Go."}
+{"prompt": "Write a short dialogue between a junior and a senior engineer about Postgres MVCC."}
+{"prompt": "Write a short dialogue between a junior and a senior engineer about the CAP theorem."}
+{"prompt": "Write a short dialogue between a junior and a senior engineer about CUDA warps and occupancy."}
+{"prompt": "Write a short dialogue between a junior and a senior engineer about KV caching in transformer inference."}
+{"prompt": "Write a short dialogue between a junior and a senior engineer about Raft leader election."}
+{"prompt": "Write a short dialogue between a junior and a senior engineer about B-trees versus LSM trees."}
+{"prompt": "Write a short dialogue between a junior and a senior engineer about HTTP/2 multiplexing."}
+{"prompt": "Write a short dialogue between a junior and a senior engineer about Linux cgroups."}
+{"prompt": "Write a short dialogue between a junior and a senior engineer about consistent hashing."}
+{"prompt": "Write a short dialogue between a junior and a senior engineer about gradient checkpointing."}
+{"prompt": "Write a short dialogue between a junior and a senior engineer about the Rust borrow checker."}
+{"prompt": "Write a short dialogue between a junior and a senior engineer about DNS resolution."}
+{"prompt": "Write a short dialogue between a junior and a senior engineer about vector databases."}
+{"prompt": "Write a short dialogue between a junior and a senior engineer about speculative decoding."}
+{"prompt": "Give a step-by-step debugging plan for a production issue caused by misunderstanding TCP congestion control."}
+{"prompt": "Give a step-by-step debugging plan for a production issue caused by misunderstanding garbage collection in Go."}
+{"prompt": "Give a step-by-step debugging plan for a production issue caused by misunderstanding Postgres MVCC."}
+{"prompt": "Give a step-by-step debugging plan for a production issue caused by misunderstanding the CAP theorem."}
+{"prompt": "Give a step-by-step debugging plan for a production issue caused by misunderstanding CUDA warps and occupancy."}
+{"prompt": "Give a step-by-step debugging plan for a production issue caused by misunderstanding KV caching in transformer inference."}
+{"prompt": "Give a step-by-step debugging plan for a production issue caused by misunderstanding Raft leader election."}
+{"prompt": "Give a step-by-step debugging plan for a production issue caused by misunderstanding B-trees versus LSM trees."}
+{"prompt": "Give a step-by-step debugging plan for a production issue caused by misunderstanding HTTP/2 multiplexing."}
+{"prompt": "Give a step-by-step debugging plan for a production issue caused by misunderstanding Linux cgroups."}
+{"prompt": "Give a step-by-step debugging plan for a production issue caused by misunderstanding consistent hashing."}
+{"prompt": "Give a step-by-step debugging plan for a production issue caused by misunderstanding gradient checkpointing."}
+{"prompt": "Give a step-by-step debugging plan for a production issue caused by misunderstanding the Rust borrow checker."}
+{"prompt": "Give a step-by-step debugging plan for a production issue caused by misunderstanding DNS resolution."}
+{"prompt": "Give a step-by-step debugging plan for a production issue caused by misunderstanding vector databases."}
+{"prompt": "Give a step-by-step debugging plan for a production issue caused by misunderstanding speculative decoding."}
+{"prompt": "Write the docstring and type hints for a module that implements TCP congestion control. Do not write the implementation."}
+{"prompt": "Write the docstring and type hints for a module that implements garbage collection in Go. Do not write the implementation."}
+{"prompt": "Write the docstring and type hints for a module that implements Postgres MVCC. Do not write the implementation."}
+{"prompt": "Write the docstring and type hints for a module that implements the CAP theorem. Do not write the implementation."}
+{"prompt": "Write the docstring and type hints for a module that implements CUDA warps and occupancy. Do not write the implementation."}
+{"prompt": "Write the docstring and type hints for a module that implements KV caching in transformer inference. Do not write the implementation."}
+{"prompt": "Write the docstring and type hints for a module that implements Raft leader election. Do not write the implementation."}
+{"prompt": "Write the docstring and type hints for a module that implements B-trees versus LSM trees. Do not write the implementation."}
+{"prompt": "Write the docstring and type hints for a module that implements HTTP/2 multiplexing. Do not write the implementation."}
+{"prompt": "Write the docstring and type hints for a module that implements Linux cgroups. Do not write the implementation."}
+{"prompt": "Write the docstring and type hints for a module that implements consistent hashing. Do not write the implementation."}
+{"prompt": "Write the docstring and type hints for a module that implements gradient checkpointing. Do not write the implementation."}
+{"prompt": "Write the docstring and type hints for a module that implements the Rust borrow checker. Do not write the implementation."}
+{"prompt": "Write the docstring and type hints for a module that implements DNS resolution. Do not write the implementation."}
+{"prompt": "Write the docstring and type hints for a module that implements vector databases. Do not write the implementation."}
+{"prompt": "Write the docstring and type hints for a module that implements speculative decoding. Do not write the implementation."}
+{"prompt": "Translate this explanation into plain English for a non-technical manager: TCP congestion control trades memory or coordination for lower latency or higher throughput."}
+{"prompt": "Translate this explanation into plain English for a non-technical manager: garbage collection in Go trades memory or coordination for lower latency or higher throughput."}
+{"prompt": "Translate this explanation into plain English for a non-technical manager: Postgres MVCC trades memory or coordination for lower latency or higher throughput."}
+{"prompt": "Translate this explanation into plain English for a non-technical manager: the CAP theorem trades memory or coordination for lower latency or higher throughput."}
+{"prompt": "Translate this explanation into plain English for a non-technical manager: CUDA warps and occupancy trades memory or coordination for lower latency or higher throughput."}
+{"prompt": "Translate this explanation into plain English for a non-technical manager: KV caching in transformer inference trades memory or coordination for lower latency or higher throughput."}
+{"prompt": "Translate this explanation into plain English for a non-technical manager: Raft leader election trades memory or coordination for lower latency or higher throughput."}
+{"prompt": "Translate this explanation into plain English for a non-technical manager: B-trees versus LSM trees trades memory or coordination for lower latency or higher throughput."}
+{"prompt": "Translate this explanation into plain English for a non-technical manager: HTTP/2 multiplexing trades memory or coordination for lower latency or higher throughput."}
+{"prompt": "Translate this explanation into plain English for a non-technical manager: Linux cgroups trades memory or coordination for lower latency or higher throughput."}
+{"prompt": "Translate this explanation into plain English for a non-technical manager: consistent hashing trades memory or coordination for lower latency or higher throughput."}
+{"prompt": "Translate this explanation into plain English for a non-technical manager: gradient checkpointing trades memory or coordination for lower latency or higher throughput."}
+{"prompt": "Translate this explanation into plain English for a non-technical manager: the Rust borrow checker trades memory or coordination for lower latency or higher throughput."}
+{"prompt": "Translate this explanation into plain English for a non-technical manager: DNS resolution trades memory or coordination for lower latency or higher throughput."}
+{"prompt": "Translate this explanation into plain English for a non-technical manager: vector databases trades memory or coordination for lower latency or higher throughput."}
+{"prompt": "Translate this explanation into plain English for a non-technical manager: speculative decoding trades memory or coordination for lower latency or higher throughput."}
+{"prompt": "Write a haiku about TCP congestion control, then explain the technical idea behind it."}
+{"prompt": "Write a haiku about garbage collection in Go, then explain the technical idea behind it."}
+{"prompt": "Write a haiku about Postgres MVCC, then explain the technical idea behind it."}
+{"prompt": "Write a haiku about the CAP theorem, then explain the technical idea behind it."}
+{"prompt": "Write a haiku about CUDA warps and occupancy, then explain the technical idea behind it."}
+{"prompt": "Write a haiku about KV caching in transformer inference, then explain the technical idea behind it."}
+{"prompt": "Write a haiku about Raft leader election, then explain the technical idea behind it."}
+{"prompt": "Write a haiku about B-trees versus LSM trees, then explain the technical idea behind it."}
+{"prompt": "Write a haiku about HTTP/2 multiplexing, then explain the technical idea behind it."}
+{"prompt": "Write a haiku about Linux cgroups, then explain the technical idea behind it."}
+{"prompt": "Write a haiku about consistent hashing, then explain the technical idea behind it."}
+{"prompt": "Write a haiku about gradient checkpointing, then explain the technical idea behind it."}
+{"prompt": "Write a haiku about the Rust borrow checker, then explain the technical idea behind it."}
+{"prompt": "Write a haiku about DNS resolution, then explain the technical idea behind it."}
+{"prompt": "Write a haiku about vector databases, then explain the technical idea behind it."}
+{"prompt": "Write a haiku about speculative decoding, then explain the technical idea behind it."}
+{"prompt": "Draft a commit message for a change that adds TCP congestion control to an existing service."}
+{"prompt": "Draft a commit message for a change that adds garbage collection in Go to an existing service."}
+{"prompt": "Draft a commit message for a change that adds Postgres MVCC to an existing service."}
+{"prompt": "Draft a commit message for a change that adds the CAP theorem to an existing service."}
+{"prompt": "Draft a commit message for a change that adds CUDA warps and occupancy to an existing service."}
+{"prompt": "Draft a commit message for a change that adds KV caching in transformer inference to an existing service."}
+{"prompt": "Draft a commit message for a change that adds Raft leader election to an existing service."}
+{"prompt": "Draft a commit message for a change that adds B-trees versus LSM trees to an existing service."}
+{"prompt": "Draft a commit message for a change that adds HTTP/2 multiplexing to an existing service."}
+{"prompt": "Draft a commit message for a change that adds Linux cgroups to an existing service."}
+{"prompt": "Draft a commit message for a change that adds consistent hashing to an existing service."}
+{"prompt": "Draft a commit message for a change that adds gradient checkpointing to an existing service."}
+{"prompt": "Draft a commit message for a change that adds the Rust borrow checker to an existing service."}
+{"prompt": "Draft a commit message for a change that adds DNS resolution to an existing service."}
+{"prompt": "Draft a commit message for a change that adds vector databases to an existing service."}
+{"prompt": "Draft a commit message for a change that adds speculative decoding to an existing service."}
+{"prompt": "What are the first three things you would measure before optimizing a system that uses TCP congestion control? Explain why."}
+{"prompt": "What are the first three things you would measure before optimizing a system that uses garbage collection in Go? Explain why."}
+{"prompt": "What are the first three things you would measure before optimizing a system that uses Postgres MVCC? Explain why."}
+{"prompt": "What are the first three things you would measure before optimizing a system that uses the CAP theorem? Explain why."}
+{"prompt": "What are the first three things you would measure before optimizing a system that uses CUDA warps and occupancy? Explain why."}
+{"prompt": "What are the first three things you would measure before optimizing a system that uses KV caching in transformer inference? Explain why."}
+{"prompt": "What are the first three things you would measure before optimizing a system that uses Raft leader election? Explain why."}
+{"prompt": "What are the first three things you would measure before optimizing a system that uses B-trees versus LSM trees? Explain why."}
+{"prompt": "What are the first three things you would measure before optimizing a system that uses HTTP/2 multiplexing? Explain why."}
+{"prompt": "What are the first three things you would measure before optimizing a system that uses Linux cgroups? Explain why."}
+{"prompt": "What are the first three things you would measure before optimizing a system that uses consistent hashing? Explain why."}
+{"prompt": "What are the first three things you would measure before optimizing a system that uses gradient checkpointing? Explain why."}
+{"prompt": "What are the first three things you would measure before optimizing a system that uses the Rust borrow checker? Explain why."}
+{"prompt": "What are the first three things you would measure before optimizing a system that uses DNS resolution? Explain why."}
+{"prompt": "What are the first three things you would measure before optimizing a system that uses vector databases? Explain why."}
+{"prompt": "What are the first three things you would measure before optimizing a system that uses speculative decoding? Explain why."}
