@@ -1,0 +1,41 @@
+# HAProxy in front of N small vLLM replicas on the one RTX 5070, next to the live vllm-chat
+# (which keeps running: each replica gets ~12% of the card). Project: lb-lab. Ports are
+# 127.0.0.1-only; nothing here is exposed to the tailnet or the internet.
+name: lb-lab
+
+x-replica: &replica
+  image: vllm/vllm-openai:v0.32.0
+  command:
+    - --model=Qwen/Qwen2.5-0.5B-Instruct
+    - --served-model-name=qwen0.5b
+    - --gpu-memory-utilization=0.12
+    - --max-model-len=2048
+    - --max-num-seqs=64
+    - --enforce-eager          # skip CUDA-graph capture: less memory, faster (re)start
+  environment:
+    HF_HUB_OFFLINE: "1"
+  volumes: ["/root/.cache/huggingface:/root/.cache/huggingface"]
+  ipc: host
+  deploy:
+    resources:
+      reservations:
+        devices: [{driver: nvidia, count: all, capabilities: [gpu]}]
+  healthcheck:
+    test: ["CMD", "curl", "-sf", "http://localhost:8000/health"]
+    interval: 5s
+    timeout: 3s
+    retries: 60
+  restart: "no"                # failover tests kill replicas on purpose
+
+services:
+  r1: {<<: *replica, ports: ["127.0.0.1:8101:8000"]}
+  r2: {<<: *replica, ports: ["127.0.0.1:8102:8000"]}
+  haproxy:
+    image: haproxy:3.2-alpine
+    volumes: ["${HAPROXY_CFG:-./haproxy.cfg}:/usr/local/etc/haproxy/haproxy.cfg:ro"]
+    ports: ["127.0.0.1:8100:8100", "127.0.0.1:8404:8404"]
+    depends_on: {r1: {condition: service_healthy}, r2: {condition: service_healthy}}
+  client:
+    image: python:3.12-slim
+    command: ["sh", "-c", "pip install -q httpx==0.28.1 && sleep infinity"]
+    volumes: ["./loadtest.py:/lab/loadtest.py:ro", "./out:/out"]

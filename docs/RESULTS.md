@@ -183,6 +183,13 @@ GopherGrid `benchmark` job. Output tokens/s, and the share of drafted tokens the
   7B model with a 0.5B draft, which doesn't fit this card in FP16. Throughput here is higher than in
   the table above because these prompts are short, so don't compare the two tables directly.
 
+### Load balancing vLLM replicas ([serving/lb/](../serving/lb/README.md))
+
+HAProxy (health checks every 1 s, L7 retries) in front of 2 vLLM replicas on the 5070. Killing one
+under load failed **8 of 3,432 requests (0.23%)** with retries, against 218 (5.8%, mostly 503s in the
+~1 s before the check marked it down) without. The LB adds **+1.1 ms p50**. Found: on a fresh start a
+replica answers `/health` before it can serve a large batch (first 128-request burst timed out).
+
 ### Sharded training and fault tolerance ([distributed/](../distributed/), [modal/fsdp_train.py](../modal/fsdp_train.py), [modal/elastic_train.py](../modal/elastic_train.py))
 
 | 2x H100, per GPU | DDP | FSDP2 |
