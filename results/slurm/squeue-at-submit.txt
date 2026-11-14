@@ -1,0 +1,5 @@
+JOBI       NAME    STATE       TIME     NODELIST(REASON) TRES_PER_NODE
+   5   fsdp-gpu  PENDING       0:00           (Priority) gres/gpu:rtx5070:1
+   4   nccl-gpu  PENDING       0:00           (Priority) gres/gpu:rtx5070:1
+   3   fsdp-gpu  PENDING       0:00          (Resources) gres/gpu:rtx5070:1
+   2  fsdp-cpu2  RUNNING       0:06                zakpc N/A
