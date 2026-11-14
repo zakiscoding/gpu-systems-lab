@@ -1,0 +1,5 @@
+# kubectl apply -k config/default   (CRD + RBAC + operator Deployment in gpujob-system)
+resources:
+  - ../crd
+  - ../rbac
+  - ../manager
