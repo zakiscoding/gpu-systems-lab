@@ -32,6 +32,8 @@ services:
     command:
       - --path.rootfs=/host
       - --collector.filesystem.mount-points-exclude=^/(dev|proc|sys|run|var/lib/docker/.+|var/lib/kubelet/.+|var/lib/rancher/.+|run/k3s/.+)($|/)
+      # gauges written by regress/nightly.py (GPU regression check), read from the host's rootfs
+      - --collector.textfile.directory=/host/var/lib/node_exporter/textfile
     volumes:
       - /:/host:ro,rslave
 

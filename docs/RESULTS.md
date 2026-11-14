@@ -72,12 +72,22 @@ $0.01 and starts in ~4 s.
 
 ### Hand-written CUDA kernels on the RTX 5070 ([cuda/](../cuda/), [docs/profiling/](profiling/))
 
-| Kernel | Result | Note |
+| Kernel | Result (mean ± 95% CI, n = 10) | Note |
 |---|---:|---|
-| Matmul, tiled 16 | 2,869 GFLOPS | 8x off cuBLAS (22,834): one output per thread vs 128 per thread with register tiling |
-| Warp-shuffle reduction | 641 GB/s | 95% of the 672 GB/s DRAM peak, ties CUB |
-| Fused bias+GELU | 1.93x faster | memory-bound, and fusion halves DRAM traffic |
-| Atomic reduction | 3.3 GB/s | 190x slower than warp shuffle |
+| Matmul, tiled 16 | 2,860 ± 1 GFLOPS | 8x off cuBLAS (22,736 ± 25): one output per thread vs 128 per thread with register tiling |
+| Warp-shuffle reduction | 624.7 ± 0.8 GB/s | 93% of the 672 GB/s DRAM peak, 1.8% faster than CUB (613.5 ± 2.1) |
+| Fused bias+GELU | 1.98x faster | memory-bound, and fusion halves DRAM traffic |
+| Atomic reduction | 3.30 ± 0.00 GB/s | 190x slower than warp shuffle |
+
+Each result is 10 separate runs after 2 warm-ups, with the GPU clocks recorded
+([measurement method](MEASUREMENT.md)). Every CV was ≤ 0.5%.
+
+### Nightly regression tracking ([regress/](../regress/README.md))
+
+A systemd timer on the GPU PC submits gpu-systems-lab's matmul benchmark as a GopherGrid job each night,
+next to the live chat. A precision is flagged when it falls more than 5% below the median of its last 7
+runs; the flag goes to Prometheus (alert `GpuNightlyRegression`) and a Grafana dashboard. Baselines agree
+within 0.7%. A 90 s noisy-neighbour test halved every precision (0.47–0.49x) and all four were flagged.
 
 ### Multi-GPU: NCCL and DDP ([modal/ddp_nccl.py](../modal/ddp_nccl.py))
 
@@ -192,6 +202,14 @@ concurrency 1, and p99 inter-token latency 3–32 → 50–90 ms (tokens arrive 
 **Ray cluster** (GPU PC head + native iMac worker over Tailscale): remote task round trip 24 ms
 vs 1.7 ms local, object transfer ~10 MB/s (the iMac's Wi-Fi). Ray Train with 2 workers scales 1.40x
 on one node. Cross-node DDP to the macOS worker failed at gloo rendezvous (documented).
+
+### vLLM vs SGLang vs TensorRT-LLM, FlashAttention vs FlashInfer ([serving/engines/](../serving/engines/README.md))
+
+Five configurations in one window, same client, Qwen2.5-1.5B, 0 failed requests. Peak throughput: SGLang 5,243
+tok/s (at 256 in flight, TTFT p50 3 s), vLLM 5,046, TensorRT-LLM 4,584. **Under a TTFT p95 ≤ 1 s / TPOT p95
+≤ 30 ms target: vLLM 3,048 tok/s, TensorRT-LLM 2,518, SGLang 1,516.** SGLang captured decode CUDA graphs only
+up to batch 8 at an 80% memory fraction, so it ran eagerly at 16–128 requests. Attention backend
+(FlashAttention vs FlashInfer) moved vLLM by under 5%.
 
 ### NVIDIA serving stack: Triton + TensorRT-LLM vs vLLM ([serving/triton/](../serving/triton/README.md))
 

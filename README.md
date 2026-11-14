@@ -214,6 +214,7 @@ All on the GPU node unless noted.
 | [docs/CODE-GUIDE.md](docs/CODE-GUIDE.md) | File-by-file map: what each file does, where it runs, how the parts connect |
 | [docs/CLOUDFLARE.md](docs/CLOUDFLARE.md) | The Cloudflare gateway, tunnel, fallback and results site: status, decisions, test results and how to run them |
 | [docs/profiling/README.md](docs/profiling/README.md) | Nsight Systems profiles of the CUDA kernels; why Nsight Compute is blocked |
+| [docs/MEASUREMENT.md](docs/MEASUREMENT.md) | Measurement method (warm-up, repeats, 95% CI, GPU clocks) and the CUDA kernels re-measured with it |
 | [router/README.md](router/README.md) | How the router decides, and the homelab queue integration |
 
 ## Related repos
