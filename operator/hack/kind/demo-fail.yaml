@@ -1,0 +1,10 @@
+# Exits 3: with backoffLimit 0 the Job fails on the first pod, so the GpuJob goes Failed.
+apiVersion: gpu.zakiscoding.dev/v1alpha1
+kind: GpuJob
+metadata:
+  name: demo-fail
+  namespace: gpu-jobs
+spec:
+  image: busybox:1.37
+  command: ["sh", "-c", "echo boom; exit 3"]
+  gpus: 1
