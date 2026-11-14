@@ -1,0 +1,26 @@
+# Two 20 s jobs that each want the single (fake) GPU: the second one has to queue.
+apiVersion: gpu.zakiscoding.dev/v1alpha1
+kind: GpuJob
+metadata:
+  name: demo-a
+  namespace: gpu-jobs
+spec:
+  image: busybox:1.37
+  command: ["sh", "-c", "echo start on $(hostname); sleep 20; echo done"]
+  gpus: 1
+  cpu: 50m
+  memory: 32Mi
+  activeDeadlineSeconds: 300
+---
+apiVersion: gpu.zakiscoding.dev/v1alpha1
+kind: GpuJob
+metadata:
+  name: demo-b
+  namespace: gpu-jobs
+spec:
+  image: busybox:1.37
+  command: ["sh", "-c", "echo start on $(hostname); sleep 20; echo done"]
+  gpus: 1
+  cpu: 50m
+  memory: 32Mi
+  activeDeadlineSeconds: 300
