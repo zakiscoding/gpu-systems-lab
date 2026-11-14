@@ -58,6 +58,24 @@ reduction, 5 for naive matmul, 10 for tiled matmul).
 
 Fusion speedup is **1.93x**, which matches the 2x cut in DRAM traffic.
 
+**Re-measured with repeats and 95% confidence intervals (2026-11-14).** The tables above are
+single runs from a native Ubuntu boot. [docs/MEASUREMENT.md](../docs/MEASUREMENT.md) reruns every
+program 10 times as separate processes (after 2 warm-up runs) with `tools/benchstat.py`, and records
+the GPU clocks for each run. The setup was WSL with the Windows driver 616.56, next to an idle
+`vllm-chat`. Every CV was ≤ 0.5%. Two conclusions changed:
+
+| | single run (above) | mean ± 95% CI, n = 10 |
+|---|---:|---:|
+| reduction, warp shuffle + `float4` | 630 GB/s | **624.7 ± 0.8 GB/s** |
+| reduction, `cub::DeviceReduce::Sum` | 634 GB/s | 613.5 ± 2.1 GB/s |
+| fusion speedup (unfused ms / fused ms) | 1.93x | **1.98x** (2.072 / 1.044 ms) |
+| cuBLAS `sgemm` | 21,017 GFLOPS | 22,736 ± 25 GFLOPS |
+| tiled TILE=16 | 2,664 GFLOPS | 2,860 ± 1 GFLOPS |
+
+The warp-shuffle kernel is 1.8% *faster* than CUB, and the intervals don't overlap, so it doesn't
+merely tie it. The 1–8% shifts between the two columns come from the change of setup (driver, OS,
+clocks), not from noise. Compare numbers only within one setup.
+
 ### Matmul (FP32, N = 4096, 2N^3 FLOPs)
 
 | Kernel | Time (ms) | GFLOPS | % of cuBLAS |
