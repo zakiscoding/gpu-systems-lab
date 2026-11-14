@@ -1,6 +1,7 @@
-// Fails closed: ACCESS_TEAM_DOMAIN and ACCESS_AUD stay unset until Access is enabled
-// on this Worker (see cloudflare/README.md). Version URLs are off so that nothing
-// serves this Worker outside the protected workers.dev address.
+// Public, read-only homelab dashboards. The Worker forwards only the dashboards listed in
+// PUBLIC_DASHBOARDS (Grafana "public dashboard" access tokens, which are meant to be shared)
+// and Grafana's static files; see src/index.js. Version URLs are off so that nothing serves
+// this Worker outside its workers.dev address.
 {
   "name": "grafana-proxy",
   "main": "src/index.js",
@@ -8,10 +9,10 @@
   "workers_dev": true,
   "preview_urls": false,
   "vpc_services": [
-    { "binding": "GRAFANA", "service_id": "01a1a9f8-3430-7551-abf6-e7af85e5f10f", "remote": true }
+    // "grafana-imac": tunnel "mos-imac" -> grafana:3000 in homelab-services on the iMac
+    { "binding": "GRAFANA", "service_id": "01a1d757-fc0f-73e1-9364-890bbf3173fc", "remote": true }
   ],
   "vars": {
-    "ACCESS_TEAM_DOMAIN": "",
-    "ACCESS_AUD": ""
+    "PUBLIC_DASHBOARDS": "[{\"title\":\"Homelab overview\",\"description\":\"Services, workers and request rates across the homelab\",\"token\":\"19a3f5a668f24f11a457f0d97bbef6c1\"},{\"title\":\"Homelab stack\",\"description\":\"The iMac's API, Postgres job queue, Qdrant and workers\",\"token\":\"e3193d193b8c45b6adc46b3598b5d222\"},{\"title\":\"GPU node\",\"description\":\"RTX 5070 utilization, memory, power and temperature from DCGM\",\"token\":\"1e852944943b4bf199ec2342ebde3ea4\"},{\"title\":\"GopherGrid\",\"description\":\"The distributed job scheduler: throughput, queue, workers and leader\",\"token\":\"eace2e730ce6450191fc1681b69d57d1\"}]"
   }
 }
