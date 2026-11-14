@@ -24,6 +24,7 @@ router worker that runs routed jobs from the iMac job queue.
 - **MPI:** one node, one rank per GPU on 2x H100 (Jacobi 1.38x), and across two machines (RTX 5070 + M1 iMac over Tailscale, bit-exact).
 - **Sharded training:** FSDP2 trains a 5.6B model that OOMs under DDP. Elastic restart recovers a killed rank in 11–14 s.
 - **Serving and operations:** vLLM Qwen2.5-1.5B 4.4k tok/s on the RTX 5070 vs 16.8k on an H100 (concurrency 64). k3s GPU pods run at native 67.7 TFLOPS. DCGM, Prometheus and Grafana watch the card.
+- **Kubernetes operator:** a Go `GpuJob` CRD and controller ([operator/](operator/README.md)) that turns GPU jobs into Jobs, shows why they queue, and survives re-runs, deleted Jobs and restarts. Tested with envtest and on a kind cluster with a fake GPU; the real-node run and the [NVIDIA GPU Operator time-slicing migration](scheduling/gpu-operator/README.md) are prepared, not yet run.
 
 All results, with the code that produced them: **[docs/RESULTS.md](docs/RESULTS.md)**.
 
@@ -114,6 +115,7 @@ Modal setup and spend limits: [modal/README.md](modal/README.md).
 | `site/` | Public results page with charts, built from `docs/RESULTS.md` | build refuses to publish network details | [CODE-GUIDE](docs/CODE-GUIDE.md#site--public-results-page-cloudflare-static-assets) |
 | `observability/` | dcgm-exporter + Prometheus + Grafana on a GeForce card | full profiling fields on the 5070 | [observability/README.md](observability/README.md) |
 | `scheduling/` | k3s GPU queue, time-slicing, admission policy | pods at native 67.7 TFLOPS | [scheduling/README.md](scheduling/README.md) |
+| `operator/` | A Go operator (controller-runtime): `GpuJob` CRD reconciled into GPU Jobs | 31 envtest/unit cases pass; queueing shown on kind with a fake GPU | [operator/README.md](operator/README.md) |
 | `router/` | Local-vs-cloud placement, homelab queue worker | picks local, L40S or 2x H100 by VRAM, deadline, cost | [router/README.md](router/README.md) |
 | `docs/profiling/` | Nsight Systems profiles of the kernels | 8x gap to cuBLAS explained | [docs/profiling/README.md](docs/profiling/README.md) |
 
@@ -199,6 +201,8 @@ All on the GPU node unless noted.
 | [x] | Observability (`observability/`) | dcgm-exporter + Prometheus + Grafana on the node, tailnet-only |
 | [x] | Scheduling (`scheduling/`) | k3s + NVIDIA device plugin; GPU jobs queue one at a time at native 67.5 TFLOPS; time-slicing gives no gain on a saturated GPU |
 | [x] | Node hardening (`scripts/harden_node.sh`) | ufw blocks 22/6443/10250 on the LAN; GPU admission policy closes the queue bypass |
+| [~] | GpuJob operator (`operator/`) | Go/controller-runtime CRD + controller; envtest suite green; kind run with a fake `nvidia.com/gpu`. Real k3s run pending the Ubuntu boot |
+| [ ] | GPU Operator + time-slicing (`scheduling/gpu-operator/`) | values, ConfigMap and runbook prepared and validated offline; not applied |
 | [ ] | Nsight Compute counters | needs `NVreg_RestrictProfilingToAdminUsers=0` on the node |
 
 ## Docs
