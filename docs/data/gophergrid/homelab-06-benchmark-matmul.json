@@ -1,0 +1,103 @@
+{
+  "id": "1f1bec9b-d81c-4a59-8d5d-0100bf07a8f0",
+  "type": "benchmark",
+  "payload": {
+    "size": 8192,
+    "iters": 50,
+    "label": "rtx5070-matmul",
+    "suite": "matmul"
+  },
+  "priority": 0,
+  "resources": {
+    "cpu_millis": 2000,
+    "memory_mb": 4096,
+    "gpus": 1,
+    "gpu_memory_mb": 900
+  },
+  "timeout_ms": 900000,
+  "max_attempts": 2,
+  "status": "succeeded",
+  "attempt": 1,
+  "worker_id": "gpu-pc",
+  "gpu_ids": [
+    "GPU-53bd28f4-0992-8fc7-850c-56f8efbe0387"
+  ],
+  "result": {
+    "files": [
+      "smoke_f8ba07fac51b_20261114_014239.json"
+    ],
+    "label": "rtx5070-matmul",
+    "suite": "matmul",
+    "wall_s": 15.5,
+    "attempt": 1,
+    "gpu_ids": [
+      "GPU-53bd28f4-0992-8fc7-850c-56f8efbe0387"
+    ],
+    "raw_dir": "1f1bec9b-d81c-4a59-8d5d-0100bf07a8f0/a1",
+    "summary": {
+      "checks": {
+        "matmul_ok": true,
+        "reduction_ok": true,
+        "autocast_bf16_ok": true,
+        "matmul_vs_cpu_max_abs_err": 3.814697265625e-05
+      },
+      "matmul": [
+        {
+          "size": 8192,
+          "tflops": 22.85,
+          "precision": "float32",
+          "ms_per_iter": 48.124,
+          "peak_vram_mib": 800
+        },
+        {
+          "size": 8192,
+          "tflops": 32.57,
+          "precision": "tf32",
+          "ms_per_iter": 33.755,
+          "peak_vram_mib": 800
+        },
+        {
+          "size": 8192,
+          "tflops": 63.61,
+          "precision": "float16",
+          "ms_per_iter": 17.285,
+          "peak_vram_mib": 416
+        },
+        {
+          "size": 8192,
+          "tflops": 64.0,
+          "precision": "bfloat16",
+          "ms_per_iter": 17.181,
+          "peak_vram_mib": 416
+        }
+      ],
+      "transfer": {
+        "h2d_pinned_gib_s": 39.94
+      },
+      "timestamp": "2026-11-14T01:42:30+00:00",
+      "environment": {
+        "gpu": "NVIDIA GeForce RTX 5070",
+        "host": "f8ba07fac51b",
+        "cudnn": 92000,
+        "torch": "2.13.0+cu130",
+        "python": "3.12.3",
+        "sm_count": 48,
+        "vram_gib": 11.91,
+        "arch_list": [
+          "sm_75",
+          "sm_80",
+          "sm_86",
+          "sm_90",
+          "sm_100",
+          "sm_120"
+        ],
+        "cuda_build": "13.0",
+        "compute_capability": "12.0"
+      }
+    }
+  },
+  "created_at": "2026-11-14T01:42:36.518996Z",
+  "assigned_at": "2026-11-14T01:42:36.570937Z",
+  "started_at": "2026-11-14T01:42:36.570937Z",
+  "finished_at": "2026-11-14T01:42:52.255662Z"
+}
