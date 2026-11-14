@@ -71,9 +71,25 @@ function addCharts(markdown) {
       { name: "H100 80GB", values: compute.map((row) => number(row[2])), labelled: true },
     ],
   });
+  // Same client, prompts and KV-cache size for both servers; the table under the heading holds every value.
+  const nvidia = tableRows(markdown, "Concurrent (TRT-LLM vs vLLM)");
+  const nvidiaChart = (column) => ({
+    type: "line",
+    xName: "concurrent",
+    labels: nvidia.map((row) => row[0]),
+    series: [
+      { name: "vLLM", values: nvidia.map((row) => number(row[column])) },
+      { name: "TRT-LLM", values: nvidia.map((row) => number(row[column + 1])) },
+    ],
+  });
+  // withChart puts each figure directly under the heading, so the TTFT chart goes in first.
+  const withTtft = withChart(withCompute, "NVIDIA serving stack", "Time to first token, p50",
+    "Milliseconds, lower is better", nvidiaChart(3));
+  const withNvidia = withChart(withTtft, "NVIDIA serving stack", "Triton + TensorRT-LLM vs vLLM",
+    "Output tokens/s on the RTX 5070, higher is better", nvidiaChart(1));
   const precision = tableRows(markdown, "Concurrency");
   const latency = tableRows(markdown, "Precision");
-  const withServing = withChart(withCompute, "Inference serving", "vLLM throughput as concurrency rises", "Output tokens/s", {
+  const withServing = withChart(withNvidia, "Inference serving", "vLLM throughput as concurrency rises", "Output tokens/s", {
     type: "line",
     xName: "concurrent",
     labels: serving.map((row) => row[0]),
