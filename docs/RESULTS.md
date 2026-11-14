@@ -183,6 +183,15 @@ GopherGrid `benchmark` job. Output tokens/s, and the share of drafted tokens the
   7B model with a 0.5B draft, which doesn't fit this card in FP16. Throughput here is higher than in
   the table above because these prompts are short, so don't compare the two tables directly.
 
+### Ray ([serving/ray/](../serving/ray/README.md))
+
+**Ray Serve LLM vs plain vLLM**, same engine (vLLM 0.29) and model (Qwen2.5-0.5B) on the 5070, 3 runs each:
+Ray Serve costs 3.6% throughput at 1 request, 18% at 16 and 25% at 64. TTFT goes 18 → 61 ms at
+concurrency 1, and p99 inter-token latency 3–32 → 50–90 ms (tokens arrive in bursts).
+**Ray cluster** (GPU PC head + native iMac worker over Tailscale): remote task round trip 24 ms
+vs 1.7 ms local, object transfer ~10 MB/s (the iMac's Wi-Fi). Ray Train with 2 workers scales 1.40x
+on one node. Cross-node DDP to the macOS worker failed at gloo rendezvous (documented).
+
 ### Sharded training and fault tolerance ([distributed/](../distributed/), [modal/fsdp_train.py](../modal/fsdp_train.py), [modal/elastic_train.py](../modal/elastic_train.py))
 
 | 2x H100, per GPU | DDP | FSDP2 |

@@ -1,0 +1,30 @@
+2026-11-14 07:57:45,957	INFO worker.py:1841 -- Connecting to existing Ray cluster at address: 100.89.238.29:6379...
+2026-11-14 07:57:45,968	INFO worker.py:2029 -- Connected to Ray cluster. View the dashboard at [1m[32mhttp://100.89.238.29:8265 [39m[22m
+{
+ "ray": "2.60.0",
+ "nodes": [
+  {
+   "ip": "100.91.113.98",
+   "cpus": 4.0,
+   "gpus": 1.0,
+   "memory_gb": 3.5
+  },
+  {
+   "ip": "100.89.238.29",
+   "cpus": 8.0,
+   "gpus": 1.0,
+   "memory_gb": 10.4
+  }
+ ]
+}
+[36m(TrainController pid=5298)[0m Requesting resources: {'CPU': 2} * 1
+[36m(TrainController pid=5298)[0m Attempting to start training worker group of size 1 with the following resources: [{'CPU': 2}] * 1
+[36m(TrainController pid=5298)[0m [2026-11-14 07:57:51,532 E 5298 5352] core_worker.cc:2465: Actor with class name: 'PreemptionWatcher' and ID: 'fc84d9611c143f0305c5e78f03000000' has constructor arguments in the object store and max_restarts > 0. If the arguments in the object store go out of scope or are lost, the actor restart will fail. See https://github.com/ray-project/ray/issues/53727 for more details.
+[36m(TrainController pid=5298)[0m Started training worker group of size 1: 
+[36m(TrainController pid=5298)[0m - (ip=100.89.238.29, pid=5361) world_rank=0, local_rank=0, node_rank=0
+[36m(RayTrainWorker pid=5361)[0m Setting up process group for: env:// [rank=0, world_size=1]
+[36m(RayTrainWorker pid=5361)[0m Moving model to device: cpu
+[36m(RayTrainWorker pid=5361)[0m Reporting training result 1: TrainingReport(checkpoint=None, metrics={'step_ms': 7.3460660059936345}, validation=False) from rank 0
+[36m(TrainController pid=5691)[0m Requesting resources: {'CPU': 2} * 2
+[36m(TrainController pid=5691)[0m Attempting to start training worker group of size 2 with the following resources: [{'CPU': 2}] * 2
+[36m(RayTrainWorker pid=5812)[0m Setting up process group for: env:// [rank=0, world_size=2]

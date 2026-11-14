@@ -1,0 +1,8 @@
+# Ray Serve on 127.0.0.1:8002 (8000 belongs to the live vllm-chat on the same host network)
+http_options:
+  host: 127.0.0.1
+  port: 8002
+applications:
+  - name: llm
+    route_prefix: /
+    import_path: serve_llm:app

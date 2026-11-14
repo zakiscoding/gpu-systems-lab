@@ -1,0 +1,83 @@
+{
+ "ray": "2.60.0",
+ "nodes": [
+  {
+   "ip": "100.91.113.98",
+   "cpus": 4.0,
+   "gpus": 1.0,
+   "memory_gb": 3.7
+  },
+  {
+   "ip": "100.89.238.29",
+   "cpus": 8.0,
+   "gpus": 1.0,
+   "memory_gb": 10.1
+  }
+ ],
+ "task_roundtrip": {
+  "head (local)": {
+   "p50_ms": 1.67,
+   "p99_ms": 2.7
+  },
+  "imac (over tailnet)": {
+   "p50_ms": 24.4,
+   "p99_ms": 47.19
+  }
+ },
+ "object_pull_imac_to_head": [
+  {
+   "mb": 16,
+   "seconds": 4.956,
+   "MB_per_s": 3.2
+  },
+  {
+   "mb": 64,
+   "seconds": 7.165,
+   "MB_per_s": 8.9
+  },
+  {
+   "mb": 256,
+   "seconds": 25.61,
+   "MB_per_s": 10.0
+  }
+ ],
+ "ray_train": [
+  {
+   "workers": 1,
+   "step_ms": 7.72,
+   "samples_per_s": 33145,
+   "wall_s": 10.3,
+   "ranks": [
+    {
+     "rank": 0,
+     "step_ms": 7.72,
+     "loss": 2.31,
+     "world": 1,
+     "node_ip": "100.89.238.29"
+    }
+   ]
+  },
+  {
+   "workers": 2,
+   "step_ms": 11.07,
+   "samples_per_s": 46241,
+   "wall_s": 9.2,
+   "ranks": [
+    {
+     "rank": 0,
+     "step_ms": 10.95,
+     "loss": 2.31,
+     "world": 2,
+     "node_ip": "100.89.238.29"
+    },
+    {
+     "rank": 1,
+     "step_ms": 11.07,
+     "loss": 2.3,
+     "world": 2,
+     "node_ip": "100.89.238.29"
+    }
+   ]
+  }
+ ]
+}
