@@ -1,0 +1,11 @@
+# Nightly GPU regression check: submits a GopherGrid matmul benchmark job, records it, writes gauges
+# for node-exporter's textfile collector. Install: see regress/README.md.
+[Unit]
+Description=GopherGrid nightly GPU regression benchmark
+After=network-online.target docker.service
+
+[Service]
+Type=oneshot
+Environment=HOME=/root
+ExecStart=/usr/bin/python3 /opt/gg-nightly/nightly.py
+TimeoutStartSec=1500

@@ -1,0 +1,502 @@
+{
+ "cmd": [
+  "cuda/build/fused"
+ ],
+ "warmup": 2,
+ "repeats": 10,
+ "all_rc_zero": true,
+ "summary": {
+  "add_bias alone": {
+   "ms": {
+    "n": 10,
+    "mean": 1.0276,
+    "sd": 0.0015,
+    "cv_pct": 0.14,
+    "ci95_half": 0.001,
+    "ci95": [
+     1.0266,
+     1.0287
+    ],
+    "min": 1.0253,
+    "max": 1.0296
+   },
+   "metric": {
+    "n": 10,
+    "mean": 522.46,
+    "sd": 0.7306,
+    "cv_pct": 0.14,
+    "ci95_half": 0.5226,
+    "ci95": [
+     521.9374,
+     522.9826
+    ],
+    "min": 521.5,
+    "max": 523.6
+   }
+  },
+  "gelu alone": {
+   "ms": {
+    "n": 10,
+    "mean": 1.0431,
+    "sd": 0.0015,
+    "cv_pct": 0.14,
+    "ci95_half": 0.0011,
+    "ci95": [
+     1.0421,
+     1.0442
+    ],
+    "min": 1.041,
+    "max": 1.0462
+   },
+   "metric": {
+    "n": 10,
+    "mean": 514.67,
+    "sd": 0.7243,
+    "cv_pct": 0.14,
+    "ci95_half": 0.5181,
+    "ci95": [
+     514.1519,
+     515.1881
+    ],
+    "min": 513.2,
+    "max": 515.7
+   }
+  },
+  "unfused (add_bias + gelu)": {
+   "ms": {
+    "n": 10,
+    "mean": 2.0721,
+    "sd": 0.0027,
+    "cv_pct": 0.13,
+    "ci95_half": 0.002,
+    "ci95": [
+     2.0702,
+     2.0741
+    ],
+    "min": 2.0666,
+    "max": 2.0766
+   },
+   "metric": {
+    "n": 10,
+    "mean": 518.18,
+    "sd": 0.6844,
+    "cv_pct": 0.13,
+    "ci95_half": 0.4896,
+    "ci95": [
+     517.6904,
+     518.6696
+    ],
+    "min": 517.1,
+    "max": 519.6
+   }
+  },
+  "fused bias_gelu": {
+   "ms": {
+    "n": 10,
+    "mean": 1.0439,
+    "sd": 0.002,
+    "cv_pct": 0.19,
+    "ci95_half": 0.0014,
+    "ci95": [
+     1.0425,
+     1.0453
+    ],
+    "min": 1.042,
+    "max": 1.0484
+   },
+   "metric": {
+    "n": 10,
+    "mean": 514.3,
+    "sd": 0.9545,
+    "cv_pct": 0.19,
+    "ci95_half": 0.6828,
+    "ci95": [
+     513.6172,
+     514.9828
+    ],
+    "min": 512.1,
+    "max": 515.2
+   }
+  }
+ },
+ "sm_clock_mhz_range": [
+  2535,
+  2767
+ ],
+ "temp_c_range": [
+  39,
+  44
+ ],
+ "runs": [
+  {
+   "i": 0,
+   "rc": 0,
+   "wall_s": 2.82,
+   "gpu_before": {
+    "sm_mhz": 2715,
+    "mem_mhz": 13801,
+    "temp_c": 39,
+    "power_w": 50.74,
+    "util_pct": 16
+   },
+   "gpu_after": {
+    "sm_mhz": 2535,
+    "mem_mhz": 13801,
+    "temp_c": 43,
+    "power_w": 45.01,
+    "util_pct": 16
+   },
+   "rows": {
+    "add_bias alone": [
+     1.0285,
+     522.0
+    ],
+    "gelu alone": [
+     1.0429,
+     514.8
+    ],
+    "unfused (add_bias + gelu)": [
+     2.0717,
+     518.3
+    ],
+    "fused bias_gelu": [
+     1.0434,
+     514.6
+    ]
+   }
+  },
+  {
+   "i": 1,
+   "rc": 0,
+   "wall_s": 2.84,
+   "gpu_before": {
+    "sm_mhz": 2535,
+    "mem_mhz": 13801,
+    "temp_c": 43,
+    "power_w": 44.88,
+    "util_pct": 0
+   },
+   "gpu_after": {
+    "sm_mhz": 2587,
+    "mem_mhz": 13801,
+    "temp_c": 40,
+    "power_w": 43.29,
+    "util_pct": 16
+   },
+   "rows": {
+    "add_bias alone": [
+     1.0272,
+     522.7
+    ],
+    "gelu alone": [
+     1.0428,
+     514.8
+    ],
+    "unfused (add_bias + gelu)": [
+     2.0738,
+     517.8
+    ],
+    "fused bias_gelu": [
+     1.042,
+     515.2
+    ]
+   }
+  },
+  {
+   "i": 2,
+   "rc": 0,
+   "wall_s": 2.83,
+   "gpu_before": {
+    "sm_mhz": 2587,
+    "mem_mhz": 13801,
+    "temp_c": 40,
+    "power_w": 42.79,
+    "util_pct": 16
+   },
+   "gpu_after": {
+    "sm_mhz": 2692,
+    "mem_mhz": 13801,
+    "temp_c": 39,
+    "power_w": 42.36,
+    "util_pct": 16
+   },
+   "rows": {
+    "add_bias alone": [
+     1.0282,
+     522.2
+    ],
+    "gelu alone": [
+     1.0447,
+     513.9
+    ],
+    "unfused (add_bias + gelu)": [
+     2.0744,
+     517.6
+    ],
+    "fused bias_gelu": [
+     1.0423,
+     515.1
+    ]
+   }
+  },
+  {
+   "i": 3,
+   "rc": 0,
+   "wall_s": 2.77,
+   "gpu_before": {
+    "sm_mhz": 2692,
+    "mem_mhz": 13801,
+    "temp_c": 39,
+    "power_w": 42.35,
+    "util_pct": 0
+   },
+   "gpu_after": {
+    "sm_mhz": 2767,
+    "mem_mhz": 13801,
+    "temp_c": 40,
+    "power_w": 44.99,
+    "util_pct": 0
+   },
+   "rows": {
+    "add_bias alone": [
+     1.0253,
+     523.6
+    ],
+    "gelu alone": [
+     1.0423,
+     515.1
+    ],
+    "unfused (add_bias + gelu)": [
+     2.0692,
+     518.9
+    ],
+    "fused bias_gelu": [
+     1.0426,
+     514.9
+    ]
+   }
+  },
+  {
+   "i": 4,
+   "rc": 0,
+   "wall_s": 2.8,
+   "gpu_before": {
+    "sm_mhz": 2767,
+    "mem_mhz": 13801,
+    "temp_c": 40,
+    "power_w": 44.99,
+    "util_pct": 0
+   },
+   "gpu_after": {
+    "sm_mhz": 2550,
+    "mem_mhz": 13801,
+    "temp_c": 44,
+    "power_w": 49.92,
+    "util_pct": 7
+   },
+   "rows": {
+    "add_bias alone": [
+     1.0277,
+     522.4
+    ],
+    "gelu alone": [
+     1.0418,
+     515.3
+    ],
+    "unfused (add_bias + gelu)": [
+     2.0719,
+     518.2
+    ],
+    "fused bias_gelu": [
+     1.0444,
+     514.1
+    ]
+   }
+  },
+  {
+   "i": 5,
+   "rc": 0,
+   "wall_s": 2.89,
+   "gpu_before": {
+    "sm_mhz": 2550,
+    "mem_mhz": 13801,
+    "temp_c": 44,
+    "power_w": 50.76,
+    "util_pct": 7
+   },
+   "gpu_after": {
+    "sm_mhz": 2565,
+    "mem_mhz": 13801,
+    "temp_c": 41,
+    "power_w": 43.94,
+    "util_pct": 0
+   },
+   "rows": {
+    "add_bias alone": [
+     1.0287,
+     521.9
+    ],
+    "gelu alone": [
+     1.041,
+     515.7
+    ],
+    "unfused (add_bias + gelu)": [
+     2.0666,
+     519.6
+    ],
+    "fused bias_gelu": [
+     1.0435,
+     514.5
+    ]
+   }
+  },
+  {
+   "i": 6,
+   "rc": 0,
+   "wall_s": 2.78,
+   "gpu_before": {
+    "sm_mhz": 2565,
+    "mem_mhz": 13801,
+    "temp_c": 41,
+    "power_w": 43.94,
+    "util_pct": 0
+   },
+   "gpu_after": {
+    "sm_mhz": 2700,
+    "mem_mhz": 13801,
+    "temp_c": 40,
+    "power_w": 48.01,
+    "util_pct": 16
+   },
+   "rows": {
+    "add_bias alone": [
+     1.0289,
+     521.8
+    ],
+    "gelu alone": [
+     1.0462,
+     513.2
+    ],
+    "unfused (add_bias + gelu)": [
+     2.0766,
+     517.1
+    ],
+    "fused bias_gelu": [
+     1.0484,
+     512.1
+    ]
+   }
+  },
+  {
+   "i": 7,
+   "rc": 0,
+   "wall_s": 2.86,
+   "gpu_before": {
+    "sm_mhz": 2700,
+    "mem_mhz": 13801,
+    "temp_c": 40,
+    "power_w": 47.41,
+    "util_pct": 16
+   },
+   "gpu_after": {
+    "sm_mhz": 2767,
+    "mem_mhz": 13801,
+    "temp_c": 41,
+    "power_w": 49.92,
+    "util_pct": 0
+   },
+   "rows": {
+    "add_bias alone": [
+     1.0296,
+     521.5
+    ],
+    "gelu alone": [
+     1.0442,
+     514.2
+    ],
+    "unfused (add_bias + gelu)": [
+     2.0723,
+     518.1
+    ],
+    "fused bias_gelu": [
+     1.045,
+     513.8
+    ]
+   }
+  },
+  {
+   "i": 8,
+   "rc": 0,
+   "wall_s": 2.92,
+   "gpu_before": {
+    "sm_mhz": 2767,
+    "mem_mhz": 13801,
+    "temp_c": 41,
+    "power_w": 49.92,
+    "util_pct": 0
+   },
+   "gpu_after": {
+    "sm_mhz": 2767,
+    "mem_mhz": 13801,
+    "temp_c": 41,
+    "power_w": 45.01,
+    "util_pct": 0
+   },
+   "rows": {
+    "add_bias alone": [
+     1.0268,
+     522.9
+    ],
+    "gelu alone": [
+     1.0428,
+     514.8
+    ],
+    "unfused (add_bias + gelu)": [
+     2.0724,
+     518.1
+    ],
+    "fused bias_gelu": [
+     1.0422,
+     515.1
+    ]
+   }
+  },
+  {
+   "i": 9,
+   "rc": 0,
+   "wall_s": 2.83,
+   "gpu_before": {
+    "sm_mhz": 2767,
+    "mem_mhz": 13801,
+    "temp_c": 41,
+    "power_w": 45.01,
+    "util_pct": 0
+   },
+   "gpu_after": {
+    "sm_mhz": 2625,
+    "mem_mhz": 13801,
+    "temp_c": 40,
+    "power_w": 42.88,
+    "util_pct": 16
+   },
+   "rows": {
+    "add_bias alone": [
+     1.0254,
+     523.6
+    ],
+    "gelu alone": [
+     1.0427,
+     514.9
+    ],
+    "unfused (add_bias + gelu)": [
+     2.0724,
+     518.1
+    ],
+    "fused bias_gelu": [
+     1.0452,
+     513.6
+    ]
+   }
+  }
+ ]
+}
