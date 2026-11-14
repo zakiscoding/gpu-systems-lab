@@ -1,0 +1,22 @@
+# The repo's bf16 matmul benchmark (scheduling/manifests/40-bench-configmap.yaml) as a GpuJob.
+# Needs the real GPU node. On k3s:  kubectl apply -f config/samples/gpujob_matmul.yaml
+apiVersion: gpu.zakiscoding.dev/v1alpha1
+kind: GpuJob
+metadata:
+  name: matmul-bf16
+  namespace: gpu-jobs
+spec:
+  image: pytorch/pytorch:2.7.1-cuda12.8-cudnn9-runtime
+  command: ["python", "-c"]
+  args:
+    - |
+      import torch, time
+      a = torch.randn(8192, 8192, device="cuda", dtype=torch.bfloat16); b = torch.randn_like(a)
+      torch.cuda.synchronize(); t = time.time(); n = 200
+      for _ in range(n): a @ b
+      torch.cuda.synchronize(); dt = time.time() - t
+      print(f"{torch.cuda.get_device_name(0)}: {n*2*8192**3/dt/1e12:.1f} TFLOPS")
+  gpus: 1
+  memory: 4Gi
+  activeDeadlineSeconds: 900
+  ttlSecondsAfterFinished: 3600

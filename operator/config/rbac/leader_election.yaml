@@ -1,0 +1,27 @@
+# Leases for --leader-elect (only the namespace the operator runs in).
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: gpujob-operator-leader-election
+  namespace: gpujob-system
+rules:
+  - apiGroups: ["coordination.k8s.io"]
+    resources: ["leases"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  - apiGroups: ["", "events.k8s.io"]
+    resources: ["events"]
+    verbs: ["create", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: gpujob-operator-leader-election
+  namespace: gpujob-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: gpujob-operator-leader-election
+subjects:
+  - kind: ServiceAccount
+    name: gpujob-operator
+    namespace: gpujob-system
