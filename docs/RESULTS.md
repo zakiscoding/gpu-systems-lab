@@ -82,6 +82,13 @@ $0.01 and starts in ~4 s.
 Each result is 10 separate runs after 2 warm-ups, with the GPU clocks recorded
 ([measurement method](MEASUREMENT.md)). Every CV was ≤ 0.5%.
 
+### Nightly regression tracking ([regress/](../regress/README.md))
+
+A systemd timer on the GPU PC submits gpu-systems-lab's matmul benchmark as a GopherGrid job each night,
+next to the live chat. A precision is flagged when it falls more than 5% below the median of its last 7
+runs; the flag goes to Prometheus (alert `GpuNightlyRegression`) and a Grafana dashboard. Baselines agree
+within 0.7%. A 90 s noisy-neighbour test halved every precision (0.47–0.49x) and all four were flagged.
+
 ### Multi-GPU: NCCL and DDP ([modal/ddp_nccl.py](../modal/ddp_nccl.py))
 
 | | 2x L4 (PCIe) | 2x H100 (NVLink) |
