@@ -1,0 +1,219 @@
+
+[01:34:02] # 1. kind cluster (one node, like the k3s box); no GPU on this machine
+
+[01:34:02] $ kind create cluster --name gpujob-op --wait 120s
+Creating cluster "gpujob-op" ...
+ • Ensuring node image (kindest/node:v1.37.0) 🖼️  ...
+ ✓ Ensuring node image (kindest/node:v1.37.0) 🖼️
+ • Preparing nodes 📦   ...
+ ✓ Preparing nodes 📦 
+ • Writing configuration 📜  ...
+ ✓ Writing configuration 📜
+ • Starting control-plane 🕹️  ...
+ ✓ Starting control-plane 🕹️
+ • Installing CNI 🔌  ...
+ ✓ Installing CNI 🔌
+ • Installing StorageClass 💾  ...
+ ✓ Installing StorageClass 💾
+ • Waiting ≤ 2m0s for control-plane = Ready ⏳  ...
+ ✓ Waiting ≤ 2m0s for control-plane = Ready ⏳
+ • Ready after 17s 💚
+Set kubectl context to "kind-gpujob-op"
+You can now use your cluster with:
+
+kubectl cluster-info --context kind-gpujob-op
+
+Have a nice day! 👋
+
+[01:34:45] $ kubectl version
+Client Version: v1.36.5
+Kustomize Version: v5.8.1
+Server Version: v1.37.0
+
+[01:34:45] $ kubectl get nodes -o wide
+NAME                      STATUS   ROLES           AGE   VERSION   INTERNAL-IP   EXTERNAL-IP   OS-IMAGE                       KERNEL-VERSION                             CONTAINER-RUNTIME
+gpujob-op-control-plane   Ready    control-plane   28s   v1.37.0   172.22.0.2    <none>        Debian GNU/Linux 13 (trixie)   6.6.87.2-microsoft-standard-WSL2 (amd64)   containerd://2.3.4
+
+[01:34:46] # 2. fake GPU: advertise nvidia.com/gpu: 1 on the node (status patch; no device plugin)
+
+[01:34:46] $ kubectl patch node gpujob-op-control-plane --subresource=status --type=json -p [{"op":"add","path":"/status/capacity/nvidia.com~1gpu","value":"1"}]
+node/gpujob-op-control-plane patched
+
+[01:34:55] $ kubectl get node gpujob-op-control-plane -o jsonpath=capacity={.status.capacity.nvidia\.com/gpu} allocatable={.status.allocatable.nvidia\.com/gpu}{"\n"}
+capacity=1 allocatable=1
+
+[01:34:55] # 3. stand-in RuntimeClass nvidia (handler runc), the repo's namespace and admission policy
+
+[01:34:55] $ kubectl apply -f hack/kind/runtimeclass-runc.yaml
+runtimeclass.node.k8s.io/nvidia created
+
+[01:34:55] $ kubectl apply -f /scheduling/manifests/00-namespace.yaml -f /scheduling/manifests/50-require-gpu-limit-policy.yaml
+namespace/gpu-jobs created
+validatingadmissionpolicy.admissionregistration.k8s.io/require-gpu-limit-with-nvidia-runtime created
+validatingadmissionpolicybinding.admissionregistration.k8s.io/require-gpu-limit-with-nvidia-runtime created
+
+[01:34:58] # policy check: an nvidia-runtime pod without a GPU limit must be denied
+
+[01:34:58] $ kubectl apply --dry-run=server -f hack/kind/no-limit-pod.yaml
+The pods "sneaky" is invalid: : ValidatingAdmissionPolicy 'require-gpu-limit-with-nvidia-runtime' with binding 'require-gpu-limit-with-nvidia-runtime' denied request: Pods using runtimeClassName nvidia must set resources.limits["nvidia.com/gpu"] on every container; otherwise they get the GPU without being scheduled for it.
+
+[01:34:59] # 4. install the operator (image loaded into the node, not pulled)
+
+[01:34:59] $ kind load docker-image gpujob-operator:dev --name gpujob-op
+Image: "gpujob-operator:dev" with ID "sha256:524f9af34d1ffa9d8324cf8183d1bf7b500984e4f66258cc6d5b351c8745e42a" not yet present on node "gpujob-op-control-plane", loading...
+
+[01:35:08] $ kubectl apply -k config/default
+namespace/gpujob-system created
+customresourcedefinition.apiextensions.k8s.io/gpujobs.gpu.zakiscoding.dev created
+serviceaccount/gpujob-operator created
+role.rbac.authorization.k8s.io/gpujob-operator-leader-election created
+clusterrole.rbac.authorization.k8s.io/gpujob-operator created
+rolebinding.rbac.authorization.k8s.io/gpujob-operator-leader-election created
+clusterrolebinding.rbac.authorization.k8s.io/gpujob-operator created
+deployment.apps/gpujob-operator created
+
+[01:35:10] $ kubectl -n gpujob-system rollout status deploy/gpujob-operator --timeout=120s
+Waiting for deployment "gpujob-operator" rollout to finish: 0 of 1 updated replicas are available...
+deployment "gpujob-operator" successfully rolled out
+
+[01:35:22] $ kubectl get crd gpujobs.gpu.zakiscoding.dev
+NAME                          SCOPE        VERSIONS            CREATED AT
+gpujobs.gpu.zakiscoding.dev   Namespaced   v1alpha1(storage)   2026-11-14T01:35:10Z
+
+[01:35:23] # 5. two GpuJobs at once, one fake GPU: demo-b must queue behind demo-a
+
+[01:35:24] $ kubectl apply -f hack/kind/demo-jobs.yaml
+gpujob.gpu.zakiscoding.dev/demo-a created
+[01:35:24] watch | EVENT      NAME     PHASE   GPUS   JOB   STARTED   AGE
+[01:35:24] watch | ADDED      demo-a           1                      0s
+gpujob.gpu.zakiscoding.dev/demo-b created
+[01:35:24] watch | ADDED      demo-b           1                      0s
+[01:35:24] watch | MODIFIED   demo-a   Pending   1      demo-a             0s
+[01:35:24] watch | MODIFIED   demo-a   Pending   1      demo-a             0s
+[01:35:24] watch | MODIFIED   demo-b   Pending   1      demo-b             0s
+[01:35:25] watch | MODIFIED   demo-a   Pending   1      demo-a   1s        1s
+[01:35:25] watch | MODIFIED   demo-b   Pending   1      demo-b   1s        1s
+[01:35:29] watch | MODIFIED   demo-a   Running   1      demo-a   5s        5s
+
+[01:35:32] $ kubectl -n gpu-jobs get gpujobs -o wide
+NAME     PHASE     GPUS   JOB      STARTED   MESSAGE                                                                                                                                                AGE
+demo-a   Running   1      demo-a   8s        pod running                                                                                                                                            8s
+demo-b   Pending   1      demo-b   8s        queued: 0/1 nodes are available: 1 Insufficient nvidia.com/gpu. preemption: 0/1 nodes are available: 1 No preemption victims found for incoming pod.   8s
+
+[01:35:32] $ kubectl -n gpu-jobs get jobs,pods -o wide
+NAME               STATUS    COMPLETIONS   DURATION   AGE   CONTAINERS   IMAGES         SELECTOR
+job.batch/demo-a   Running   0/1           9s         9s    main         busybox:1.37   batch.kubernetes.io/controller-uid=3b284cba-154f-4358-840f-ed302636252b
+job.batch/demo-b   Running   0/1           9s         9s    main         busybox:1.37   batch.kubernetes.io/controller-uid=35bfd03c-0388-40bd-8c79-4131d0fb2103
+
+NAME               READY   STATUS    RESTARTS   AGE   IP           NODE                      NOMINATED NODE   READINESS GATES
+pod/demo-a-hrw8l   1/1     Running   0          9s    10.244.0.6   gpujob-op-control-plane   <none>           <none>
+pod/demo-b-wstdx   0/1     Pending   0          9s    <none>       <none>                    <none>           <none>
+
+[01:35:33] $ kubectl -n gpu-jobs get gpujob demo-b -o jsonpath={range .status.conditions[*]}{.type}={.status} {.reason}: {.message}{"\n"}{end}
+JobCreated=True Created: Job demo-b
+SpecInSync=True Created: 
+Finished=False Active: 
+Scheduled=False Unschedulable: 0/1 nodes are available: 1 Insufficient nvidia.com/gpu. preemption: 0/1 nodes are available: 1 No preemption victims found for incoming pod.
+
+[01:35:33] $ kubectl -n gpu-jobs wait gpujob/demo-a --for=jsonpath={.status.phase}=Succeeded --timeout=180s
+[01:35:52] watch | MODIFIED   demo-a   Running   1      demo-a   28s       28s
+[01:35:52] watch | MODIFIED   demo-b   Pending   1      demo-b   28s       28s
+[01:35:52] watch | MODIFIED   demo-b   Pending   1      demo-b   28s       28s
+gpujob.gpu.zakiscoding.dev/demo-a condition met
+[01:35:52] watch | MODIFIED   demo-a   Succeeded   1      demo-a   28s       28s
+
+[01:35:52] $ kubectl -n gpu-jobs wait gpujob/demo-b --for=jsonpath={.status.phase}=Running --timeout=60s
+gpujob.gpu.zakiscoding.dev/demo-b condition met
+[01:35:54] watch | MODIFIED   demo-b   Running     1      demo-b   29s       29s
+
+[01:35:54] $ kubectl -n gpu-jobs wait gpujob/demo-b --for=jsonpath={.status.phase}=Succeeded --timeout=180s
+[01:36:16] watch | MODIFIED   demo-b   Running     1      demo-b   52s       52s
+gpujob.gpu.zakiscoding.dev/demo-b condition met
+[01:36:16] watch | MODIFIED   demo-b   Succeeded   1      demo-b   52s       52s
+
+[01:36:16] $ kubectl -n gpu-jobs get gpujobs -o wide
+NAME     PHASE       GPUS   JOB      STARTED   MESSAGE         AGE
+demo-a   Succeeded   1      demo-a   53s       Job completed   53s
+demo-b   Succeeded   1      demo-b   53s       Job completed   53s
+
+[01:36:17] $ kubectl -n gpu-jobs logs job/demo-a
+start on demo-a-hrw8l
+done
+
+[01:36:17] $ kubectl -n gpu-jobs get events --field-selector involvedObject.kind=Pod --sort-by=.lastTimestamp -o custom-columns=TIME:.lastTimestamp,POD:.involvedObject.name,REASON:.reason,MESSAGE:.message
+TIME                   POD            REASON             MESSAGE
+2026-11-14T01:35:24Z   demo-a-hrw8l   Scheduled          Successfully assigned gpu-jobs/demo-a-hrw8l to gpujob-op-control-plane
+2026-11-14T01:35:24Z   demo-b-wstdx   FailedScheduling   0/1 nodes are available: 1 Insufficient nvidia.com/gpu. preemption: 0/1 nodes are available: 1 No preemption victims found for incoming pod.
+2026-11-14T01:35:26Z   demo-a-hrw8l   Pulling            Pulling image "busybox:1.37"
+2026-11-14T01:35:29Z   demo-a-hrw8l   Pulled             Successfully pulled image "busybox:1.37" in 3.175s (3.175s including waiting). Image size: 2222118 bytes.
+2026-11-14T01:35:29Z   demo-a-hrw8l   Created            Container created
+2026-11-14T01:35:29Z   demo-a-hrw8l   Started            Container started
+2026-11-14T01:35:52Z   demo-b-wstdx   Scheduled          Successfully assigned gpu-jobs/demo-b-wstdx to gpujob-op-control-plane
+2026-11-14T01:35:53Z   demo-b-wstdx   Pulled             Container image "busybox:1.37" already present on machine and can be accessed by the pod
+2026-11-14T01:35:53Z   demo-b-wstdx   Created            Container created
+2026-11-14T01:35:53Z   demo-b-wstdx   Started            Container started
+
+[01:36:17] # 6. a failing job: exit 3, backoffLimit 0
+
+[01:36:17] $ kubectl apply -f hack/kind/demo-fail.yaml
+gpujob.gpu.zakiscoding.dev/demo-fail created
+[01:36:17] watch | ADDED      demo-fail               1                         0s
+
+[01:36:17] $ kubectl -n gpu-jobs wait gpujob/demo-fail --for=jsonpath={.status.phase}=Failed --timeout=180s
+[01:36:17] watch | MODIFIED   demo-fail   Pending     1      demo-fail             0s
+[01:36:17] watch | MODIFIED   demo-fail   Pending     1      demo-fail             0s
+[01:36:17] watch | MODIFIED   demo-fail   Pending     1      demo-fail   0s        0s
+[01:36:17] watch | MODIFIED   demo-fail   Pending     1      demo-fail   0s        0s
+[01:36:18] watch | MODIFIED   demo-fail   Running     1      demo-fail   1s        1s
+[01:36:20] watch | MODIFIED   demo-fail   Running     1      demo-fail   3s        3s
+gpujob.gpu.zakiscoding.dev/demo-fail condition met
+[01:36:20] watch | MODIFIED   demo-fail   Failed      1      demo-fail   3s        3s
+
+[01:36:20] $ kubectl -n gpu-jobs get gpujob demo-fail -o wide
+NAME        PHASE    GPUS   JOB         STARTED   MESSAGE                                                             AGE
+demo-fail   Failed   1      demo-fail   3s        BackoffLimitExceeded: Job has reached the specified backoff limit   3s
+
+[01:36:20] # operator log so far: one 'created Job' line per GpuJob
+{"level":"info","ts":"2026-11-14T01:35:11Z","logger":"setup","msg":"starting manager","runtimeClass":"nvidia"}
+{"level":"info","ts":"2026-11-14T01:35:24Z","msg":"created Job","controller":"gpujob","controllerGroup":"gpu.zakiscoding.dev","controllerKind":"GpuJob","GpuJob":{"name":"demo-a","namespace":"gpu-jobs"},"namespace":"gpu-j
+{"level":"info","ts":"2026-11-14T01:35:24Z","msg":"created Job","controller":"gpujob","controllerGroup":"gpu.zakiscoding.dev","controllerKind":"GpuJob","GpuJob":{"name":"demo-b","namespace":"gpu-jobs"},"namespace":"gpu-j
+{"level":"info","ts":"2026-11-14T01:36:17Z","msg":"created Job","controller":"gpujob","controllerGroup":"gpu.zakiscoding.dev","controllerKind":"GpuJob","GpuJob":{"name":"demo-fail","namespace":"gpu-jobs"},"namespace":"gp
+
+[01:36:20] # 7. idempotency on a live cluster: restart the operator, still exactly one Job per GpuJob
+
+[01:36:20] $ kubectl -n gpujob-system rollout restart deploy/gpujob-operator
+deployment.apps/gpujob-operator restarted
+
+[01:36:20] $ kubectl -n gpujob-system rollout status deploy/gpujob-operator --timeout=120s
+Waiting for deployment "gpujob-operator" rollout to finish: 1 old replicas are pending termination...
+Waiting for deployment "gpujob-operator" rollout to finish: 1 old replicas are pending termination...
+deployment "gpujob-operator" successfully rolled out
+
+[01:36:42] $ kubectl -n gpu-jobs get jobs -L gpu.zakiscoding.dev/gpujob
+NAME        STATUS     COMPLETIONS   DURATION   AGE   GPUJOB
+demo-a      Complete   1/1           28s        78s   demo-a
+demo-b      Complete   1/1           52s        78s   demo-b
+demo-fail   Failed     0/1           25s        25s   demo-fail
+
+[01:36:42] # the new operator pod re-reconciled every GpuJob and created nothing:
+{"level":"info","ts":"2026-11-14T01:36:34Z","logger":"leaderelection","msg":"Successfully acquired lease","lock":"gpujob-system/gpujob-operator.gpu.zakiscoding.dev"}
+{"level":"info","ts":"2026-11-14T01:36:34Z","msg":"Starting workers","controller":"gpujob","controllerGroup":"gpu.zakiscoding.dev","controllerKind":"GpuJob","worker count":1}
+created-Job lines after restart: 0
+
+[01:36:43] # 8. cascade delete: deleting a GpuJob removes its Job and pod (owner reference + GC)
+
+[01:36:43] $ kubectl -n gpu-jobs delete gpujob demo-a --wait=true
+gpujob.gpu.zakiscoding.dev "demo-a" deleted from gpu-jobs namespace
+[01:36:43] watch | DELETED    demo-a      Succeeded   1      demo-a      79s       79s
+
+[01:36:48] $ kubectl -n gpu-jobs get jobs,pods -l gpu.zakiscoding.dev/gpujob=demo-a
+No resources found in gpu-jobs namespace.
+
+[01:36:49] # 9. spec is immutable
+
+[01:36:49] $ kubectl -n gpu-jobs patch gpujob demo-b --type=merge -p {"spec":{"gpus":2}}
+The GpuJob "demo-b" is invalid: spec: Invalid value: spec is immutable; delete and re-create the GpuJob
+
+[01:36:49] # deleting the kind cluster gpujob-op
+Deleting cluster "gpujob-op" ...
+Deleted nodes: ["gpujob-op-control-plane"]
