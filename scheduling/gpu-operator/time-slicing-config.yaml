@@ -1,0 +1,22 @@
+# Device plugin config for the GPU Operator: advertise the one RTX 5070 as nvidia.com/gpu: 4.
+# Same settings as ../manifests/11-device-plugin-config-timesliced.yaml (measured on
+# 2026-10-23 with the plain plugin), in the layout the operator expects: a ConfigMap in
+# the operator's namespace with one key per named config; values.yaml selects "any".
+# Every replica sees the whole card (all 12 GB): no memory or fault isolation.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: time-slicing-config
+  namespace: gpu-operator
+data:
+  any: |-
+    version: v1
+    flags:
+      migStrategy: none
+    sharing:
+      timeSlicing:
+        renameByDefault: false
+        failRequestsGreaterThanOne: true
+        resources:
+          - name: nvidia.com/gpu
+            replicas: 4

@@ -1,0 +1,18 @@
+# OPTIONAL overlay: let the operator install and configure the NVIDIA container toolkit
+# instead of using the host's. Use with values.yaml:
+#   helm install ... -f values.yaml -f values-toolkit-k3s.yaml
+# k3s runs its own containerd, so the toolkit must be pointed at k3s's config and socket,
+# not at /etc/containerd. Not the default here: see the README ("Toolkit: host or operator").
+toolkit:
+  enabled: true
+  env:
+    - name: CONTAINERD_CONFIG
+      value: /var/lib/rancher/k3s/agent/etc/containerd/config.toml
+    - name: CONTAINERD_SOCKET
+      value: /run/k3s/containerd/containerd.sock
+    - name: CONTAINERD_RUNTIME_CLASS
+      value: nvidia
+    - name: CONTAINERD_SET_AS_DEFAULT
+      value: "false"      # only pods with runtimeClassName nvidia get the NVIDIA runtime
+cdi:
+  enabled: true           # the operator's toolkit generates the CDI specs
