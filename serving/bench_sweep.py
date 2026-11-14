@@ -115,6 +115,17 @@ def parse_kv(log_text):
     return kv
 
 
+def ensure_pandas():
+    """vLLM's custom-dataset loader reads JSONL with pandas, which the vllm/vllm-openai
+    image doesn't ship ("Please install vllm[bench]"). Install it into this container
+    before the first --dataset custom run."""
+    try:
+        import pandas  # noqa: F401
+    except ImportError:
+        print("[bench] installing pandas for the custom dataset", flush=True)
+        subprocess.run([sys.executable, "-m", "pip", "install", "--quiet", "pandas"], check=True)
+
+
 def dataset_args(args, output_len):
     """`vllm bench serve` flags for the prompt source: fixed-length random tokens,
     or the repo's natural-language prompts with a fixed output length."""
@@ -274,6 +285,8 @@ def main():
 
     out_dir = Path(args.out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
+    if args.dataset == "custom":
+        ensure_pandas()
     stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     gpu_before = gpu_info()
 

@@ -117,6 +117,47 @@ Qwen2.5-1.5B with vLLM 0.32, 512 input / 256 output tokens, output tokens/s:
 - **Cost:** about $0.07 per 1M tokens on an H100 at concurrency 64, vs about $2.50 serving one
   request at a time (approximate list prices).
 
+### Inference optimization on the RTX 5070: FP16 vs AWQ vs FP8 ([serving/bench_sweep.py](../serving/bench_sweep.py), [docs/data/inference-rtx5070-2026-11-14/](data/inference-rtx5070-2026-11-14/))
+
+Qwen2.5-1.5B-Instruct, vLLM 0.32.0, 512 random input / 256 output tokens, `gpu_memory_utilization`
+0.80, prefix caching off. Each configuration ran as a GopherGrid `benchmark` job on the homelab:
+the scheduler placed it on the GPU PC, and the worker started the vLLM server in a container,
+swept concurrency and stopped it. Output tokens/s:
+
+| Concurrency | FP16 | AWQ (4-bit weights) | FP8 (online, per-tensor) | AWQ / FP16 | FP8 / FP16 |
+|---:|---:|---:|---:|---:|---:|
+| 1 | 160 | **314** | 231 | 1.96x | 1.45x |
+| 4 | 594 | **1,114** | 846 | 1.88x | 1.43x |
+| 16 | 1,926 | **2,965** | 2,789 | 1.54x | 1.45x |
+| 64 | 4,211 | 4,357 | **5,735** | 1.03x | 1.36x |
+
+| Precision | Weights | KV cache | Per-token latency (TPOT p50) at 1 | End-to-end p50 / p95 at 64 | TTFT p95 at 64 |
+|---|---:|---:|---:|---:|---:|
+| FP16 | 2.98 GiB | 207,632 tokens | 6.08 ms | 3.85 / 4.96 s | 1.45 s |
+| AWQ | 1.10 GiB | 279,312 tokens | **3.05 ms** | 3.74 / 4.83 s | 1.57 s |
+| FP8 | 1.73 GiB | 255,936 tokens | 4.23 ms | **2.76 / 3.82 s** | **0.86 s** |
+
+- **FP8 works on this Blackwell card** (compute capability 12.0). vLLM picked the CUTLASS FP8
+  scaled-matmul kernel and quantized the 112 linear layers online in 0.14 s. It is the only
+  option that is faster at every concurrency, and at 64 concurrent requests it gives the most
+  throughput and the lowest latency.
+- **AWQ wins when decoding is memory-bound.** With one request in flight, each token reads all
+  the weights, and 4-bit weights halve the per-token time (3.05 vs 6.08 ms). As the batch grows,
+  the work becomes compute-bound and AWQ's dequantization costs show: at 64 it is only 3%
+  ahead of FP16.
+- **KV cache was not the limit here.** Smaller weights left more room for KV cache, but 64
+  requests × 768 tokens need about 49k tokens of the 208k–279k available, so the differences come
+  from the kernels, not from capacity.
+- **Caveats.** One run per configuration, and only 16 prompts at concurrency 1 and 4, so small
+  differences there are noise. Output quality was not measured: AWQ is Qwen's own 4-bit checkpoint
+  and FP8 is quantized on load, and both change the outputs. AWQ needed three attempts: twice the
+  scheduler declared the GPU worker dead mid-run (missed heartbeats, cause not found) and
+  requeued the job. GopherGrid recorded only the third attempt's result, and those are the numbers
+  here.
+- **Not measured yet: speculative decoding.** The runs with n-gram and draft-model (Qwen2.5-0.5B)
+  speculation didn't start, because the natural-language prompt set needs pandas, which the
+  vLLM image lacks. They are the next window on the GPU.
+
 ### Sharded training and fault tolerance ([distributed/](../distributed/), [modal/fsdp_train.py](../modal/fsdp_train.py), [modal/elastic_train.py](../modal/elastic_train.py))
 
 | 2x H100, per GPU | DDP | FSDP2 |
@@ -167,7 +208,9 @@ Qwen2.5-1.5B with vLLM 0.32, 512 input / 256 output tokens, output tokens/s:
    run on the same two GPUs.
 7. **Serving is a batching problem.** Throughput comes from concurrency until the KV cache fills.
    After that, latency explodes and throughput stops growing.
-8. **Measure what the platform hides.** The GPU limit in Kubernetes turned out to be accounting,
+8. **Quantization is a latency tool first.** On a small model, 4-bit AWQ halved per-token time
+   for a single user but barely helped a full batch. FP8 helped everywhere on Blackwell.
+9. **Measure what the platform hides.** The GPU limit in Kubernetes turned out to be accounting,
    not enforcement, until an admission policy made it real.
 
 ## Runbooks
