@@ -1,0 +1,5 @@
+# Created before the chart so time-slicing-config.yaml can go in first.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: gpu-operator

@@ -1,0 +1,53 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: gpujob-operator
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ""
+  - events.k8s.io
+  resources:
+  - events
+  verbs:
+  - create
+  - patch
+- apiGroups:
+  - batch
+  resources:
+  - jobs
+  verbs:
+  - create
+  - get
+  - list
+  - watch
+- apiGroups:
+  - gpu.zakiscoding.dev
+  resources:
+  - gpujobs
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - gpu.zakiscoding.dev
+  resources:
+  - gpujobs/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - gpu.zakiscoding.dev
+  resources:
+  - gpujobs/status
+  verbs:
+  - get
+  - patch
+  - update

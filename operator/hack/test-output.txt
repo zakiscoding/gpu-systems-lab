@@ -1,0 +1,41 @@
+# ./hack/in-docker.sh make test   (2026-11-14 UTC, golang:1.26 on Docker Desktop, Windows 11 laptop; envtest 1.36.2)
+KUBEBUILDER_ASSETS="$(/src/bin/setup-envtest use 1.36 --bin-dir /root/.cache/envtest -p path)" \
+	go test ./... -count=1 -v
+?   	github.com/zakiscoding/gpu-systems-lab/operator/api/v1alpha1	[no test files]
+?   	github.com/zakiscoding/gpu-systems-lab/operator/cmd	[no test files]
+--- PASS: TestCreatesJobWithGPULimitRuntimeClassAndOwner (2.11s)
+--- PASS: TestReconcileIsIdempotent (0.71s)
+--- PASS: TestStatusSucceeded (0.11s)
+--- PASS: TestStatusFailed (0.19s)
+--- PASS: TestPendingQueuedThenRunning (0.25s)
+--- PASS: TestJobDeletedWhileUnfinishedIsRecreated (0.24s)
+--- PASS: TestJobDeletedAfterFinishIsNotRecreated (1.19s)
+--- PASS: TestNameConflictWithForeignJob (0.08s)
+--- PASS: TestSpecDriftIsReported (0.12s)
+--- PASS: TestCRDValidation (0.10s)
+    --- PASS: TestCRDValidation/gpus-zero (0.00s)
+    --- PASS: TestCRDValidation/gpus-nine (0.00s)
+    --- PASS: TestCRDValidation/no-image (0.00s)
+    --- PASS: TestCRDValidation/empty-image (0.01s)
+    --- PASS: TestCRDValidation/negative-backoff (0.03s)
+    --- PASS: TestCRDValidation/zero-deadline (0.00s)
+    --- PASS: TestCRDValidation/defaults (0.03s)
+    --- PASS: TestCRDValidation/spec-immutable (0.01s)
+--- PASS: TestBuildJobGPUAndRuntime (0.00s)
+--- PASS: TestBuildJobJobFields (0.00s)
+--- PASS: TestBuildJobDefaults (0.00s)
+--- PASS: TestBuildJobRuntimeClassFlag (0.00s)
+--- PASS: TestSpecHash (0.00s)
+--- PASS: TestApplyJobStatus (0.00s)
+    --- PASS: TestApplyJobStatus/no_pod (0.00s)
+    --- PASS: TestApplyJobStatus/unschedulable (0.00s)
+    --- PASS: TestApplyJobStatus/running (0.00s)
+    --- PASS: TestApplyJobStatus/pod_exited,_Job_not_final_yet (0.00s)
+    --- PASS: TestApplyJobStatus/retry_pod_queued_after_a_failure (0.00s)
+    --- PASS: TestApplyJobStatus/complete (0.00s)
+    --- PASS: TestApplyJobStatus/failed (0.00s)
+PASS
+{"level":"error","ts":"2026-11-14T01:27:17Z","msg":"Reconciler error","controller":"gpujob","controllerGroup":"gpu.zakiscoding.dev","controllerKind":"GpuJob","G ... [teardown: envtest stopped while a reconcile was in flight]
+{"level":"error","ts":"2026-11-14T01:27:17Z","msg":"Reconciler error","controller":"gpujob","controllerGroup":"gpu.zakiscoding.dev","controllerKind":"GpuJob","G ... [teardown: envtest stopped while a reconcile was in flight]
+ok  	github.com/zakiscoding/gpu-systems-lab/operator/internal/controller	13.068s
+EXIT=0
