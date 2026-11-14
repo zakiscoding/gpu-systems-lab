@@ -90,6 +90,19 @@ $0.01 and starts in ~4 s.
 **The interconnect decides whether a second GPU helps.** On L4s the 537 MB gradient sync
 (~81 ms) swamps 18 ms of compute. On H100s it takes ~1.6 ms, which a large enough batch hides.
 
+**nccl-tests** ([NCCL-TESTS.md](NCCL-TESTS.md), [modal/nccl_tests.py](../modal/nccl_tests.py)): NVIDIA's
+benchmark on 2x H100 SXM, NCCL 2.25.1, 0 wrong results at every size.
+
+| 8 GiB, busbw | all_reduce | all_gather | reduce_scatter | broadcast | alltoall | sendrecv |
+|---|---:|---:|---:|---:|---:|---:|
+| GB/s | **344** | 312 | 293 | 373 | 364 | 367 |
+| % of 478 GB/s NVLink (18 x 26.56) | 72% | 65% | 61% | 78% | 76% | 77% |
+
+All-reduce reaches 96% of the 360 GB/s NCCL's own topology model planned for (12 rings over
+NVLink). It needs about 256 MiB messages to get within 15% of peak (69 GB/s at 1 MiB). With
+peer-to-peer disabled it falls to 26.6 GB/s (13x slower). These are single-node numbers:
+there is no InfiniBand/RDMA here (see the doc).
+
 ### MPI ([mpi/](../mpi/), [mpi/multinode/](../mpi/multinode/), [modal/mpi_multigpu.py](../modal/mpi_multigpu.py))
 
 | Setup | Jacobi 8192²/4096² vs 1 rank | Key measurement |
