@@ -196,6 +196,10 @@ GopherGrid `benchmark` job. Output tokens/s, and the share of drafted tokens the
 - **Elastic restart:** `torchrun --max-restarts`, one rank killed at step 48 of 60. Training resumed
   from the last checkpoint and ended with a bit-identical final loss. Time lost was 11.0 s
   (checkpoint every 10 steps) or 14.4 s (every 25).
+- **DeepSpeed ZeRO** ([DEEPSPEED.md](DEEPSPEED.md)), same model, same container: at 1.34B, ZeRO-1/2 run
+  114 ms/step (18.4 GiB) vs FSDP2 108.5 ms (15.6 GiB), and ZeRO-3 runs 180 ms. At 5.64B every ZeRO
+  stage fits where DDP OOMs, but ZeRO-1/2 take 876–960 ms, about 940 ms of it in the optimizer step
+  (client torch AdamW on a flat 2.8B-element partition). ZeRO-3 takes 508 ms vs FSDP2's 288 ms.
 
 ### Operations: observability and scheduling ([observability/](../observability/), [scheduling/](../scheduling/))
 
