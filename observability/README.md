@@ -68,7 +68,8 @@ use an SSH tunnel instead.
 The homelab's central Prometheus on the iMac federates this stack's DCGM and node metrics, and its Grafana serves the GPU
 dashboard publicly, read-only ([Public dashboards](../cloudflare/README.md#public-dashboards)). This Prometheus and
 Grafana stay private. The stack also runs in WSL2 on the
-Windows boot, using [compose.wsl.yml](compose.wsl.yml).
+Windows boot, using [compose.wsl.yml](compose.wsl.yml). There it runs without Grafana, since the iMac's Grafana already
+shows these metrics; `--profile local-grafana` brings it back.
 
 ## What the dashboard shows
 

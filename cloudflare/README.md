@@ -72,8 +72,8 @@ through 90 s with no other session (tested). Starting at boot before anyone logs
 A second trigger reruns it every 5 minutes (`MultipleInstances=IgnoreNew`): a boot-only trigger left everything down for
 9 days after the session ended on 2026-11-04 ([details](../docs/CLOUDFLARE.md#running-on-the-gpu-pc)).
 
-The containers publish on `127.0.0.1` only. `zakar`'s Windows Tailscale forwards vLLM `:8000`, Prometheus `:9090` and
-Grafana `:3000` to the tailnet with `tailscale serve --bg --tcp <port> tcp://127.0.0.1:<port>`, so the iMac reaches them
+The containers publish on `127.0.0.1` only. `zakar`'s Windows Tailscale forwards vLLM `:8000` and Prometheus `:9090`
+to the tailnet (Grafana `:3000` was removed on 2026-11-14; the iMac's Grafana covers it) with `tailscale serve --bg --tcp <port> tcp://127.0.0.1:<port>`, so the iMac reaches them
 at `100.88.71.33`.
 To undo, run this in an elevated PowerShell, then `wsl.exe --terminate Ubuntu`:
 

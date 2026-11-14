@@ -2,7 +2,14 @@
 # since WSL has no tailnet IP; the tunnel reaches Grafana over Docker's network.
 #
 #   docker compose -f docker-compose.yml -f compose.wsl.yml up -d
+#
+# Grafana is off on the Windows boot: the iMac's central Grafana already shows this
+# Prometheus (federated), so a second one only cost RAM. To run it anyway:
+#   docker compose -f docker-compose.yml -f compose.wsl.yml --profile local-grafana up -d
 services:
+  grafana:
+    profiles: ["local-grafana"]
+
   # Keeps the host mount from failing: WSL's root isn't a shared mount.
   node-exporter:
     volumes: !override
