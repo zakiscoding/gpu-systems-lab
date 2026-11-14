@@ -1,0 +1,2047 @@
+{
+  "gpu_request": "H100:2",
+  "nccl_tests": "v2.21.1",
+  "wall_seconds": 113.4,
+  "quick": false,
+  "tests": {
+    "all_reduce_perf": {
+      "rows": [
+        {
+          "bytes": 16,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 9.8,
+          "algbw_gbs": 0.0,
+          "busbw_gbs": 0.0,
+          "wrong": 0
+        },
+        {
+          "bytes": 32,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 14.36,
+          "algbw_gbs": 0.0,
+          "busbw_gbs": 0.0,
+          "wrong": 0
+        },
+        {
+          "bytes": 64,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 11.5,
+          "algbw_gbs": 0.01,
+          "busbw_gbs": 0.01,
+          "wrong": 0
+        },
+        {
+          "bytes": 128,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 10.93,
+          "algbw_gbs": 0.01,
+          "busbw_gbs": 0.01,
+          "wrong": 0
+        },
+        {
+          "bytes": 256,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 11.09,
+          "algbw_gbs": 0.02,
+          "busbw_gbs": 0.02,
+          "wrong": 0
+        },
+        {
+          "bytes": 512,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 12.51,
+          "algbw_gbs": 0.05,
+          "busbw_gbs": 0.05,
+          "wrong": 0
+        },
+        {
+          "bytes": 1024,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 11.9,
+          "algbw_gbs": 0.09,
+          "busbw_gbs": 0.09,
+          "wrong": 0
+        },
+        {
+          "bytes": 2048,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 10.72,
+          "algbw_gbs": 0.2,
+          "busbw_gbs": 0.2,
+          "wrong": 0
+        },
+        {
+          "bytes": 4096,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 10.73,
+          "algbw_gbs": 0.38,
+          "busbw_gbs": 0.38,
+          "wrong": 0
+        },
+        {
+          "bytes": 8192,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 10.75,
+          "algbw_gbs": 0.76,
+          "busbw_gbs": 0.76,
+          "wrong": 0
+        },
+        {
+          "bytes": 16384,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 11.35,
+          "algbw_gbs": 1.5,
+          "busbw_gbs": 1.5,
+          "wrong": 0
+        },
+        {
+          "bytes": 32768,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 11.25,
+          "algbw_gbs": 2.93,
+          "busbw_gbs": 2.93,
+          "wrong": 0
+        },
+        {
+          "bytes": 65536,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 11.4,
+          "algbw_gbs": 5.75,
+          "busbw_gbs": 5.75,
+          "wrong": 0
+        },
+        {
+          "bytes": 131072,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 11.9,
+          "algbw_gbs": 11.01,
+          "busbw_gbs": 11.01,
+          "wrong": 0
+        },
+        {
+          "bytes": 262144,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 12.06,
+          "algbw_gbs": 21.93,
+          "busbw_gbs": 21.93,
+          "wrong": 0
+        },
+        {
+          "bytes": 524288,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 12.73,
+          "algbw_gbs": 42.08,
+          "busbw_gbs": 42.08,
+          "wrong": 0
+        },
+        {
+          "bytes": 1048576,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 15.2,
+          "algbw_gbs": 68.99,
+          "busbw_gbs": 68.99,
+          "wrong": 0
+        },
+        {
+          "bytes": 2097152,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 31.13,
+          "algbw_gbs": 67.36,
+          "busbw_gbs": 67.36,
+          "wrong": 0
+        },
+        {
+          "bytes": 4194304,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 36.58,
+          "algbw_gbs": 114.7,
+          "busbw_gbs": 114.7,
+          "wrong": 0
+        },
+        {
+          "bytes": 8388608,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 52.94,
+          "algbw_gbs": 161.68,
+          "busbw_gbs": 161.68,
+          "wrong": 0
+        },
+        {
+          "bytes": 16777216,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 83.58,
+          "algbw_gbs": 206.52,
+          "busbw_gbs": 206.52,
+          "wrong": 0
+        },
+        {
+          "bytes": 33554432,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 146.96,
+          "algbw_gbs": 229.29,
+          "busbw_gbs": 229.29,
+          "wrong": 0
+        },
+        {
+          "bytes": 67108864,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 261.9,
+          "algbw_gbs": 256.36,
+          "busbw_gbs": 256.36,
+          "wrong": 0
+        },
+        {
+          "bytes": 134217728,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 480.99,
+          "algbw_gbs": 279.88,
+          "busbw_gbs": 279.88,
+          "wrong": 0
+        },
+        {
+          "bytes": 268435456,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 898.65,
+          "algbw_gbs": 298.71,
+          "busbw_gbs": 298.71,
+          "wrong": 0
+        },
+        {
+          "bytes": 536870912,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 1730.27,
+          "algbw_gbs": 313.45,
+          "busbw_gbs": 313.45,
+          "wrong": 0
+        },
+        {
+          "bytes": 1073741824,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 3307.37,
+          "algbw_gbs": 324.65,
+          "busbw_gbs": 324.65,
+          "wrong": 0
+        },
+        {
+          "bytes": 2147483648,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 6389.85,
+          "algbw_gbs": 336.08,
+          "busbw_gbs": 336.08,
+          "wrong": 0
+        },
+        {
+          "bytes": 4294967296,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 12547.7,
+          "algbw_gbs": 342.29,
+          "busbw_gbs": 342.29,
+          "wrong": 0
+        },
+        {
+          "bytes": 8589934592,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 24940.6,
+          "algbw_gbs": 344.42,
+          "busbw_gbs": 344.42,
+          "wrong": 0
+        }
+      ],
+      "wrong_total": 0,
+      "peak": {
+        "bytes": 8589934592,
+        "busbw_gbs": 344.42,
+        "algbw_gbs": 344.42
+      },
+      "small_latency_us": 9.8,
+      "avg_busbw_gbs": 110.261,
+      "nccl_version": "2.25.1"
+    },
+    "all_gather_perf": {
+      "rows": [
+        {
+          "bytes": 0,
+          "dtype": "float",
+          "redop": "none",
+          "time_us": 0.35,
+          "algbw_gbs": 0.0,
+          "busbw_gbs": 0.0,
+          "wrong": 0
+        },
+        {
+          "bytes": 0,
+          "dtype": "float",
+          "redop": "none",
+          "time_us": 0.34,
+          "algbw_gbs": 0.0,
+          "busbw_gbs": 0.0,
+          "wrong": 0
+        },
+        {
+          "bytes": 32,
+          "dtype": "float",
+          "redop": "none",
+          "time_us": 16.82,
+          "algbw_gbs": 0.0,
+          "busbw_gbs": 0.0,
+          "wrong": 0
+        },
+        {
+          "bytes": 64,
+          "dtype": "float",
+          "redop": "none",
+          "time_us": 11.04,
+          "algbw_gbs": 0.01,
+          "busbw_gbs": 0.0,
+          "wrong": 0
+        },
+        {
+          "bytes": 128,
+          "dtype": "float",
+          "redop": "none",
+          "time_us": 11.2,
+          "algbw_gbs": 0.01,
+          "busbw_gbs": 0.01,
+          "wrong": 0
+        },
+        {
+          "bytes": 256,
+          "dtype": "float",
+          "redop": "none",
+          "time_us": 10.71,
+          "algbw_gbs": 0.02,
+          "busbw_gbs": 0.01,
+          "wrong": 0
+        },
+        {
+          "bytes": 512,
+          "dtype": "float",
+          "redop": "none",
+          "time_us": 13.59,
+          "algbw_gbs": 0.05,
+          "busbw_gbs": 0.02,
+          "wrong": 0
+        },
+        {
+          "bytes": 1024,
+          "dtype": "float",
+          "redop": "none",
+          "time_us": 10.8,
+          "algbw_gbs": 0.09,
+          "busbw_gbs": 0.05,
+          "wrong": 0
+        },
+        {
+          "bytes": 2048,
+          "dtype": "float",
+          "redop": "none",
+          "time_us": 10.95,
+          "algbw_gbs": 0.19,
+          "busbw_gbs": 0.1,
+          "wrong": 0
+        },
+        {
+          "bytes": 4096,
+          "dtype": "float",
+          "redop": "none",
+          "time_us": 10.72,
+          "algbw_gbs": 0.38,
+          "busbw_gbs": 0.19,
+          "wrong": 0
+        },
+        {
+          "bytes": 8192,
+          "dtype": "float",
+          "redop": "none",
+          "time_us": 10.67,
+          "algbw_gbs": 0.77,
+          "busbw_gbs": 0.39,
+          "wrong": 0
+        },
+        {
+          "bytes": 16384,
+          "dtype": "float",
+          "redop": "none",
+          "time_us": 10.51,
+          "algbw_gbs": 1.56,
+          "busbw_gbs": 0.78,
+          "wrong": 0
+        },
+        {
+          "bytes": 32768,
+          "dtype": "float",
+          "redop": "none",
+          "time_us": 11.05,
+          "algbw_gbs": 3.06,
+          "busbw_gbs": 1.53,
+          "wrong": 0
+        },
+        {
+          "bytes": 65536,
+          "dtype": "float",
+          "redop": "none",
+          "time_us": 11.11,
+          "algbw_gbs": 5.95,
+          "busbw_gbs": 2.98,
+          "wrong": 0
+        },
+        {
+          "bytes": 131072,
+          "dtype": "float",
+          "redop": "none",
+          "time_us": 11.35,
+          "algbw_gbs": 11.55,
+          "busbw_gbs": 5.78,
+          "wrong": 0
+        },
+        {
+          "bytes": 262144,
+          "dtype": "float",
+          "redop": "none",
+          "time_us": 11.84,
+          "algbw_gbs": 22.21,
+          "busbw_gbs": 11.1,
+          "wrong": 0
+        },
+        {
+          "bytes": 524288,
+          "dtype": "float",
+          "redop": "none",
+          "time_us": 11.91,
+          "algbw_gbs": 44.36,
+          "busbw_gbs": 22.18,
+          "wrong": 0
+        },
+        {
+          "bytes": 1048576,
+          "dtype": "float",
+          "redop": "none",
+          "time_us": 12.44,
+          "algbw_gbs": 84.37,
+          "busbw_gbs": 42.18,
+          "wrong": 0
+        },
+        {
+          "bytes": 2097152,
+          "dtype": "float",
+          "redop": "none",
+          "time_us": 18.63,
+          "algbw_gbs": 125.81,
+          "busbw_gbs": 62.91,
+          "wrong": 0
+        },
+        {
+          "bytes": 4194304,
+          "dtype": "float",
+          "redop": "none",
+          "time_us": 32.52,
+          "algbw_gbs": 135.83,
+          "busbw_gbs": 67.91,
+          "wrong": 0
+        },
+        {
+          "bytes": 8388608,
+          "dtype": "float",
+          "redop": "none",
+          "time_us": 38.55,
+          "algbw_gbs": 234.89,
+          "busbw_gbs": 117.44,
+          "wrong": 0
+        },
+        {
+          "bytes": 16777216,
+          "dtype": "float",
+          "redop": "none",
+          "time_us": 59.09,
+          "algbw_gbs": 314.84,
+          "busbw_gbs": 157.42,
+          "wrong": 0
+        },
+        {
+          "bytes": 33554432,
+          "dtype": "float",
+          "redop": "none",
+          "time_us": 93.78,
+          "algbw_gbs": 377.35,
+          "busbw_gbs": 188.67,
+          "wrong": 0
+        },
+        {
+          "bytes": 67108864,
+          "dtype": "float",
+          "redop": "none",
+          "time_us": 163.14,
+          "algbw_gbs": 432.64,
+          "busbw_gbs": 216.32,
+          "wrong": 0
+        },
+        {
+          "bytes": 134217728,
+          "dtype": "float",
+          "redop": "none",
+          "time_us": 292.12,
+          "algbw_gbs": 480.98,
+          "busbw_gbs": 240.49,
+          "wrong": 0
+        },
+        {
+          "bytes": 268435456,
+          "dtype": "float",
+          "redop": "none",
+          "time_us": 549.09,
+          "algbw_gbs": 515.57,
+          "busbw_gbs": 257.79,
+          "wrong": 0
+        },
+        {
+          "bytes": 536870912,
+          "dtype": "float",
+          "redop": "none",
+          "time_us": 1040.58,
+          "algbw_gbs": 552.7,
+          "busbw_gbs": 276.35,
+          "wrong": 0
+        },
+        {
+          "bytes": 1073741824,
+          "dtype": "float",
+          "redop": "none",
+          "time_us": 2005.45,
+          "algbw_gbs": 589.65,
+          "busbw_gbs": 294.83,
+          "wrong": 0
+        },
+        {
+          "bytes": 2147483648,
+          "dtype": "float",
+          "redop": "none",
+          "time_us": 3896.57,
+          "algbw_gbs": 597.44,
+          "busbw_gbs": 298.72,
+          "wrong": 0
+        },
+        {
+          "bytes": 4294967296,
+          "dtype": "float",
+          "redop": "none",
+          "time_us": 7465.19,
+          "algbw_gbs": 618.45,
+          "busbw_gbs": 309.22,
+          "wrong": 0
+        },
+        {
+          "bytes": 8589934592,
+          "dtype": "float",
+          "redop": "none",
+          "time_us": 14517.2,
+          "algbw_gbs": 623.42,
+          "busbw_gbs": 311.71,
+          "wrong": 0
+        }
+      ],
+      "wrong_total": 0,
+      "peak": {
+        "bytes": 8589934592,
+        "busbw_gbs": 311.71,
+        "algbw_gbs": 623.42
+      },
+      "small_latency_us": 0.35,
+      "avg_busbw_gbs": 90.1449,
+      "nccl_version": "2.25.1"
+    },
+    "reduce_scatter_perf": {
+      "rows": [
+        {
+          "bytes": 0,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 0.36,
+          "algbw_gbs": 0.0,
+          "busbw_gbs": 0.0,
+          "wrong": 0
+        },
+        {
+          "bytes": 0,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 0.34,
+          "algbw_gbs": 0.0,
+          "busbw_gbs": 0.0,
+          "wrong": 0
+        },
+        {
+          "bytes": 32,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 19.39,
+          "algbw_gbs": 0.0,
+          "busbw_gbs": 0.0,
+          "wrong": 0
+        },
+        {
+          "bytes": 64,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 10.97,
+          "algbw_gbs": 0.01,
+          "busbw_gbs": 0.0,
+          "wrong": 0
+        },
+        {
+          "bytes": 128,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 11.16,
+          "algbw_gbs": 0.01,
+          "busbw_gbs": 0.01,
+          "wrong": 0
+        },
+        {
+          "bytes": 256,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 10.84,
+          "algbw_gbs": 0.02,
+          "busbw_gbs": 0.01,
+          "wrong": 0
+        },
+        {
+          "bytes": 512,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 11.08,
+          "algbw_gbs": 0.05,
+          "busbw_gbs": 0.02,
+          "wrong": 0
+        },
+        {
+          "bytes": 1024,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 12.99,
+          "algbw_gbs": 0.1,
+          "busbw_gbs": 0.05,
+          "wrong": 0
+        },
+        {
+          "bytes": 2048,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 9.9,
+          "algbw_gbs": 0.21,
+          "busbw_gbs": 0.1,
+          "wrong": 0
+        },
+        {
+          "bytes": 4096,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 9.91,
+          "algbw_gbs": 0.42,
+          "busbw_gbs": 0.21,
+          "wrong": 0
+        },
+        {
+          "bytes": 8192,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 10.45,
+          "algbw_gbs": 0.84,
+          "busbw_gbs": 0.42,
+          "wrong": 0
+        },
+        {
+          "bytes": 16384,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 9.98,
+          "algbw_gbs": 1.65,
+          "busbw_gbs": 0.82,
+          "wrong": 0
+        },
+        {
+          "bytes": 32768,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 9.91,
+          "algbw_gbs": 3.31,
+          "busbw_gbs": 1.65,
+          "wrong": 0
+        },
+        {
+          "bytes": 65536,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 10.31,
+          "algbw_gbs": 6.44,
+          "busbw_gbs": 3.22,
+          "wrong": 0
+        },
+        {
+          "bytes": 131072,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 10.4,
+          "algbw_gbs": 12.6,
+          "busbw_gbs": 6.3,
+          "wrong": 0
+        },
+        {
+          "bytes": 262144,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 10.8,
+          "algbw_gbs": 24.26,
+          "busbw_gbs": 12.13,
+          "wrong": 0
+        },
+        {
+          "bytes": 524288,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 10.96,
+          "algbw_gbs": 47.85,
+          "busbw_gbs": 23.92,
+          "wrong": 0
+        },
+        {
+          "bytes": 1048576,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 13.22,
+          "algbw_gbs": 79.31,
+          "busbw_gbs": 39.66,
+          "wrong": 0
+        },
+        {
+          "bytes": 2097152,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 19.82,
+          "algbw_gbs": 107.34,
+          "busbw_gbs": 53.67,
+          "wrong": 0
+        },
+        {
+          "bytes": 4194304,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 27.85,
+          "algbw_gbs": 152.52,
+          "busbw_gbs": 76.26,
+          "wrong": 0
+        },
+        {
+          "bytes": 8388608,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 37.78,
+          "algbw_gbs": 222.67,
+          "busbw_gbs": 111.34,
+          "wrong": 0
+        },
+        {
+          "bytes": 16777216,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 56.62,
+          "algbw_gbs": 302.55,
+          "busbw_gbs": 151.27,
+          "wrong": 0
+        },
+        {
+          "bytes": 33554432,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 94.85,
+          "algbw_gbs": 363.16,
+          "busbw_gbs": 181.58,
+          "wrong": 0
+        },
+        {
+          "bytes": 67108864,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 164.91,
+          "algbw_gbs": 410.4,
+          "busbw_gbs": 205.2,
+          "wrong": 0
+        },
+        {
+          "bytes": 134217728,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 300.49,
+          "algbw_gbs": 451.52,
+          "busbw_gbs": 225.76,
+          "wrong": 0
+        },
+        {
+          "bytes": 268435456,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 566.91,
+          "algbw_gbs": 478.84,
+          "busbw_gbs": 239.42,
+          "wrong": 0
+        },
+        {
+          "bytes": 536870912,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 1051.39,
+          "algbw_gbs": 525.66,
+          "busbw_gbs": 262.83,
+          "wrong": 0
+        },
+        {
+          "bytes": 1073741824,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 1954.72,
+          "algbw_gbs": 549.31,
+          "busbw_gbs": 274.65,
+          "wrong": 0
+        },
+        {
+          "bytes": 2147483648,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 3897.42,
+          "algbw_gbs": 554.49,
+          "busbw_gbs": 277.24,
+          "wrong": 0
+        },
+        {
+          "bytes": 4294967296,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 7462.85,
+          "algbw_gbs": 577.73,
+          "busbw_gbs": 288.86,
+          "wrong": 0
+        },
+        {
+          "bytes": 8589934592,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 15225.2,
+          "algbw_gbs": 586.76,
+          "busbw_gbs": 293.38,
+          "wrong": 0
+        }
+      ],
+      "wrong_total": 0,
+      "peak": {
+        "bytes": 8589934592,
+        "busbw_gbs": 293.38,
+        "algbw_gbs": 586.76
+      },
+      "small_latency_us": 0.36,
+      "avg_busbw_gbs": 87.3396,
+      "nccl_version": "2.25.1"
+    },
+    "broadcast_perf": {
+      "rows": [
+        {
+          "bytes": 8,
+          "dtype": "float",
+          "redop": "none",
+          "time_us": 16.13,
+          "algbw_gbs": 0.0,
+          "busbw_gbs": 0.0,
+          "wrong": 0
+        },
+        {
+          "bytes": 16,
+          "dtype": "float",
+          "redop": "none",
+          "time_us": 10.93,
+          "algbw_gbs": 0.0,
+          "busbw_gbs": 0.0,
+          "wrong": 0
+        },
+        {
+          "bytes": 32,
+          "dtype": "float",
+          "redop": "none",
+          "time_us": 10.47,
+          "algbw_gbs": 0.0,
+          "busbw_gbs": 0.0,
+          "wrong": 0
+        },
+        {
+          "bytes": 64,
+          "dtype": "float",
+          "redop": "none",
+          "time_us": 10.8,
+          "algbw_gbs": 0.01,
+          "busbw_gbs": 0.01,
+          "wrong": 0
+        },
+        {
+          "bytes": 128,
+          "dtype": "float",
+          "redop": "none",
+          "time_us": 10.5,
+          "algbw_gbs": 0.01,
+          "busbw_gbs": 0.01,
+          "wrong": 0
+        },
+        {
+          "bytes": 256,
+          "dtype": "float",
+          "redop": "none",
+          "time_us": 10.63,
+          "algbw_gbs": 0.02,
+          "busbw_gbs": 0.02,
+          "wrong": 0
+        },
+        {
+          "bytes": 512,
+          "dtype": "float",
+          "redop": "none",
+          "time_us": 12.74,
+          "algbw_gbs": 0.05,
+          "busbw_gbs": 0.05,
+          "wrong": 0
+        },
+        {
+          "bytes": 1024,
+          "dtype": "float",
+          "redop": "none",
+          "time_us": 11.28,
+          "algbw_gbs": 0.1,
+          "busbw_gbs": 0.1,
+          "wrong": 0
+        },
+        {
+          "bytes": 2048,
+          "dtype": "float",
+          "redop": "none",
+          "time_us": 10.77,
+          "algbw_gbs": 0.19,
+          "busbw_gbs": 0.19,
+          "wrong": 0
+        },
+        {
+          "bytes": 4096,
+          "dtype": "float",
+          "redop": "none",
+          "time_us": 10.84,
+          "algbw_gbs": 0.38,
+          "busbw_gbs": 0.38,
+          "wrong": 0
+        },
+        {
+          "bytes": 8192,
+          "dtype": "float",
+          "redop": "none",
+          "time_us": 10.44,
+          "algbw_gbs": 0.78,
+          "busbw_gbs": 0.78,
+          "wrong": 0
+        },
+        {
+          "bytes": 16384,
+          "dtype": "float",
+          "redop": "none",
+          "time_us": 10.85,
+          "algbw_gbs": 1.53,
+          "busbw_gbs": 1.53,
+          "wrong": 0
+        },
+        {
+          "bytes": 32768,
+          "dtype": "float",
+          "redop": "none",
+          "time_us": 10.71,
+          "algbw_gbs": 3.06,
+          "busbw_gbs": 3.06,
+          "wrong": 0
+        },
+        {
+          "bytes": 65536,
+          "dtype": "float",
+          "redop": "none",
+          "time_us": 11.04,
+          "algbw_gbs": 5.94,
+          "busbw_gbs": 5.94,
+          "wrong": 0
+        },
+        {
+          "bytes": 131072,
+          "dtype": "float",
+          "redop": "none",
+          "time_us": 11.65,
+          "algbw_gbs": 11.53,
+          "busbw_gbs": 11.53,
+          "wrong": 0
+        },
+        {
+          "bytes": 262144,
+          "dtype": "float",
+          "redop": "none",
+          "time_us": 11.86,
+          "algbw_gbs": 22.24,
+          "busbw_gbs": 22.24,
+          "wrong": 0
+        },
+        {
+          "bytes": 524288,
+          "dtype": "float",
+          "redop": "none",
+          "time_us": 11.64,
+          "algbw_gbs": 45.04,
+          "busbw_gbs": 45.04,
+          "wrong": 0
+        },
+        {
+          "bytes": 1048576,
+          "dtype": "float",
+          "redop": "none",
+          "time_us": 12.85,
+          "algbw_gbs": 85.16,
+          "busbw_gbs": 85.16,
+          "wrong": 0
+        },
+        {
+          "bytes": 2097152,
+          "dtype": "float",
+          "redop": "none",
+          "time_us": 21.02,
+          "algbw_gbs": 99.75,
+          "busbw_gbs": 99.75,
+          "wrong": 0
+        },
+        {
+          "bytes": 4194304,
+          "dtype": "float",
+          "redop": "none",
+          "time_us": 27.71,
+          "algbw_gbs": 154.71,
+          "busbw_gbs": 154.71,
+          "wrong": 0
+        },
+        {
+          "bytes": 8388608,
+          "dtype": "float",
+          "redop": "none",
+          "time_us": 39.91,
+          "algbw_gbs": 217.0,
+          "busbw_gbs": 217.0,
+          "wrong": 0
+        },
+        {
+          "bytes": 16777216,
+          "dtype": "float",
+          "redop": "none",
+          "time_us": 67.53,
+          "algbw_gbs": 271.17,
+          "busbw_gbs": 271.17,
+          "wrong": 0
+        },
+        {
+          "bytes": 33554432,
+          "dtype": "float",
+          "redop": "none",
+          "time_us": 115.16,
+          "algbw_gbs": 307.14,
+          "busbw_gbs": 307.14,
+          "wrong": 0
+        },
+        {
+          "bytes": 67108864,
+          "dtype": "float",
+          "redop": "none",
+          "time_us": 209.24,
+          "algbw_gbs": 332.05,
+          "busbw_gbs": 332.05,
+          "wrong": 0
+        },
+        {
+          "bytes": 134217728,
+          "dtype": "float",
+          "redop": "none",
+          "time_us": 394.11,
+          "algbw_gbs": 351.78,
+          "busbw_gbs": 351.78,
+          "wrong": 0
+        },
+        {
+          "bytes": 268435456,
+          "dtype": "float",
+          "redop": "none",
+          "time_us": 764.31,
+          "algbw_gbs": 361.78,
+          "busbw_gbs": 361.78,
+          "wrong": 0
+        },
+        {
+          "bytes": 536870912,
+          "dtype": "float",
+          "redop": "none",
+          "time_us": 1493.48,
+          "algbw_gbs": 367.4,
+          "busbw_gbs": 367.4,
+          "wrong": 0
+        },
+        {
+          "bytes": 1073741824,
+          "dtype": "float",
+          "redop": "none",
+          "time_us": 2960.11,
+          "algbw_gbs": 370.62,
+          "busbw_gbs": 370.62,
+          "wrong": 0
+        },
+        {
+          "bytes": 2147483648,
+          "dtype": "float",
+          "redop": "none",
+          "time_us": 5892.49,
+          "algbw_gbs": 372.37,
+          "busbw_gbs": 372.37,
+          "wrong": 0
+        },
+        {
+          "bytes": 4294967296,
+          "dtype": "float",
+          "redop": "none",
+          "time_us": 11774.3,
+          "algbw_gbs": 373.1,
+          "busbw_gbs": 373.1,
+          "wrong": 0
+        },
+        {
+          "bytes": 8589934592,
+          "dtype": "float",
+          "redop": "none",
+          "time_us": 23461.6,
+          "algbw_gbs": 373.42,
+          "busbw_gbs": 373.42,
+          "wrong": 0
+        }
+      ],
+      "wrong_total": 0,
+      "peak": {
+        "bytes": 8589934592,
+        "busbw_gbs": 373.42,
+        "algbw_gbs": 373.42
+      },
+      "small_latency_us": 16.13,
+      "avg_busbw_gbs": 131.04,
+      "nccl_version": "2.25.1"
+    },
+    "alltoall_perf": {
+      "rows": [
+        {
+          "bytes": 0,
+          "dtype": "float",
+          "redop": "none",
+          "time_us": 10.35,
+          "algbw_gbs": 0.0,
+          "busbw_gbs": 0.0,
+          "wrong": 0
+        },
+        {
+          "bytes": 0,
+          "dtype": "float",
+          "redop": "none",
+          "time_us": 10.08,
+          "algbw_gbs": 0.0,
+          "busbw_gbs": 0.0,
+          "wrong": 0
+        },
+        {
+          "bytes": 32,
+          "dtype": "float",
+          "redop": "none",
+          "time_us": 15.16,
+          "algbw_gbs": 0.0,
+          "busbw_gbs": 0.0,
+          "wrong": 0
+        },
+        {
+          "bytes": 64,
+          "dtype": "float",
+          "redop": "none",
+          "time_us": 10.39,
+          "algbw_gbs": 0.01,
+          "busbw_gbs": 0.0,
+          "wrong": 0
+        },
+        {
+          "bytes": 128,
+          "dtype": "float",
+          "redop": "none",
+          "time_us": 10.36,
+          "algbw_gbs": 0.01,
+          "busbw_gbs": 0.01,
+          "wrong": 0
+        },
+        {
+          "bytes": 256,
+          "dtype": "float",
+          "redop": "none",
+          "time_us": 10.45,
+          "algbw_gbs": 0.03,
+          "busbw_gbs": 0.01,
+          "wrong": 0
+        },
+        {
+          "bytes": 512,
+          "dtype": "float",
+          "redop": "none",
+          "time_us": 12.94,
+          "algbw_gbs": 0.05,
+          "busbw_gbs": 0.03,
+          "wrong": 0
+        },
+        {
+          "bytes": 1024,
+          "dtype": "float",
+          "redop": "none",
+          "time_us": 10.78,
+          "algbw_gbs": 0.1,
+          "busbw_gbs": 0.05,
+          "wrong": 0
+        },
+        {
+          "bytes": 2048,
+          "dtype": "float",
+          "redop": "none",
+          "time_us": 10.43,
+          "algbw_gbs": 0.2,
+          "busbw_gbs": 0.1,
+          "wrong": 0
+        },
+        {
+          "bytes": 4096,
+          "dtype": "float",
+          "redop": "none",
+          "time_us": 10.55,
+          "algbw_gbs": 0.4,
+          "busbw_gbs": 0.2,
+          "wrong": 0
+        },
+        {
+          "bytes": 8192,
+          "dtype": "float",
+          "redop": "none",
+          "time_us": 10.42,
+          "algbw_gbs": 0.8,
+          "busbw_gbs": 0.4,
+          "wrong": 0
+        },
+        {
+          "bytes": 16384,
+          "dtype": "float",
+          "redop": "none",
+          "time_us": 10.63,
+          "algbw_gbs": 1.59,
+          "busbw_gbs": 0.79,
+          "wrong": 0
+        },
+        {
+          "bytes": 32768,
+          "dtype": "float",
+          "redop": "none",
+          "time_us": 10.76,
+          "algbw_gbs": 3.17,
+          "busbw_gbs": 1.58,
+          "wrong": 0
+        },
+        {
+          "bytes": 65536,
+          "dtype": "float",
+          "redop": "none",
+          "time_us": 10.83,
+          "algbw_gbs": 6.05,
+          "busbw_gbs": 3.03,
+          "wrong": 0
+        },
+        {
+          "bytes": 131072,
+          "dtype": "float",
+          "redop": "none",
+          "time_us": 11.69,
+          "algbw_gbs": 11.6,
+          "busbw_gbs": 5.8,
+          "wrong": 0
+        },
+        {
+          "bytes": 262144,
+          "dtype": "float",
+          "redop": "none",
+          "time_us": 12.31,
+          "algbw_gbs": 22.33,
+          "busbw_gbs": 11.17,
+          "wrong": 0
+        },
+        {
+          "bytes": 524288,
+          "dtype": "float",
+          "redop": "none",
+          "time_us": 12.04,
+          "algbw_gbs": 43.74,
+          "busbw_gbs": 21.87,
+          "wrong": 0
+        },
+        {
+          "bytes": 1048576,
+          "dtype": "float",
+          "redop": "none",
+          "time_us": 13.57,
+          "algbw_gbs": 78.95,
+          "busbw_gbs": 39.48,
+          "wrong": 0
+        },
+        {
+          "bytes": 2097152,
+          "dtype": "float",
+          "redop": "none",
+          "time_us": 16.94,
+          "algbw_gbs": 123.8,
+          "busbw_gbs": 61.9,
+          "wrong": 0
+        },
+        {
+          "bytes": 4194304,
+          "dtype": "float",
+          "redop": "none",
+          "time_us": 27.38,
+          "algbw_gbs": 168.55,
+          "busbw_gbs": 84.27,
+          "wrong": 0
+        },
+        {
+          "bytes": 8388608,
+          "dtype": "float",
+          "redop": "none",
+          "time_us": 35.73,
+          "algbw_gbs": 242.08,
+          "busbw_gbs": 121.04,
+          "wrong": 0
+        },
+        {
+          "bytes": 16777216,
+          "dtype": "float",
+          "redop": "none",
+          "time_us": 53.46,
+          "algbw_gbs": 313.81,
+          "busbw_gbs": 156.91,
+          "wrong": 0
+        },
+        {
+          "bytes": 33554432,
+          "dtype": "float",
+          "redop": "none",
+          "time_us": 81.37,
+          "algbw_gbs": 412.36,
+          "busbw_gbs": 206.18,
+          "wrong": 0
+        },
+        {
+          "bytes": 67108864,
+          "dtype": "float",
+          "redop": "none",
+          "time_us": 141.9,
+          "algbw_gbs": 472.92,
+          "busbw_gbs": 236.46,
+          "wrong": 0
+        },
+        {
+          "bytes": 134217728,
+          "dtype": "float",
+          "redop": "none",
+          "time_us": 260.24,
+          "algbw_gbs": 535.27,
+          "busbw_gbs": 267.64,
+          "wrong": 0
+        },
+        {
+          "bytes": 268435456,
+          "dtype": "float",
+          "redop": "none",
+          "time_us": 497.37,
+          "algbw_gbs": 572.98,
+          "busbw_gbs": 286.49,
+          "wrong": 0
+        },
+        {
+          "bytes": 536870912,
+          "dtype": "float",
+          "redop": "none",
+          "time_us": 959.69,
+          "algbw_gbs": 594.29,
+          "busbw_gbs": 297.14,
+          "wrong": 0
+        },
+        {
+          "bytes": 1073741824,
+          "dtype": "float",
+          "redop": "none",
+          "time_us": 1708.64,
+          "algbw_gbs": 704.8,
+          "busbw_gbs": 352.4,
+          "wrong": 0
+        },
+        {
+          "bytes": 2147483648,
+          "dtype": "float",
+          "redop": "none",
+          "time_us": 3389.26,
+          "algbw_gbs": 717.81,
+          "busbw_gbs": 358.9,
+          "wrong": 0
+        },
+        {
+          "bytes": 4294967296,
+          "dtype": "float",
+          "redop": "none",
+          "time_us": 6742.67,
+          "algbw_gbs": 724.76,
+          "busbw_gbs": 362.38,
+          "wrong": 0
+        },
+        {
+          "bytes": 8589934592,
+          "dtype": "float",
+          "redop": "none",
+          "time_us": 13439.0,
+          "algbw_gbs": 728.16,
+          "busbw_gbs": 364.08,
+          "wrong": 0
+        }
+      ],
+      "wrong_total": 0,
+      "peak": {
+        "bytes": 8589934592,
+        "busbw_gbs": 364.08,
+        "algbw_gbs": 728.16
+      },
+      "small_latency_us": 10.35,
+      "avg_busbw_gbs": 100.702,
+      "nccl_version": "2.25.1"
+    },
+    "sendrecv_perf": {
+      "rows": [
+        {
+          "bytes": 8,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 16.21,
+          "algbw_gbs": 0.0,
+          "busbw_gbs": 0.0,
+          "wrong": 0
+        },
+        {
+          "bytes": 16,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 11.33,
+          "algbw_gbs": 0.0,
+          "busbw_gbs": 0.0,
+          "wrong": 0
+        },
+        {
+          "bytes": 32,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 12.47,
+          "algbw_gbs": 0.0,
+          "busbw_gbs": 0.0,
+          "wrong": 0
+        },
+        {
+          "bytes": 64,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 10.14,
+          "algbw_gbs": 0.01,
+          "busbw_gbs": 0.01,
+          "wrong": 0
+        },
+        {
+          "bytes": 128,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 10.12,
+          "algbw_gbs": 0.01,
+          "busbw_gbs": 0.01,
+          "wrong": 0
+        },
+        {
+          "bytes": 256,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 14.18,
+          "algbw_gbs": 0.02,
+          "busbw_gbs": 0.02,
+          "wrong": 0
+        },
+        {
+          "bytes": 512,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 13.18,
+          "algbw_gbs": 0.05,
+          "busbw_gbs": 0.05,
+          "wrong": 0
+        },
+        {
+          "bytes": 1024,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 11.1,
+          "algbw_gbs": 0.09,
+          "busbw_gbs": 0.09,
+          "wrong": 0
+        },
+        {
+          "bytes": 2048,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 11.28,
+          "algbw_gbs": 0.18,
+          "busbw_gbs": 0.18,
+          "wrong": 0
+        },
+        {
+          "bytes": 4096,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 11.33,
+          "algbw_gbs": 0.36,
+          "busbw_gbs": 0.36,
+          "wrong": 0
+        },
+        {
+          "bytes": 8192,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 11.62,
+          "algbw_gbs": 0.72,
+          "busbw_gbs": 0.72,
+          "wrong": 0
+        },
+        {
+          "bytes": 16384,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 11.5,
+          "algbw_gbs": 1.45,
+          "busbw_gbs": 1.45,
+          "wrong": 0
+        },
+        {
+          "bytes": 32768,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 12.27,
+          "algbw_gbs": 2.74,
+          "busbw_gbs": 2.74,
+          "wrong": 0
+        },
+        {
+          "bytes": 65536,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 12.77,
+          "algbw_gbs": 5.32,
+          "busbw_gbs": 5.32,
+          "wrong": 0
+        },
+        {
+          "bytes": 131072,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 12.88,
+          "algbw_gbs": 10.18,
+          "busbw_gbs": 10.18,
+          "wrong": 0
+        },
+        {
+          "bytes": 262144,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 13.11,
+          "algbw_gbs": 20.78,
+          "busbw_gbs": 20.78,
+          "wrong": 0
+        },
+        {
+          "bytes": 524288,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 13.5,
+          "algbw_gbs": 38.84,
+          "busbw_gbs": 38.84,
+          "wrong": 0
+        },
+        {
+          "bytes": 1048576,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 18.89,
+          "algbw_gbs": 62.04,
+          "busbw_gbs": 62.04,
+          "wrong": 0
+        },
+        {
+          "bytes": 2097152,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 23.81,
+          "algbw_gbs": 89.43,
+          "busbw_gbs": 89.43,
+          "wrong": 0
+        },
+        {
+          "bytes": 4194304,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 36.03,
+          "algbw_gbs": 120.19,
+          "busbw_gbs": 120.19,
+          "wrong": 0
+        },
+        {
+          "bytes": 8388608,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 52.04,
+          "algbw_gbs": 161.19,
+          "busbw_gbs": 161.19,
+          "wrong": 0
+        },
+        {
+          "bytes": 16777216,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 85.02,
+          "algbw_gbs": 201.88,
+          "busbw_gbs": 201.88,
+          "wrong": 0
+        },
+        {
+          "bytes": 33554432,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 140.5,
+          "algbw_gbs": 239.69,
+          "busbw_gbs": 239.69,
+          "wrong": 0
+        },
+        {
+          "bytes": 67108864,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 251.96,
+          "algbw_gbs": 266.35,
+          "busbw_gbs": 266.35,
+          "wrong": 0
+        },
+        {
+          "bytes": 134217728,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 469.35,
+          "algbw_gbs": 287.21,
+          "busbw_gbs": 287.21,
+          "wrong": 0
+        },
+        {
+          "bytes": 268435456,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 888.3,
+          "algbw_gbs": 302.19,
+          "busbw_gbs": 302.19,
+          "wrong": 0
+        },
+        {
+          "bytes": 536870912,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 1518.69,
+          "algbw_gbs": 353.51,
+          "busbw_gbs": 353.51,
+          "wrong": 0
+        },
+        {
+          "bytes": 1073741824,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 2989.56,
+          "algbw_gbs": 359.16,
+          "busbw_gbs": 359.16,
+          "wrong": 0
+        },
+        {
+          "bytes": 2147483648,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 5925.9,
+          "algbw_gbs": 362.39,
+          "busbw_gbs": 362.39,
+          "wrong": 0
+        },
+        {
+          "bytes": 4294967296,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 11761.2,
+          "algbw_gbs": 365.18,
+          "busbw_gbs": 365.18,
+          "wrong": 0
+        },
+        {
+          "bytes": 8589934592,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 23405.1,
+          "algbw_gbs": 367.01,
+          "busbw_gbs": 367.01,
+          "wrong": 0
+        }
+      ],
+      "wrong_total": 0,
+      "peak": {
+        "bytes": 8589934592,
+        "busbw_gbs": 367.01,
+        "algbw_gbs": 367.01
+      },
+      "small_latency_us": 16.21,
+      "avg_busbw_gbs": 116.194,
+      "nccl_version": "2.25.1"
+    },
+    "all_reduce_perf_no_p2p": {
+      "rows": [
+        {
+          "bytes": 8,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 12.18,
+          "algbw_gbs": 0.0,
+          "busbw_gbs": 0.0,
+          "wrong": 0
+        },
+        {
+          "bytes": 16,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 11.44,
+          "algbw_gbs": 0.0,
+          "busbw_gbs": 0.0,
+          "wrong": 0
+        },
+        {
+          "bytes": 32,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 11.25,
+          "algbw_gbs": 0.0,
+          "busbw_gbs": 0.0,
+          "wrong": 0
+        },
+        {
+          "bytes": 64,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 14.99,
+          "algbw_gbs": 0.01,
+          "busbw_gbs": 0.01,
+          "wrong": 0
+        },
+        {
+          "bytes": 128,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 12.15,
+          "algbw_gbs": 0.01,
+          "busbw_gbs": 0.01,
+          "wrong": 0
+        },
+        {
+          "bytes": 256,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 14.49,
+          "algbw_gbs": 0.02,
+          "busbw_gbs": 0.02,
+          "wrong": 0
+        },
+        {
+          "bytes": 512,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 12.37,
+          "algbw_gbs": 0.05,
+          "busbw_gbs": 0.05,
+          "wrong": 0
+        },
+        {
+          "bytes": 1024,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 11.6,
+          "algbw_gbs": 0.09,
+          "busbw_gbs": 0.09,
+          "wrong": 0
+        },
+        {
+          "bytes": 2048,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 11.79,
+          "algbw_gbs": 0.18,
+          "busbw_gbs": 0.18,
+          "wrong": 0
+        },
+        {
+          "bytes": 4096,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 11.99,
+          "algbw_gbs": 0.35,
+          "busbw_gbs": 0.35,
+          "wrong": 0
+        },
+        {
+          "bytes": 8192,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 12.66,
+          "algbw_gbs": 0.68,
+          "busbw_gbs": 0.68,
+          "wrong": 0
+        },
+        {
+          "bytes": 16384,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 12.99,
+          "algbw_gbs": 1.26,
+          "busbw_gbs": 1.26,
+          "wrong": 0
+        },
+        {
+          "bytes": 32768,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 14.79,
+          "algbw_gbs": 2.32,
+          "busbw_gbs": 2.32,
+          "wrong": 0
+        },
+        {
+          "bytes": 65536,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 18.69,
+          "algbw_gbs": 3.56,
+          "busbw_gbs": 3.56,
+          "wrong": 0
+        },
+        {
+          "bytes": 131072,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 38.33,
+          "algbw_gbs": 3.42,
+          "busbw_gbs": 3.42,
+          "wrong": 0
+        },
+        {
+          "bytes": 262144,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 42.19,
+          "algbw_gbs": 6.21,
+          "busbw_gbs": 6.21,
+          "wrong": 0
+        },
+        {
+          "bytes": 524288,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 57.33,
+          "algbw_gbs": 9.14,
+          "busbw_gbs": 9.14,
+          "wrong": 0
+        },
+        {
+          "bytes": 1048576,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 84.62,
+          "algbw_gbs": 12.39,
+          "busbw_gbs": 12.39,
+          "wrong": 0
+        },
+        {
+          "bytes": 2097152,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 123.43,
+          "algbw_gbs": 17.04,
+          "busbw_gbs": 17.04,
+          "wrong": 0
+        },
+        {
+          "bytes": 4194304,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 204.91,
+          "algbw_gbs": 20.47,
+          "busbw_gbs": 20.47,
+          "wrong": 0
+        },
+        {
+          "bytes": 8388608,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 374.24,
+          "algbw_gbs": 22.49,
+          "busbw_gbs": 22.49,
+          "wrong": 0
+        },
+        {
+          "bytes": 16777216,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 714.88,
+          "algbw_gbs": 23.47,
+          "busbw_gbs": 23.47,
+          "wrong": 0
+        },
+        {
+          "bytes": 33554432,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 1395.77,
+          "algbw_gbs": 24.04,
+          "busbw_gbs": 24.04,
+          "wrong": 0
+        },
+        {
+          "bytes": 67108864,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 2751.67,
+          "algbw_gbs": 24.42,
+          "busbw_gbs": 24.42,
+          "wrong": 0
+        },
+        {
+          "bytes": 134217728,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 5441.25,
+          "algbw_gbs": 24.74,
+          "busbw_gbs": 24.74,
+          "wrong": 0
+        },
+        {
+          "bytes": 268435456,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 10803.8,
+          "algbw_gbs": 24.89,
+          "busbw_gbs": 24.89,
+          "wrong": 0
+        },
+        {
+          "bytes": 536870912,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 21393.2,
+          "algbw_gbs": 25.1,
+          "busbw_gbs": 25.1,
+          "wrong": 0
+        },
+        {
+          "bytes": 1073741824,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 41792.3,
+          "algbw_gbs": 25.69,
+          "busbw_gbs": 25.69,
+          "wrong": 0
+        },
+        {
+          "bytes": 2147483648,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 84467.6,
+          "algbw_gbs": 25.59,
+          "busbw_gbs": 25.59,
+          "wrong": 0
+        },
+        {
+          "bytes": 4294967296,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 162656.0,
+          "algbw_gbs": 26.41,
+          "busbw_gbs": 26.41,
+          "wrong": 0
+        },
+        {
+          "bytes": 8589934592,
+          "dtype": "float",
+          "redop": "sum",
+          "time_us": 322440.0,
+          "algbw_gbs": 26.64,
+          "busbw_gbs": 26.64,
+          "wrong": 0
+        }
+      ],
+      "wrong_total": 0,
+      "peak": {
+        "bytes": 8589934592,
+        "busbw_gbs": 26.64,
+        "algbw_gbs": 26.64
+      },
+      "small_latency_us": 12.18,
+      "avg_busbw_gbs": 11.2831,
+      "nccl_version": "2.25.1"
+    }
+  },
+  "nccl_version": "2.25.1",
+  "transport": [
+    "P2P/direct"
+  ]
+}
