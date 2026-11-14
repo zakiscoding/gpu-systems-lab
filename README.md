@@ -110,6 +110,7 @@ Modal setup and spend limits: [modal/README.md](modal/README.md).
 | `modal/ddp_nccl.py` | NCCL collectives and DDP scaling | 329 GB/s busbw; DDP 1.57x at batch 4096 | [modal/README.md](modal/README.md) |
 | `distributed/` | FSDP2, sharded checkpoints, elastic restart | 5.6B OOM under DDP, trains under FSDP; restart in 11–14 s | [distributed/README.md](distributed/README.md) |
 | `serving/` | vLLM concurrency sweep; always-on homelab chat backend | 4.4k tok/s RTX 5070 vs 16.8k H100 | [serving/README.md](serving/README.md) |
+| `serving/triton/` | Triton Inference Server + TensorRT-LLM vs vLLM, same client and KV cache | TRT-LLM +10% at 256 in flight; vLLM 12–21% faster at 1–64 | [serving/triton/README.md](serving/triton/README.md) |
 | `gateway/` + `cloudflare/` | Public vLLM API on a Cloudflare Worker, reached through a Tunnel | adds 0.2 s to 200 tokens; streaming not buffered | [gateway/README.md](gateway/README.md) |
 | `site/` | Public results page with charts, built from `docs/RESULTS.md` | build refuses to publish network details | [CODE-GUIDE](docs/CODE-GUIDE.md#site--public-results-page-cloudflare-static-assets) |
 | `observability/` | dcgm-exporter + Prometheus + Grafana on a GeForce card | full profiling fields on the 5070 | [observability/README.md](observability/README.md) |
