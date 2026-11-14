@@ -79,6 +79,14 @@ $0.01 and starts in ~4 s.
 | Fused bias+GELU | 1.93x faster | memory-bound, and fusion halves DRAM traffic |
 | Atomic reduction | 3.3 GB/s | 190x slower than warp shuffle |
 
+### Custom PyTorch operator vs TorchInductor ([kernels/custom_op/](../kernels/custom_op/README.md))
+
+`labops::rmsnorm`, a C++/CUDA op with a fake kernel and autograd registered so it runs under
+`torch.compile(fullgraph=True)` (16 tests incl. `torch.library.opcheck`). In bf16 on the 5070, v1
+(scalar loads) reached 290–370 GB/s. v2 (16-byte vector loads, row cached in registers, 2 vectors
+per thread) reaches **541–562 GB/s, level with Inductor's generated kernel** at all 4 shapes. Eager:
+57 GB/s, 9 launches per call.
+
 ### Multi-GPU: NCCL and DDP ([modal/ddp_nccl.py](../modal/ddp_nccl.py))
 
 | | 2x L4 (PCIe) | 2x H100 (NVLink) |
