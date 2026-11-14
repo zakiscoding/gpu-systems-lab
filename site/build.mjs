@@ -71,7 +71,9 @@ function addCharts(markdown) {
       { name: "H100 80GB", values: compute.map((row) => number(row[2])), labelled: true },
     ],
   });
-  return withChart(withCompute, "Inference serving", "vLLM throughput as concurrency rises", "Output tokens/s", {
+  const precision = tableRows(markdown, "Concurrency");
+  const latency = tableRows(markdown, "Precision");
+  const withServing = withChart(withCompute, "Inference serving", "vLLM throughput as concurrency rises", "Output tokens/s", {
     type: "line",
     xName: "concurrent",
     labels: serving.map((row) => row[0]),
@@ -80,6 +82,40 @@ function addCharts(markdown) {
       { name: "H100", values: serving.map((row) => number(row[2])) },
     ],
   });
+  const withLatency = withChart(withServing, "Inference optimization", "Latency at 64 concurrent requests",
+    "End-to-end seconds, lower is better", {
+      type: "bars",
+      unit: "s",
+      labels: latency.map((row) => row[0]),
+      series: [
+        { name: "p50", values: latency.map((row) => number(row[4].split("/")[0])) },
+        { name: "p95", values: latency.map((row) => number(row[4].split("/")[1])), labelled: true },
+      ],
+    });
+  const spec = tableRows(markdown, "Requests in flight");
+  const withSpec = withChart(withLatency, "Speculative decoding", "Speculative decoding on a 1.5B model",
+    "Output tokens/s by requests in flight, higher is better", {
+      type: "line",
+      xName: "in flight",
+      labels: spec.map((row) => row[0]),
+      series: [
+        { name: "Off", values: spec.map((row) => number(row[1])) },
+        { name: "N-gram", values: spec.map((row) => number(row[2])) },
+        { name: "0.5B draft", values: spec.map((row) => number(row[3])) },
+      ],
+    });
+  // Added last so it sits first under the heading.
+  return withChart(withSpec, "Inference optimization", "FP16 vs AWQ vs FP8 on the RTX 5070",
+    "Output tokens/s by concurrent requests", {
+      type: "line",
+      xName: "concurrent",
+      labels: precision.map((row) => row[0]),
+      series: [
+        { name: "FP16", values: precision.map((row) => number(row[1])) },
+        { name: "AWQ", values: precision.map((row) => number(row[2])) },
+        { name: "FP8", values: precision.map((row) => number(row[3])) },
+      ],
+    });
 }
 
 export function assertPublishable(text) {
@@ -97,9 +133,9 @@ const PAGE = (content) => `<!doctype html>
 <title>GPU Systems Lab results</title>
 <meta name="description" content="GPU benchmarks from an RTX 5070 to multi-GPU H100s: kernels, NCCL, DDP, MPI, vLLM serving, FSDP and scheduling.">
 <style>
-:root { color-scheme: light dark; --bg: #fbfbf9; --fg: #1d1f21; --muted: #5d6368; --line: #dcdfe1; --stripe: #f1f2ef; --accent: #1a6b4f; --axis: #c3c2b7; --series-1: #2a78d6; --series-2: #eb6834; }
+:root { color-scheme: light dark; --bg: #fbfbf9; --fg: #1d1f21; --muted: #5d6368; --line: #dcdfe1; --stripe: #f1f2ef; --accent: #1a6b4f; --axis: #c3c2b7; --series-1: #2a78d6; --series-2: #eb6834; --series-3: #2e9e6a; --series-4: #8a5cc2; }
 @media (prefers-color-scheme: dark) {
-  :root { --bg: #15181a; --fg: #e6e8e9; --muted: #9ba2a7; --line: #2f3539; --stripe: #1d2124; --accent: #6fcfa8; --axis: #454b4f; --series-1: #3987e5; --series-2: #d95926; }
+  :root { --bg: #15181a; --fg: #e6e8e9; --muted: #9ba2a7; --line: #2f3539; --stripe: #1d2124; --accent: #6fcfa8; --axis: #454b4f; --series-1: #3987e5; --series-2: #d95926; --series-3: #45b884; --series-4: #a27ad6; }
 }
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.6 system-ui, -apple-system, "Segoe UI", sans-serif; }
