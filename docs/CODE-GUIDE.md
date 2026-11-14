@@ -172,6 +172,21 @@ the charts in the browser at the real page width. `npm run deploy` builds and pu
 benchmark Job, and the admission policy that requires a GPU limit. `submit.py` turns a job spec into a
 Kubernetes Job and waits on it. `demo/` reproduces the queue and time-slicing experiments.
 
+`gpu-operator/` is the prepared (not yet applied) move to the NVIDIA GPU Operator with time-slicing:
+chart values, the time-slicing ConfigMap, a migration and rollback runbook, and `validate.sh`
+(chart key check, `helm template`, kubeconform, all in containers).
+
+### `operator/` — GpuJob operator (Go, controller-runtime)
+
+| File | Role |
+|---|---|
+| `api/v1alpha1/gpujob_types.go` | `GpuJob` CRD: spec (image, command, gpus, cpu/memory, backoff, deadline, TTL), status, validation and printer-column markers |
+| `internal/controller/jobbuilder.go` | `BuildJob()`: GpuJob to batch/v1 Job (nvidia runtime class, GPU limit, labels, spec hash) |
+| `internal/controller/gpujob_controller.go` | Reconcile loop: create-or-get the Job, map Job and pod status to phase and conditions |
+| `internal/controller/*_test.go` | Unit tests and envtest controller tests (real kube-apiserver and etcd) |
+| `config/` | Generated CRD and RBAC, Deployment, kustomize entry point, samples |
+| `hack/in-docker.sh`, `hack/kind/` | Run make targets in `golang:1.26`; the kind demo with a fake GPU |
+
 ### `router/` — local-vs-cloud control plane (laptop)
 
 | File | Role |
