@@ -1,0 +1,59 @@
+# NVIDIA GPU Operator on the single-node k3s cluster (zak-gpu-node, RTX 5070), time-sliced.
+# PREPARED, NOT YET APPLIED: needs the Ubuntu boot. See README.md for the runbook.
+#
+#   helm install gpu-operator nvidia/gpu-operator --version v26.7.2 \
+#     -n gpu-operator --create-namespace -f values.yaml
+#
+# Chart v26.7.2 (app v26.7.2) ships device plugin / GFD v0.20.1, toolkit v1.20.1,
+# dcgm-exporter 4.6.1-4.8.4, NFD subchart 0.19.0.
+#
+# What the host already has, so the operator must NOT install it:
+#   - NVIDIA driver 595.99.02 (installed by scripts/install_system_deps.sh)
+#   - nvidia-container-toolkit, and k3s already registered the "nvidia" containerd
+#     runtime and created RuntimeClass nvidia from it
+# So the operator only runs: NFD + GPU feature discovery, the device plugin (with the
+# time-slicing config), and the validator.
+
+driver:
+  enabled: false          # host driver; the validator checks it at the host root
+
+toolkit:
+  # The host toolkit is already wired into k3s (k3s finds nvidia-container-runtime at
+  # start and writes the runtime into its generated containerd config). Letting the
+  # operator's toolkit container rewrite that config as well would give two owners of
+  # one file. To let the operator manage the toolkit instead, add values-toolkit-k3s.yaml.
+  enabled: false
+
+cdi:
+  # CDI makes the device plugin inject devices through CDI specs that the operator's
+  # toolkit generates. With the host toolkit (above) there are no such specs, so keep
+  # the same NVIDIA_VISIBLE_DEVICES injection the plain device plugin uses today.
+  enabled: false
+
+operator:
+  runtimeClass: nvidia    # the RuntimeClass k3s created; operands run under it
+
+devicePlugin:
+  enabled: true
+  config:
+    name: time-slicing-config   # time-slicing-config.yaml, applied before the chart
+    default: any                # key in that ConfigMap used for every GPU node
+
+gfd:
+  enabled: true           # adds nvidia.com/gpu.product, .memory, .replicas, .sharing-strategy labels
+
+nfd:
+  enabled: true           # the operator schedules operands on nodes NFD labels with a NVIDIA PCI device
+
+migManager:
+  enabled: false          # GeForce RTX 5070: no MIG
+
+dcgmExporter:
+  # observability/ already runs dcgm-exporter in Docker on 127.0.0.1:9400, scraped by
+  # the node's Prometheus and the iMac. A second exporter would start a second embedded
+  # nv-hostengine on the same GPU and add no data. Keep the Docker one for now; to move
+  # it into the cluster, enable this and point Prometheus at the gpu-operator Service.
+  enabled: false
+
+nodeStatusExporter:
+  enabled: false
