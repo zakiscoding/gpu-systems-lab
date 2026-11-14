@@ -7,9 +7,6 @@
     "check": "wrangler deploy --dry-run --outdir .wrangler/dry-run",
     "deploy": "node --test && wrangler deploy"
   },
-  "dependencies": {
-    "jose": "6.1.0"
-  },
   "devDependencies": {
     "wrangler": "4.157.0"
   }
