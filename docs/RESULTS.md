@@ -79,6 +79,13 @@ $0.01 and starts in ~4 s.
 | Fused bias+GELU | 1.93x faster | memory-bound, and fusion halves DRAM traffic |
 | Atomic reduction | 3.3 GB/s | 190x slower than warp shuffle |
 
+### GEMM step by step ([kernels/gemm/](../kernels/gemm/README.md))
+
+FP32 4096³ on the RTX 5070, 3 runs each: naive 0.50 TFLOPS → coalesced 2.00 → shared tiling 2.31 →
+1-D register tiling 7.74 → 2-D register tiling 7.14 (bank conflicts) → vectorized + transposed A
+**18.4 (82% of cuBLAS's 22.5)**. Tensor cores: a plain WMMA kernel 43.4 TFLOPS against cuBLAS and
+CUTLASS at 66.5 (FP16 in, FP32 accumulate). Every kernel is checked against cuBLAS.
+
 ### Multi-GPU: NCCL and DDP ([modal/ddp_nccl.py](../modal/ddp_nccl.py))
 
 | | 2x L4 (PCIe) | 2x H100 (NVLink) |
