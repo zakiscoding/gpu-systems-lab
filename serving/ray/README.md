@@ -84,7 +84,7 @@ Raw JSON: [results/ray-cluster/](../../results/ray-cluster/).
 | empty task round trip p50 / p99 | 1.67 / 2.70 ms | **24.4 / 47.2 ms** |
 | `ray.get` of an array created on the other node | | 3.2 MB/s (16 MB), 8.9 (64 MB), **10.0 MB/s** (256 MB) |
 
-| Ray Train, 2-layer MLP (1.6M params), batch 256/worker, gloo on CPU | step | samples/s |
+| Ray Train, 3-layer MLP (1.05M params), batch 256/worker, gloo on CPU | step | samples/s |
 |---|---:|---:|
 | 1 worker (head) | 7.72 ms | 33,145 |
 | 2 workers, **both on the head** | 11.07 ms | **46,241** (1.40x, 70% efficiency) |
