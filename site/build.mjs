@@ -92,8 +92,20 @@ function addCharts(markdown) {
         { name: "p95", values: latency.map((row) => number(row[4].split("/")[1])), labelled: true },
       ],
     });
+  const spec = tableRows(markdown, "Requests in flight");
+  const withSpec = withChart(withLatency, "Speculative decoding", "Speculative decoding on a 1.5B model",
+    "Output tokens/s by requests in flight, higher is better", {
+      type: "line",
+      xName: "in flight",
+      labels: spec.map((row) => row[0]),
+      series: [
+        { name: "Off", values: spec.map((row) => number(row[1])) },
+        { name: "N-gram", values: spec.map((row) => number(row[2])) },
+        { name: "0.5B draft", values: spec.map((row) => number(row[3])) },
+      ],
+    });
   // Added last so it sits first under the heading.
-  return withChart(withLatency, "Inference optimization", "FP16 vs AWQ vs FP8 on the RTX 5070",
+  return withChart(withSpec, "Inference optimization", "FP16 vs AWQ vs FP8 on the RTX 5070",
     "Output tokens/s by concurrent requests", {
       type: "line",
       xName: "concurrent",
