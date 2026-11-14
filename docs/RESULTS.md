@@ -79,6 +79,13 @@ $0.01 and starts in ~4 s.
 | Fused bias+GELU | 1.93x faster | memory-bound, and fusion halves DRAM traffic |
 | Atomic reduction | 3.3 GB/s | 190x slower than warp shuffle |
 
+### Nightly regression tracking ([regress/](../regress/README.md))
+
+A systemd timer on the GPU PC submits gpu-systems-lab's matmul benchmark as a GopherGrid job each night,
+next to the live chat. A precision is flagged when it falls more than 5% below the median of its last 7
+runs; the flag goes to Prometheus (alert `GpuNightlyRegression`) and a Grafana dashboard. Baselines agree
+within 0.7%. A 90 s noisy-neighbour test halved every precision (0.47–0.49x) and all four were flagged.
+
 ### Multi-GPU: NCCL and DDP ([modal/ddp_nccl.py](../modal/ddp_nccl.py))
 
 | | 2x L4 (PCIe) | 2x H100 (NVLink) |
