@@ -164,6 +164,45 @@
     });
   }
 
+
+  // Roofline: log-log FLOP/byte vs GFLOPS, a memory roof (slope 1) meeting flat compute roofs,
+  // one dot per workload (colour = which roof bounds it). Hover a dot for its numbers.
+  function drawRoofline(svg, spec, width, tip, figure) {
+    const area = { left: 52, right: width - 12, top: 16, bottom: HEIGHT - 34 };
+    const [x0, x1, y0, y1] = [0.05, 2000, 20, 100000];
+    const lx = (v) => area.left + (Math.log10(v) - Math.log10(x0)) / (Math.log10(x1) - Math.log10(x0)) * (area.right - area.left);
+    const ly = (v) => area.bottom - (Math.log10(v) - Math.log10(y0)) / (Math.log10(y1) - Math.log10(y0)) * (area.bottom - area.top);
+    for (let e = Math.ceil(Math.log10(y0)); e <= Math.log10(y1); e++) {
+      const v = 10 ** e, y = ly(v);
+      node(svg, "line", { x1: area.left, x2: area.right, y1: y, y2: y, class: "grid" });
+      node(svg, "text", { x: area.left - 6, y: y + 4, "text-anchor": "end", class: "tick" }, v >= 1000 ? `${v / 1000}T` : `${v}G`);
+    }
+    for (let e = Math.ceil(Math.log10(x0)); e <= Math.log10(x1); e++) {
+      const v = 10 ** e;
+      node(svg, "text", { x: lx(v), y: area.bottom + 18, "text-anchor": "middle", class: "tick" }, String(v));
+    }
+    node(svg, "text", { x: area.right, y: area.bottom + 32, "text-anchor": "end", class: "tick" }, "FLOP per byte of DRAM traffic");
+    const mem = spec.roofs.memGBs;
+    const dashed = spec.roofs.memSpecGBs;
+    node(svg, "line", { x1: lx(x0), y1: ly(dashed * x0), x2: lx(y1 / dashed), y2: ly(y1), class: "grid", "stroke-dasharray": "4 4" });
+    for (const c of spec.roofs.compute) {
+      const ridge = c.gflops / mem;
+      node(svg, "polyline", { points: `${lx(x0)},${ly(mem * x0)} ${lx(ridge)},${ly(c.gflops)} ${lx(x1)},${ly(c.gflops)}`,
+        class: "series-line", style: "stroke:var(--series-2);stroke-width:1.5;fill:none" });
+      node(svg, "text", { x: area.right - 4, y: ly(c.gflops) - 6, "text-anchor": "end", class: "label" }, `${c.name} ${full(c.gflops / 1000)} TFLOPS`);
+    }
+    node(svg, "text", { x: lx(0.3), y: ly(mem * 0.3) - 10, class: "label", transform: `rotate(-24 ${lx(0.3)} ${ly(mem * 0.3) - 10})` }, `${mem} GB/s`);
+    spec.points.forEach((p) => {
+      const slot = p.bound === "memory" ? 1 : 2;
+      const dot = node(svg, "circle", { cx: lx(p.ai), cy: ly(p.gflops), r: 5, class: "dot", style: `fill:var(--series-${slot})`,
+        "aria-label": `${p.name}: ${p.ai} FLOP/B, ${full(p.gflops)} GFLOPS, ${p.bound}-bound, ${p.pct}% of roof` });
+      hoverable(dot, () => showTip(tip, figure, p.name, [
+        { slot, name: "FLOP/byte", value: String(p.ai) },
+        { slot, name: "achieved", value: `${full(p.gflops)} GFLOPS` },
+        { slot, name: `${p.bound}-bound`, value: `${p.pct}% of roof` }], lx(p.ai), ly(p.gflops)), () => { tip.hidden = true; });
+    });
+  }
+
   const maxOf = (spec) => Math.max(...spec.series.flatMap((s) => s.values));
   const plot = (spec, width, right) => ({ left: 44, right: width - right, top: 24, bottom: HEIGHT - 30 });
   const scale = (area, top) => (v) => area.bottom - (v / top) * (area.bottom - area.top);
@@ -175,7 +214,7 @@
     const svg = node(holder, "svg", { width, height: HEIGHT, viewBox: `0 0 ${width} ${HEIGHT}` });
     const tip = figure.querySelector(".tip");
     tip.hidden = true;
-    (spec.type === "line" ? drawLine : drawBars)(svg, spec, width, tip, figure);
+    ({ line: drawLine, roofline: drawRoofline }[spec.type] || drawBars)(svg, spec, width, tip, figure);
   }
 
   for (const figure of document.querySelectorAll("[data-chart]")) {
@@ -184,7 +223,7 @@
     spec.series.forEach((series, s) => {
       const item = document.createElement("span");
       const key = document.createElement("i");
-      key.className = spec.type === "line" ? "key-line" : "key-box";
+      key.className = spec.type === "bars" ? "key-box" : "key-line";
       key.style.background = `var(--series-${s + 1})`;
       item.append(key, document.createTextNode(series.name));
       legend.appendChild(item);
