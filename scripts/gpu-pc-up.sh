@@ -75,8 +75,14 @@ done
 for u in docker munge slurmctld slurmd gg-nightly.timer; do printf '%s|%s\n' "$u" "$(systemctl is-active $u)"; done
 EOF
 )
+# On demand: vLLM runs when you work on inference; the rest only for the nightly benchmark
+# (regress/gpu-stack.sh). Stopped is normal in --check; full mode starts them all.
+ON_DEMAND=" vllm-chat gophergrid-scheduler-2-1 gophergrid-gpu-worker-1 gophergrid-cpu-worker-1 obs-dcgm-exporter "
 while IFS='|' read -r n s; do
   [[ -z "$n" ]] && continue
+  if (( CHECK_ONLY )) && [[ -z "$s" && "$ON_DEMAND" == *" $n "* ]]; then
+    ok "$(printf '%-26s %s' "$n" "off (on demand, nightly only)")"; continue
+  fi
   case "$s" in
     Up*|active) ok "$(printf '%-26s %s' "$n" "$s")" ;;
     *)          bad "$(printf '%-26s %s' "$n" "${s:-not running}")" ;;
@@ -86,11 +92,19 @@ done <<< "$containers"
 
 echo "== Over the tailnet ($TS_IP)"
 code() { curl -s -o /dev/null -m 8 -w '%{http_code}' "$@"; }
-c=$(code "http://$TS_IP:8000/health");     [[ $c == 200 ]] && ok "vLLM /health 200" || bad "vLLM /health $c"
-c=$(code "http://$TS_IP:8000/v1/models");  [[ $c == 401 ]] && ok "vLLM /v1/models 401 without a key (auth on)" || bad "vLLM /v1/models $c, expected 401"
+c=$(code "http://$TS_IP:8000/health")
+if [[ $c == 000 ]] && (( CHECK_ONLY )); then
+  ok "vLLM off (on demand; the gateway uses its Workers AI fallback)"
+else
+  [[ $c == 200 ]] && ok "vLLM /health 200" || bad "vLLM /health $c"
+  c=$(code "http://$TS_IP:8000/v1/models"); [[ $c == 401 ]] && ok "vLLM /v1/models 401 without a key (auth on)" || bad "vLLM /v1/models $c, expected 401"
+fi
 c=$(code "http://$TS_IP:9090/-/ready");    [[ $c == 200 ]] && ok "Prometheus ready" || bad "Prometheus $c"
 for p in 8091 9102 9103; do
-  c=$(code "http://$TS_IP:$p/metrics"); [[ $c == 200 ]] && ok "GopherGrid :$p metrics" || bad "GopherGrid :$p $c"
+  c=$(code "http://$TS_IP:$p/metrics")
+  if [[ $c == 200 ]]; then ok "GopherGrid :$p metrics"
+  elif (( CHECK_ONLY )); then ok "GopherGrid :$p off (on demand, nightly only)"
+  else bad "GopherGrid :$p $c"; fi
 done
 
 echo "== Public"

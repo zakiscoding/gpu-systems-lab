@@ -68,3 +68,22 @@ systemctl daemon-reload && systemctl enable --now gg-nightly.timer
 cd observability && docker compose up -d node-exporter && curl -X POST localhost:9090/-/reload
 systemctl start gg-nightly.service     # run once now
 ```
+
+## On-demand GPU stack
+
+Since 2026-11-14 the GopherGrid containers on the GPU PC (`scheduler-2`, `gpu-worker`, `cpu-worker`) and the DCGM
+exporter are stopped between runs. The [`on-demand.conf`](gg-nightly.on-demand.conf) drop-in has the nightly job start
+them with [`gpu-stack.sh up`](gpu-stack.sh), run the benchmark, then stop them with `gpu-stack.sh down`, even if the
+benchmark fails. If they were already running when the job started (you're working on the PC), they're left running.
+Prometheus and node-exporter stay on all the time, because the result reaches the iMac through them and the regression
+alerts are evaluated there. To bring everything up for a work session, run `scripts/gpu-pc-up.sh` from the laptop.
+
+```bash
+install -m 755 regress/gpu-stack.sh /opt/gg-nightly/gpu-stack.sh
+install -D -m 644 regress/gg-nightly.on-demand.conf /etc/systemd/system/gg-nightly.service.d/on-demand.conf
+systemctl daemon-reload
+```
+
+Tested 2026-11-14 starting with all four stopped: they started, the benchmark ran (66.2 TFLOPS FP16, no regressions),
+they stopped again, and the result showed up in both the GPU PC's and the iMac's Prometheus. Remove the drop-in to keep
+them up all the time.
