@@ -1,0 +1,12 @@
+(APIServer pid=26) INFO 11-14 03:58:31 [api_utils.py:347] 
+(APIServer pid=26) INFO 11-14 03:58:31 [api_utils.py:347]        █     █     █▄   ▄█
+(APIServer pid=26) INFO 11-14 03:58:31 [api_utils.py:347]  ▄▄ ▄█ █     █     █ ▀▄▀ █  version 0.32.0
+(APIServer pid=26) INFO 11-14 03:58:31 [api_utils.py:347]   █▄█▀ █     █     █     █  model   Qwen/Qwen2.5-1.5B-Instruct
+(APIServer pid=26) INFO 11-14 03:58:31 [api_utils.py:347]    ▀▀  ▀▀▀▀▀ ▀▀▀▀▀ ▀     ▀
+(APIServer pid=26) INFO 11-14 03:58:31 [api_utils.py:347] 
+(APIServer pid=26) INFO 11-14 03:58:31 [api_utils.py:286] non-default args: {'model_tag': 'Qwen/Qwen2.5-1.5B-Instruct', 'host': '127.0.0.1', 'model': 'Qwen/Qwen2.5-1.5B-Instruct', 'dtype': 'float16', 'max_model_len': 4096, 'generation_config': 'vllm', 'gpu_memory_utilization': 0.8, 'enable_prefix_caching': False}
+(APIServer pid=26) INFO 11-14 03:58:31 [arg_utils.py:916] HF_HUB_OFFLINE is True, replace model_id [Qwen/Qwen2.5-1.5B-Instruct] to model_path [/root/.cache/huggingface/hub/models--Qwen--Qwen2.5-1.5B-Instruct/snapshots/989aa7980e4cf806f80c7fef2b1adb7bc71aa306]
+(APIServer pid=26) INFO 11-14 03:58:40 [model.py:733] Resolved architecture: Qwen2ForCausalLM
+(APIServer pid=26) WARNING 11-14 03:58:40 [model.py:2498] Casting torch.bfloat16 to torch.float16.
+(APIServer pid=26) INFO 11-14 03:58:40 [model.py:2152] Using max model len 4096
+(APIServer pid=26) INFO 11-14 03:58:40 [kernel.py:467] Final IR op priority after setting platform defaults: IrOpPriorityConfig(rms_norm=['native'], fused_add_rms_norm=['native'], gelu_and_mul_sparse=['triton', 'native'])

@@ -79,6 +79,13 @@
     axes(svg, area, top, spec.labels, xOf);
     const hair = node(svg, "line", { y1: area.top, y2: area.bottom, class: "crosshair", visibility: "hidden" });
 
+    const last = spec.labels.length - 1;
+    // Series names sit at the right end of each line; push them apart when lines end close together.
+    const ends = spec.series.map((series, s) => ({ s, y: area.y(series.values[last]) + 4 }))
+      .sort((a, b) => a.y - b.y);
+    for (let i = 1; i < ends.length; i++) ends[i].y = Math.max(ends[i].y, ends[i - 1].y + 14);
+    const peaks = []; // value labels already drawn, so close ones are skipped (the tooltip has every value)
+
     spec.series.forEach((series, s) => {
       const slot = s + 1;
       const points = series.values.map((v, i) => `${xOf(i)},${area.y(v)}`).join(" ");
@@ -86,13 +93,18 @@
       series.values.forEach((v, i) => {
         node(svg, "circle", { cx: xOf(i), cy: area.y(v), r: 4, class: "dot", style: `fill:var(--series-${slot})` });
       });
-      const last = series.values.length - 1;
-      node(svg, "text", { x: xOf(last) + 10, y: area.y(series.values[last]) + 4, class: "label" }, series.name);
-      const peak = series.values.indexOf(Math.max(...series.values));
-      node(svg, "text", {
-        x: xOf(peak), y: area.y(series.values[peak]) - 12, "text-anchor": "middle", class: "value",
-      }, full(series.values[peak]));
+      node(svg, "text", { x: xOf(last) + 10, y: ends.find((e) => e.s === s).y, class: "label" }, series.name);
     });
+    // Peak values, highest series first: when two would collide, the one sitting on top keeps its label.
+    spec.series.map((series) => Math.max(...series.values)).map((v, s) => ({ v, s }))
+      .sort((a, b) => b.v - a.v)
+      .forEach(({ v, s }) => {
+        const at = { x: xOf(spec.series[s].values.indexOf(v)), y: area.y(v) - 12 };
+        if (peaks.every((p) => Math.abs(p.x - at.x) > 40 || Math.abs(p.y - at.y) > 16)) {
+          peaks.push(at);
+          node(svg, "text", { x: at.x, y: at.y, "text-anchor": "middle", class: "value" }, full(v));
+        }
+      });
 
     spec.labels.forEach((label, i) => {
       const band = node(svg, "rect", {
