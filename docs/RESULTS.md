@@ -187,6 +187,14 @@ GopherGrid `benchmark` job. Output tokens/s, and the share of drafted tokens the
   7B model with a 0.5B draft, which doesn't fit this card in FP16. Throughput here is higher than in
   the table above because these prompts are short, so don't compare the two tables directly.
 
+### vLLM vs SGLang vs TensorRT-LLM, FlashAttention vs FlashInfer ([serving/engines/](../serving/engines/README.md))
+
+Five configurations in one window, same client, Qwen2.5-1.5B, 0 failed requests. Peak throughput: SGLang 5,243
+tok/s (at 256 in flight, TTFT p50 3 s), vLLM 5,046, TensorRT-LLM 4,584. **Under a TTFT p95 ≤ 1 s / TPOT p95
+≤ 30 ms target: vLLM 3,048 tok/s, TensorRT-LLM 2,518, SGLang 1,516.** SGLang captured decode CUDA graphs only
+up to batch 8 at an 80% memory fraction, so it ran eagerly at 16–128 requests. Attention backend
+(FlashAttention vs FlashInfer) moved vLLM by under 5%.
+
 ### NVIDIA serving stack: Triton + TensorRT-LLM vs vLLM ([serving/triton/](../serving/triton/README.md))
 
 Qwen2.5-1.5B (bf16) on the RTX 5070, same client, same prompts (512 in / 256 out) and the same 171,360-token KV

@@ -1,0 +1,57 @@
+[17:09:08] WINDOW START: stopping vllm-chat (user-approved in the items-6-21 session)
+[17:09:22] vllm-fa: starting
+[17:13:04] vllm-fa: up at http://127.0.0.1:8010
+[bench]   160.3 out tok/s | TTFT p50/p95 34.54/36.29 ms | E2E p50/p95 1589.71/1640.69 ms | failed 0
+[bench]   549.7 out tok/s | TTFT p50/p95 103.75/303.13 ms | E2E p50/p95 1812.36/2050.24 ms | failed 0
+[bench]   1889.0 out tok/s | TTFT p50/p95 256.63/449.41 ms | E2E p50/p95 2173.36/2289.12 ms | failed 0
+[bench]   3021.6 out tok/s | TTFT p50/p95 283.16/849.77 ms | E2E p50/p95 2657.35/3207.28 ms | failed 0
+[bench]   4260.3 out tok/s | TTFT p50/p95 397.77/1443.0 ms | E2E p50/p95 3780.43/4892.51 ms | failed 0
+[bench]   5029.9 out tok/s | TTFT p50/p95 451.47/2779.23 ms | E2E p50/p95 6534.72/8752.76 ms | failed 0
+[bench]   4669.7 out tok/s | TTFT p50/p95 685.34/6174.68 ms | E2E p50/p95 14187.43/19489.42 ms | failed 0
+[17:19:57] vllm-fa: done
+[17:19:57] vllm-fi: starting
+[17:24:18] vllm-fi: up at http://127.0.0.1:8010
+[bench]   165.5 out tok/s | TTFT p50/p95 33.24/51.41 ms | E2E p50/p95 1542.58/1561.3 ms | failed 0
+[bench]   577.5 out tok/s | TTFT p50/p95 101.67/266.84 ms | E2E p50/p95 1731.77/1898.85 ms | failed 0
+[bench]   1869.3 out tok/s | TTFT p50/p95 267.82/577.82 ms | E2E p50/p95 2122.94/2375.29 ms | failed 0
+[bench]   3048.5 out tok/s | TTFT p50/p95 285.42/791.61 ms | E2E p50/p95 2647.04/3132.99 ms | failed 0
+[bench]   4234.9 out tok/s | TTFT p50/p95 401.13/1504.68 ms | E2E p50/p95 3800.76/4964.88 ms | failed 0
+[bench]   5045.7 out tok/s | TTFT p50/p95 551.37/2815.58 ms | E2E p50/p95 6482.86/8748.95 ms | failed 0
+[bench]   4729.4 out tok/s | TTFT p50/p95 694.09/6058.89 ms | E2E p50/p95 14176.27/19064.95 ms | failed 0
+[17:30:07] vllm-fi: done
+[17:30:07] sglang-fi: starting
+[17:33:59] sglang-fi: up at http://127.0.0.1:30000
+[bench]   171.6 out tok/s | TTFT p50/p95 34.43/78.14 ms | E2E p50/p95 1480.27/1527.13 ms | failed 0
+[bench]   590.3 out tok/s | TTFT p50/p95 104.26/190.23 ms | E2E p50/p95 1709.65/1809.69 ms | failed 0
+[bench]   832.1 out tok/s | TTFT p50/p95 290.89/612.08 ms | E2E p50/p95 4888.31/5140.68 ms | failed 0
+[bench]   1516.2 out tok/s | TTFT p50/p95 434.98/758.41 ms | E2E p50/p95 5389.68/5493.13 ms | failed 0
+[bench]   2588.0 out tok/s | TTFT p50/p95 831.38/1475.7 ms | E2E p50/p95 6283.88/6499.43 ms | failed 0
+[bench]   4117.1 out tok/s | TTFT p50/p95 1532.97/2810.95 ms | E2E p50/p95 7915.81/8081.04 ms | failed 0
+[bench]   5117.8 out tok/s | TTFT p50/p95 2998.8/5382.38 ms | E2E p50/p95 12715.19/13380.3 ms | failed 0
+[17:40:21] sglang-fi: done
+[17:40:21] sglang-triton: starting
+[17:42:14] sglang-triton: up at http://127.0.0.1:30000
+[bench]   174.0 out tok/s | TTFT p50/p95 33.02/35.18 ms | E2E p50/p95 1466.31/1487.23 ms | failed 0
+[bench]   594.3 out tok/s | TTFT p50/p95 102.72/249.81 ms | E2E p50/p95 1685.28/1835.1 ms | failed 0
+[bench]   767.5 out tok/s | TTFT p50/p95 281.87/611.82 ms | E2E p50/p95 5283.11/5544.2 ms | failed 0
+[bench]   1381.7 out tok/s | TTFT p50/p95 465.99/811.16 ms | E2E p50/p95 5883.75/6065.3 ms | failed 0
+[bench]   2421.5 out tok/s | TTFT p50/p95 838.65/1445.9 ms | E2E p50/p95 6721.56/6928.86 ms | failed 0
+[bench]   3883.4 out tok/s | TTFT p50/p95 1531.65/2816.62 ms | E2E p50/p95 8387.54/8641.06 ms | failed 0
+[bench]   5242.6 out tok/s | TTFT p50/p95 2917.32/5328.44 ms | E2E p50/p95 12458.0/12893.25 ms | failed 0
+[17:48:28] sglang-triton: done
+[17:48:29] trtllm: starting
+[17:49:19] trtllm: up at http://127.0.0.1:9000
+[bench]   146.4 out tok/s | TTFT p50/p95 34.07/35.89 ms | E2E p50/p95 1745.62/1781.25 ms | failed 0
+[bench]   502.9 out tok/s | TTFT p50/p95 102.04/119.14 ms | E2E p50/p95 2033.93/2045.53 ms | failed 0
+[bench]   1608.7 out tok/s | TTFT p50/p95 379.3/545.76 ms | E2E p50/p95 2506.89/2669.05 ms | failed 0
+[bench]   2517.9 out tok/s | TTFT p50/p95 553.07/905.87 ms | E2E p50/p95 3193.82/3313.71 ms | failed 0
+[bench]   3579.1 out tok/s | TTFT p50/p95 957.95/1675.36 ms | E2E p50/p95 4501.22/4689.93 ms | failed 0
+[bench]   4456.9 out tok/s | TTFT p50/p95 1685.64/2966.66 ms | E2E p50/p95 7374.04/7769.35 ms | failed 0
+[bench]   4584.0 out tok/s | TTFT p50/p95 1136.1/7907.55 ms | E2E p50/p95 13153.12/19810.57 ms | failed 0
+[17:55:32] trtllm: done
+[17:55:32] restore: starting vllm-chat
+[17:56:42] restore: vllm-chat healthy, HF cache mount: /root/.cache/huggingface (expect /root/.cache/huggingface)
+[17:56:42] verify: local /health 200
+[17:56:42] verify: tailnet :8000 /v1/models without key 401 (401 expected)
+[17:56:42] verify: gateway /health 200
+[17:56:42] WINDOW END
