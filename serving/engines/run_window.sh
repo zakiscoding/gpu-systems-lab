@@ -41,7 +41,7 @@ restore() {
   for _ in $(seq 120); do
     [ "$(docker inspect -f '{{.State.Health.Status}}' vllm-chat 2>/dev/null)" = healthy ] && break; sleep 5
   done
-  log "restore: vllm-chat $(docker inspect -f '{{.State.Health.Status}}' vllm-chat 2>/dev/null)"
+  log "restore: vllm-chat $(docker inspect -f '{{.State.Health.Status}}' vllm-chat 2>/dev/null), HF cache mount: $(docker inspect -f '{{range .Mounts}}{{if eq .Destination "/root/.cache/huggingface"}}{{.Source}}{{end}}{{end}}' vllm-chat) (expect /root/.cache/huggingface)"
   log "verify: local /health $(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8000/health)"
   log "verify: tailnet :8000 /v1/models without key $(curl -s -o /dev/null -w '%{http_code}' http://100.88.71.33:8000/v1/models) (401 expected)"
   log "verify: gateway /health $(curl -s -o /dev/null -w '%{http_code}' https://vllm-gateway.vllm-gateway.workers.dev/health)"
